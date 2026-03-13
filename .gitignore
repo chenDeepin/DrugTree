@@ -83,6 +83,7 @@ tests/
 
 # Scripts folder (local only)
 scripts/
+!scripts/build_frontend_embeds.py
 
 # Documentation folder (local only)
 docs/
