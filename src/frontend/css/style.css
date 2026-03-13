@@ -1,15 +1,31 @@
-/* DrugTree MVP - Main Stylesheet with ATC Categories */
+/* DrugTree - Central Body Atlas Stylesheet */
+/* Dark atmospheric theme with luminous body hero */
 
+/* ============================================
+   CSS Variables - ATC Category Colors & Theme
+   ============================================ */
 :root {
-  /* Base colors */
-  --primary-color: #3498db;
-  --secondary-color: #2ecc71;
-  --background: #f8f9fa;
-  --card-bg: #ffffff;
-  --text-primary: #2c3e50;
-  --text-secondary: #7f8c8d;
-  --border-color: #e0e0e0;
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* Base theme colors - Dark Atlas */
+  --bg-base: #0f172a;
+  --bg-surface: #1a2332;
+  --bg-card: #1e2a3a;
+  --bg-elevated: #243447;
+  
+  /* Text colors */
+  --text-primary: #e5eefc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  
+  /* Accent colors */
+  --accent-primary: #3b82f6;
+  --accent-secondary: #22c55e;
+  --accent-glow: rgba(94, 160, 255, 0.22);
+  
+  /* Border and shadow */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --shadow-soft: 0 20px 80px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 28px rgba(94, 160, 255, 0.22);
   
   /* ATC Category Colors - Level 1 */
   --atc-a: #27ae60;  /* Alimentary & Metabolism - Green */
@@ -26,376 +42,520 @@
   --atc-r: #00bcd4;  /* Respiratory - Cyan */
   --atc-s: #3f51b5;  /* Sensory Organs - Indigo */
   --atc-v: #9e9e9e;  /* Various - Grey */
+  
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+  
+  /* Typography */
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.85rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
 }
 
+/* ============================================
+   Base Reset & Body
+   ============================================ */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: var(--background);
+  margin: 0;
+  font-family: var(--font-family);
+  background: var(--bg-base);
   color: var(--text-primary);
   line-height: 1.6;
+  min-height: 100vh;
 }
 
-/* Header */
-header {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
-  padding: 1.5rem;
+/* ============================================
+   App Shell
+   ============================================ */
+.app-shell {
+  min-height: 100vh;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+}
+
+/* ============================================
+   Top Bar
+   ============================================ */
+.topbar {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
   align-items: center;
-  box-shadow: var(--shadow);
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(10, 14, 30, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.header-content h1 {
-  font-size: 2rem;
-  margin-bottom: 0.25rem;
+.brand {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
-.header-content p {
-  opacity: 0.9;
-  font-size: 0.9rem;
+.brand-icon {
+  font-size: 1.4rem;
+}
+
+.search-wrap {
+  position: relative;
+  max-width: 500px;
+}
+
+.search-wrap input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  padding-left: 40px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  transition: all 0.2s ease;
+}
+
+.search-wrap input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-wrap input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.clear-btn {
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 /* Mode Switch */
 .mode-switch {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-xs);
+  background: var(--bg-surface);
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
 }
 
 .mode-btn {
-  padding: 0.5rem 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border-radius: 20px;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
   cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.3s ease;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .mode-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
 }
 
 .mode-btn.active {
-  background: white;
-  color: var(--primary-color);
-  border-color: white;
+  background: var(--accent-primary);
+  color: white;
 }
 
-/* Main Layout */
-main {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  max-width: 1600px;
-  margin: 0 auto;
-}
-
-/* Filters Section */
-.filters {
-  background: var(--card-bg);
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  margin-bottom: 1rem;
-}
-
-.filters h3 {
-  margin-bottom: 0.75rem;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.filter-buttons {
+/* ============================================
+   Main Page Layout
+   ============================================ */
+.page-main {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-lg);
+  flex: 1;
 }
 
-.filter-btn {
-  padding: 0.6rem 1rem;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.3s ease;
-  background: var(--card-bg);
-  color: var(--text-primary);
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.filter-btn:hover {
-  transform: translateX(4px);
-  box-shadow: var(--shadow);
-}
-
-.filter-btn.active {
-  color: white;
-  border-color: transparent;
-}
-
-.filter-btn .atc-code {
-  font-weight: bold;
-  font-size: 0.9rem;
-  min-width: 20px;
-}
-
-/* ATC Category Active States */
-.filter-btn[data-category="all"].active { background: var(--text-primary); }
-.filter-btn[data-category="A"].active { background: var(--atc-a); }
-.filter-btn[data-category="B"].active { background: var(--atc-b); }
-.filter-btn[data-category="C"].active { background: var(--atc-c); }
-.filter-btn[data-category="D"].active { background: var(--atc-d); }
-.filter-btn[data-category="G"].active { background: var(--atc-g); }
-.filter-btn[data-category="H"].active { background: var(--atc-h); }
-.filter-btn[data-category="J"].active { background: var(--atc-j); }
-.filter-btn[data-category="L"].active { background: var(--atc-l); }
-.filter-btn[data-category="M"].active { background: var(--atc-m); }
-.filter-btn[data-category="N"].active { background: var(--atc-n); }
-.filter-btn[data-category="P"].active { background: var(--atc-p); }
-.filter-btn[data-category="R"].active { background: var(--atc-r); }
-.filter-btn[data-category="S"].active { background: var(--atc-s); }
-.filter-btn[data-category="V"].active { background: var(--atc-v); }
-
-/* Search */
-.search-container {
-  margin-top: 1rem;
-}
-
-.search-container input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-}
-
-.search-container input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-}
-
-/* Body Map Container */
-.body-map-container {
-  background: var(--card-bg);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  padding: 1rem;
-  position: sticky;
-  top: 1.5rem;
-}
-
-.body-map-container h2 {
-  text-align: center;
-  margin-bottom: 0.5rem;
-  color: var(--text-primary);
-  font-size: 1.1rem;
-}
-
-.body-map-container .nav-hint {
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  margin-bottom: 0.75rem;
-}
-
-/* Human Body Map SVG */
-.human-body-map {
-  width: 100%;
-  max-width: 280px;
-  margin: 0 auto;
+/* ============================================
+   Atlas Hero Section
+   ============================================ */
+.atlas-hero {
+  min-height: 72vh;
   display: flex;
   justify-content: center;
+  align-items: center;
+  padding: var(--space-lg) var(--space-lg) var(--space-sm);
 }
 
-.human-body-map svg {
-  width: 100%;
-  height: auto;
+.atlas-stage {
+  width: min(1200px, 96vw);
+  min-height: 68vh;
+  position: relative;
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at center, rgba(68, 120, 255, 0.18), transparent 35%),
+    linear-gradient(180deg, #11182d 0%, #0b1020 100%);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
 }
 
+/* ============================================
+   Atlas Body Wrap
+   ============================================ */
+.atlas-body-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.atlas-body {
+  width: min(420px, 36vw);
+  max-height: 78%;
+  filter: drop-shadow(0 0 28px rgba(94, 160, 255, 0.22));
+  pointer-events: auto;
+  opacity: 0.92;
+}
+
+.body-hotspots {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+/* Body region styling */
 .body-region {
   cursor: pointer;
   transition: all 0.3s ease;
-  fill: #e8e8e8;
-  stroke: #ccc;
+  fill: rgba(255, 255, 255, 0.06);
+  stroke: rgba(255, 255, 255, 0.15);
   stroke-width: 1;
 }
 
 .body-region:hover {
-  fill: #d0d0d0;
+  fill: rgba(255, 255, 255, 0.12);
   stroke-width: 2;
+  stroke: rgba(94, 160, 255, 0.4);
 }
 
 .body-region.active {
   stroke-width: 3;
-  stroke: #333;
+  stroke: var(--accent-primary);
+  fill: rgba(59, 130, 246, 0.15);
 }
 
 .body-region.highlighted {
-  filter: brightness(1.2);
+  fill: rgba(59, 130, 246, 0.2);
+  stroke: rgba(59, 130, 246, 0.5);
 }
 
-.body-region-label {
-  text-align: center;
-  padding: 0.5rem;
-  margin-top: 0.5rem;
-  background: var(--background);
-  border-radius: 6px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  min-height: 2.5rem;
-}
-
-.body-region-label.active {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.body-preview {
+/* ============================================
+   ATC Orbit Layer - Floating Tags
+   ============================================ */
+.atc-orbit-layer {
   position: absolute;
-  background: var(--card-bg);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 100;
-  min-width: 200px;
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  inset: 0;
   pointer-events: none;
 }
 
-.body-preview.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.body-preview-title {
+.atc-tag {
+  position: absolute;
+  padding: 10px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-medium);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
   font-weight: 600;
-  margin-bottom: 0.25rem;
-  color: var(--text-primary);
-}
-
-.body-preview-count {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.quick-nav {
-  text-align: center;
-}
-
-.nav-hint {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
-}
-
-.category-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-  font-size: 0.75rem;
-}
-
-.stat-item {
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem;
-  background: var(--background);
-  border-radius: 4px;
+  gap: 6px;
 }
 
-.stat-dot {
-  width: 12px;
-  height: 12px;
+.atc-tag .atc-code {
+  font-weight: 700;
+  font-size: var(--font-size-base);
+}
+
+.atc-tag .atc-name {
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+.atc-tag:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.atc-tag.is-active {
+  box-shadow: 0 0 22px currentColor;
+  transform: scale(1.04);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: currentColor;
+}
+
+.atc-tag.is-muted {
+  opacity: 0.35;
+}
+
+/* ATC tag category colors */
+.atc-tag[data-category="A"] { color: var(--atc-a); }
+.atc-tag[data-category="B"] { color: var(--atc-b); }
+.atc-tag[data-category="C"] { color: var(--atc-c); }
+.atc-tag[data-category="D"] { color: var(--atc-d); }
+.atc-tag[data-category="G"] { color: var(--atc-g); }
+.atc-tag[data-category="H"] { color: var(--atc-h); }
+.atc-tag[data-category="J"] { color: var(--atc-j); }
+.atc-tag[data-category="L"] { color: var(--atc-l); }
+.atc-tag[data-category="M"] { color: var(--atc-m); }
+.atc-tag[data-category="N"] { color: var(--atc-n); }
+.atc-tag[data-category="P"] { color: var(--atc-p); }
+.atc-tag[data-category="R"] { color: var(--atc-r); }
+.atc-tag[data-category="S"] { color: var(--atc-s); }
+.atc-tag[data-category="V"] { color: var(--atc-v); }
+
+/* ATC Tag Positioning (14 categories) */
+.atc-tag[data-category="N"] { top: 10%; left: 20%; }
+.atc-tag[data-category="S"] { top: 12%; right: 18%; }
+.atc-tag[data-category="R"] { top: 28%; right: 24%; }
+.atc-tag[data-category="C"] { top: 30%; left: 26%; }
+.atc-tag[data-category="B"] { top: 40%; right: 14%; }
+.atc-tag[data-category="L"] { top: 40%; left: 14%; }
+.atc-tag[data-category="D"] { top: 52%; right: 20%; }
+.atc-tag[data-category="H"] { top: 52%; right: 8%; }
+.atc-tag[data-category="A"] { top: 62%; left: 24%; }
+.atc-tag[data-category="G"] { top: 66%; right: 20%; }
+.atc-tag[data-category="M"] { bottom: 16%; left: 18%; }
+.atc-tag[data-category="P"] { bottom: 10%; left: 26%; }
+.atc-tag[data-category="V"] { bottom: 10%; right: 22%; }
+.atc-tag[data-category="J"] { top: 44%; left: 72%; }
+
+/* Atlas Hint */
+.atlas-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-align: center;
+  opacity: 0.7;
+}
+
+/* ============================================
+   Active Filters Bar
+   ============================================ */
+.active-filters-bar {
+  width: min(1200px, 96vw);
+  margin: 0 auto;
+  padding: var(--space-sm) var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  min-height: 44px;
+}
+
+.active-filters-bar:empty {
+  min-height: 0;
+  padding: 0;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.filter-chip .chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 0.2s ease;
 }
 
-.stat-dot.atc-a { background: var(--atc-a); }
-.stat-dot.atc-b { background: var(--atc-b); }
-.stat-dot.atc-c { background: var(--atc-c); }
-.stat-dot.atc-d { background: var(--atc-d); }
-.stat-dot.atc-g { background: var(--atc-g); }
-.stat-dot.atc-h { background: var(--atc-h); }
-.stat-dot.atc-j { background: var(--atc-j); }
-.stat-dot.atc-l { background: var(--atc-l); }
-.stat-dot.atc-m { background: var(--atc-m); }
-.stat-dot.atc-n { background: var(--atc-n); }
-.stat-dot.atc-p { background: var(--atc-p); }
-.stat-dot.atc-r { background: var(--atc-r); }
-.stat-dot.atc-s { background: var(--atc-s); }
-.stat-dot.atc-v { background: var(--atc-v); }
-
-/* Drug List Container */
-.drug-list-container {
-  background: var(--card-bg);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
+.filter-chip .chip-remove:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
-.drug-list-header {
+/* ============================================
+   Results Section
+   ============================================ */
+.results-section {
+  width: min(1200px, 96vw);
+  margin: 0 auto var(--space-2xl);
+  padding: 0 var(--space-sm);
+}
+
+.results-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid var(--border-color);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.drug-count {
+.results-header h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.result-count {
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  font-size: 0.9rem;
 }
 
-/* Drug Grid */
+/* ============================================
+   Drug Grid
+   ============================================ */
 .drug-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-md);
 }
 
-/* Drug Card */
+/* ============================================
+   Drug Card
+   ============================================ */
 .drug-card {
-  background: var(--card-bg);
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
+  overflow: hidden;
+}
+
+.drug-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--atc-c);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
 }
 
 .drug-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: var(--border-medium);
+}
+
+.drug-card:hover::before {
+  opacity: 1;
 }
 
 .drug-card.selected {
-  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.3);
+  box-shadow: 0 0 0 2px var(--accent-primary);
+  border-color: var(--accent-primary);
 }
 
+/* Drug card category indicator */
+.drug-card[data-category="A"]::before { background: var(--atc-a); }
+.drug-card[data-category="B"]::before { background: var(--atc-b); }
+.drug-card[data-category="C"]::before { background: var(--atc-c); }
+.drug-card[data-category="D"]::before { background: var(--atc-d); }
+.drug-card[data-category="G"]::before { background: var(--atc-g); }
+.drug-card[data-category="H"]::before { background: var(--atc-h); }
+.drug-card[data-category="J"]::before { background: var(--atc-j); }
+.drug-card[data-category="L"]::before { background: var(--atc-l); }
+.drug-card[data-category="M"]::before { background: var(--atc-m); }
+.drug-card[data-category="N"]::before { background: var(--atc-n); }
+.drug-card[data-category="P"]::before { background: var(--atc-p); }
+.drug-card[data-category="R"]::before { background: var(--atc-r); }
+.drug-card[data-category="S"]::before { background: var(--atc-s); }
+.drug-card[data-category="V"]::before { background: var(--atc-v); }
+
+/* Drug Structure */
 .drug-structure {
   width: 100%;
   height: 140px;
-  background: #f5f5f5;
-  border-radius: 8px;
-  margin-bottom: 0.75rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -408,73 +568,52 @@ main {
 }
 
 .drug-structure .placeholder {
-  color: var(--text-secondary);
-  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
 }
 
+/* Drug Info */
 .drug-info h4 {
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  font-size: 1.05rem;
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-base);
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .drug-info .drug-class {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
   font-weight: normal;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-xs);
 }
 
 .drug-meta {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-xs);
   flex-wrap: wrap;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-xs);
 }
 
 .drug-meta span {
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  background: var(--background);
-  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
 }
 
-/* ATC Category Tags */
-.category-tag {
-  font-size: 0.7rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  color: white;
-  text-transform: capitalize;
-}
-
-.category-tag.A { background: var(--atc-a); }
-.category-tag.B { background: var(--atc-b); }
-.category-tag.C { background: var(--atc-c); }
-.category-tag.D { background: var(--atc-d); }
-.category-tag.G { background: var(--atc-g); }
-.category-tag.H { background: var(--atc-h); }
-.category-tag.J { background: var(--atc-j); }
-.category-tag.L { background: var(--atc-l); }
-.category-tag.M { background: var(--atc-m); }
-.category-tag.N { background: var(--atc-n); }
-.category-tag.P { background: var(--atc-p); }
-.category-tag.R { background: var(--atc-r); }
-.category-tag.S { background: var(--atc-s); }
-.category-tag.V { background: var(--atc-v); }
-
-/* ATC Code Badge on Card */
+/* ATC Badge */
 .atc-badge {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  font-size: 0.75rem;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  font-size: var(--font-size-xs);
   font-weight: bold;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
   color: white;
 }
 
@@ -493,24 +632,26 @@ main {
 .atc-badge.S { background: var(--atc-s); }
 .atc-badge.V { background: var(--atc-v); }
 
-/* Generation indicator */
+/* Generation Badge */
 .generation-badge {
   position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
+  top: var(--space-sm);
+  left: var(--space-sm);
   width: 24px;
   height: 24px;
-  background: var(--primary-color);
+  background: var(--accent-primary);
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   font-weight: bold;
 }
 
-/* Modal for detailed view */
+/* ============================================
+   Modal for Detailed View
+   ============================================ */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -518,10 +659,12 @@ main {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
   z-index: 1000;
   align-items: center;
   justify-content: center;
+  padding: var(--space-lg);
 }
 
 .modal-overlay.active {
@@ -529,36 +672,46 @@ main {
 }
 
 .modal-content {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 2rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
   max-width: 900px;
-  width: 95%;
+  width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
 .modal-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
+  top: var(--space-md);
+  right: var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.25rem;
   cursor: pointer;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .modal-close:hover {
+  background: var(--bg-card);
   color: var(--text-primary);
 }
 
 .modal-body {
   display: grid;
   grid-template-columns: 300px 1fr;
-  gap: 2rem;
-  margin-top: 1rem;
+  gap: var(--space-xl);
+  margin-top: var(--space-md);
 }
 
 .modal-left {
@@ -567,16 +720,18 @@ main {
 }
 
 .modal-left h3 {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .modal-structure {
   width: 100%;
   height: 280px;
-  background: #f5f5f5;
-  border-radius: 8px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -590,19 +745,19 @@ main {
 .modal-right {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .modal-info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 2px;
 }
 
 .info-item.full-width {
@@ -610,89 +765,93 @@ main {
 }
 
 .info-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
   text-transform: uppercase;
   font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .info-value {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   color: var(--text-primary);
 }
 
 .atc-link {
-  color: var(--primary-color);
+  color: var(--accent-primary);
   cursor: pointer;
   text-decoration: underline;
+  transition: color 0.2s ease;
 }
 
 .atc-link:hover {
-  color: var(--secondary-color);
+  color: var(--accent-secondary);
 }
 
+/* SMILES Section */
 .modal-smiles-section h3 {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .modal-smiles-section code {
   display: block;
-  padding: 1rem;
-  background: #f5f5f5;
-  border-radius: 8px;
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
   word-break: break-all;
-  font-size: 0.8rem;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: var(--font-size-xs);
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
 }
 
 .smiles-actions {
-  margin-top: 0.5rem;
+  margin-top: var(--space-sm);
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .copy-btn {
-  padding: 0.5rem 1rem;
-  background: var(--primary-color);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-primary);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .copy-btn:hover {
-  background: var(--secondary-color);
+  background: var(--accent-secondary);
 }
 
-.modal-tip {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-
+/* Genealogy Section */
 .modal-genealogy {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--background);
-  border-radius: 8px;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
 }
 
 .modal-genealogy h3 {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .genealogy-content {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .genealogy-parents,
@@ -700,29 +859,31 @@ main {
 .genealogy-generation {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .genealogy-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
   min-width: 120px;
+  font-weight: 500;
 }
 
 .genealogy-value {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   color: var(--text-primary);
 }
 
 .genealogy-drug-link {
-  color: var(--primary-color);
+  color: var(--accent-primary);
   cursor: pointer;
   text-decoration: underline;
-  margin-right: 0.5rem;
+  margin-right: var(--space-xs);
+  transition: color 0.2s ease;
 }
 
 .genealogy-drug-link:hover {
-  color: var(--secondary-color);
+  color: var(--accent-secondary);
 }
 
 .genealogy-drug-link::after {
@@ -733,6 +894,18 @@ main {
   content: "";
 }
 
+/* Modal Tip */
+.modal-tip {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   Scientist-Only Elements
+   ============================================ */
 .scientist-only {
   display: none;
 }
@@ -741,10 +914,116 @@ body.mode-scientist .scientist-only {
   display: block;
 }
 
-/* Responsive */
+/* ============================================
+   Loading & Empty States
+   ============================================ */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl);
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-muted);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-md);
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.empty-state p {
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   Body Preview Tooltip
+   ============================================ */
+.body-preview {
+  position: absolute;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  min-width: 200px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.body-preview.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.body-preview-title {
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.body-preview-count {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   Category Tags
+   ============================================ */
+.category-tag {
+  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  color: white;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.category-tag.A { background: var(--atc-a); }
+.category-tag.B { background: var(--atc-b); }
+.category-tag.C { background: var(--atc-c); }
+.category-tag.D { background: var(--atc-d); }
+.category-tag.G { background: var(--atc-g); }
+.category-tag.H { background: var(--atc-h); }
+.category-tag.J { background: var(--atc-j); }
+.category-tag.L { background: var(--atc-l); }
+.category-tag.M { background: var(--atc-m); }
+.category-tag.N { background: var(--atc-n); }
+.category-tag.P { background: var(--atc-p); }
+.category-tag.R { background: var(--atc-r); }
+.category-tag.S { background: var(--atc-s); }
+.category-tag.V { background: var(--atc-v); }
+
+/* ============================================
+   Responsive Design
+   ============================================ */
 @media (max-width: 1000px) {
-  main {
-    grid-template-columns: 280px 1fr;
+  .topbar {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  
+  .search-wrap {
+    max-width: 100%;
+  }
+  
+  .topbar-actions {
+    justify-content: space-between;
   }
   
   .modal-body {
@@ -754,36 +1033,53 @@ body.mode-scientist .scientist-only {
   .modal-structure {
     height: 220px;
   }
+  
+  .atc-tag .atc-name {
+    display: none;
+  }
+  
+  .atc-tag {
+    padding: 8px 12px;
+  }
 }
 
 @media (max-width: 800px) {
-  main {
-    grid-template-columns: 1fr;
+  .atlas-hero {
+    min-height: 60vh;
   }
   
-  .body-map-container {
-    position: static;
+  .atlas-stage {
+    min-height: 55vh;
   }
   
-  .filter-buttons {
-    flex-direction: row;
-    flex-wrap: wrap;
+  .atlas-body {
+    width: min(300px, 50vw);
   }
   
-  .filter-btn {
-    flex: 1 1 auto;
-    text-align: center;
-    padding: 0.5rem;
+  .drug-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
   
-  .category-stats {
-    display: none;
-  }
+  /* Reposition ATC tags for smaller screens */
+  .atc-tag[data-category="N"] { top: 8%; left: 12%; }
+  .atc-tag[data-category="S"] { top: 8%; right: 12%; }
+  .atc-tag[data-category="R"] { top: 24%; right: 8%; }
+  .atc-tag[data-category="C"] { top: 24%; left: 8%; }
+  .atc-tag[data-category="B"] { top: 36%; right: 4%; }
+  .atc-tag[data-category="L"] { top: 36%; left: 4%; }
+  .atc-tag[data-category="D"] { top: 48%; right: 8%; }
+  .atc-tag[data-category="H"] { top: 48%; right: 2%; }
+  .atc-tag[data-category="A"] { top: 58%; left: 8%; }
+  .atc-tag[data-category="G"] { top: 62%; right: 8%; }
+  .atc-tag[data-category="M"] { bottom: 14%; left: 8%; }
+  .atc-tag[data-category="P"] { bottom: 8%; left: 12%; }
+  .atc-tag[data-category="V"] { bottom: 8%; right: 12%; }
+  .atc-tag[data-category="J"] { top: 42%; left: auto; right: 4%; }
 }
 
 @media (max-width: 600px) {
-  header h1 {
-    font-size: 1.5rem;
+  .brand {
+    font-size: var(--font-size-lg);
   }
   
   .drug-grid {
@@ -791,61 +1087,72 @@ body.mode-scientist .scientist-only {
   }
   
   .modal-content {
-    padding: 1rem;
+    padding: var(--space-md);
   }
   
   .modal-info-grid {
     grid-template-columns: 1fr;
   }
+  
+  .atlas-hint {
+    display: none;
+  }
 }
 
-/* Loading state */
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: var(--text-secondary);
+/* ============================================
+   Utility Classes
+   ============================================ */
+.hidden {
+  display: none !important;
 }
 
-/* Empty state */
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-secondary);
-}
-
-.empty-state-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-/* Category category indicator bar */
-.category-indicator {
+.visually-hidden {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  border-radius: 12px 12px 0 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.category-indicator.A { background: var(--atc-a); }
-.category-indicator.B { background: var(--atc-b); }
-.category-indicator.C { background: var(--atc-c); }
-.category-indicator.D { background: var(--atc-d); }
-.category-indicator.G { background: var(--atc-g); }
-.category-indicator.H { background: var(--atc-h); }
-.category-indicator.J { background: var(--atc-j); }
-.category-indicator.L { background: var(--atc-l); }
-.category-indicator.M { background: var(--atc-m); }
-.category-indicator.N { background: var(--atc-n); }
-.category-indicator.P { background: var(--atc-p); }
-.category-indicator.R { background: var(--atc-r); }
-.category-indicator.S { background: var(--atc-s); }
-.category-indicator.V { background: var(--atc-v); }
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-/* Drug card hover effect with category color */
-.drug-card:hover .category-indicator {
-  opacity: 1;
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.drug-card {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Smooth transitions for theme elements */
+* {
+  transition-property: background-color, border-color, color, opacity, transform, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* Disable transitions on page load */
+.preload * {
+  transition: none !important;
 }

@@ -25,18 +25,21 @@
 DrugTree/
 ├── docs/                    # Documentation
 │   ├── PROJECT_PLAN.md    # Full specification (2278 lines)
+│   ├── CENTRAL_BODY_ATLAS_IMPLEMENTATION.md  # UI transformation guide
 │   └── DATA_SCHEMA.md      # Data structure (if exists)
 ├── data/
 │   ├── drugs/               # Drug data files
 │   └── ontology/            # Body ontology (14 regions)
 ├── src/
 │   ├── frontend/            # Main web app
-│   │   ├── index.html     # Entry point
-│   │   ├── css/style.css  # 851 lines
+│   │   ├── index.html     # Entry point (227 lines) - Central Body Atlas layout
+│   │   ├── css/style.css  # Dark atlas theme (1158 lines)
 │   │   ├── js/
-│   │   │   ├── app.js          # Main application (766 lines)
+│   │   │   ├── app.js          # Main application (1027 lines)
 │   │   │   ├── structure.js   # RDKit.js structure viewer
 │   │   │   └── body-map.js    # Legacy body map handler
+│   │   ├── assets/
+│   │   │   └── human-body.svg  # Body map SVG
 │   │   └── data/
 │   │       ├── drugs-full.json     # 61 drugs with ATC data
 │   │       └── sample-drugs.json   # Sample data
@@ -48,14 +51,140 @@ DrugTree/
 
 ---
 
+## UI Architecture: Central Body Atlas
+
+### Overview
+The DrugTree frontend uses a **Central Body Atlas** layout where the human body is the hero visual in the center of the page, surrounded by floating ATC therapeutic category tags. This creates an immersive medical atlas experience rather than a traditional dashboard.
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Topbar (Glassmorphism)                                 │
+│  [Brand] [Search] [Clear] [Mode Switch]                 │
+├─────────────────────────────────────────────────────────┤
+│  Atlas Hero Section                                      │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │  Atlas Stage (Radial Gradient Background)         │  │
+│  │                                                    │  │
+│  │    [N] ←←←  ┌─────────────┐  →→→ [S]             │  │
+│  │    [R] ←←   │   Human     │   →→ [C]             │  │
+│  │    [L] ←←   │    Body     │   →→ [B]             │  │
+│  │    [M] ←←   │   (Glow)    │   →→ [D]             │  │
+│  │    [P] ←←   └─────────────┘   →→ [G]             │  │
+│  │    [A] ←←                     →→ [H]             │  │
+│  │    [J] ←←                     →→ [V]             │  │
+│  │                                                    │  │
+│  │  Hint: Hover tag/region to preview · Click to lock│  │
+│  └───────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────┤
+│  Active Filters Bar                                      │
+│  Active Filters: [ATC: C ✕] [Search: statin ✕]         │
+├─────────────────────────────────────────────────────────┤
+│  Results Section                                         │
+│  Matching Drugs (X results)                              │
+│  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐              │
+│  │Drug1│ │Drug2│ │Drug3│ │Drug4│ │Drug5│ ...          │
+│  └─────┘ └─────┘ └─────┘ └─────┘ └─────┘              │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Key CSS Classes
+
+#### App Shell
+- `.app-shell` - Main container with dark theme
+- `.topbar` - Glassmorphism header with search and controls
+- `.page-main` - Main content area
+
+#### Atlas Hero
+- `.atlas-hero` - Hero section container
+- `.atlas-stage` - Centered stage with radial gradient background
+- `.atlas-body-wrap` - Body map wrapper with glow effect
+- `.atlas-glow` - Soft blue-white luminous glow
+- `.human-body-map` - SVG body map container
+- `.body-hotspots` - Interactive body regions (future)
+
+#### ATC Orbit Layer
+- `.atc-orbit-layer` - Container for floating ATC tags
+- `.atc-tag` - Individual ATC category button
+- `.atc-tag.is-active` - Selected category (highlighted)
+- `.atc-tag.is-muted` - Non-selected categories (dimmed)
+- `.atc-tag.is-hovered` - Hover preview state
+- `.atc-code` - ATC letter code (e.g., "N", "C")
+- `.atc-name` - Category name (e.g., "Nervous", "Cardio")
+
+#### Active Filters
+- `.active-filters-bar` - Filter bar container
+- `.filter-chips` - Container for active filter chips
+- `.filter-chip` - Individual filter chip with remove button
+
+#### Results
+- `.results-section` - Drug results container
+- `.results-header` - Header with count
+- `.drug-grid` - Grid of drug cards
+
+### Dark Theme CSS Variables
+
+```css
+:root {
+  --bg-base: #0f172a;          /* Deep navy */
+  --bg-elevated: #1e293b;      /* Elevated surfaces */
+  --bg-surface: #334155;       /* Card backgrounds */
+  --text-primary: #f1f5f9;     /* Light text */
+  --text-secondary: #94a3b8;   /* Muted text */
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --glow-primary: rgba(59, 130, 246, 0.4);
+  
+  /* ATC Category Colors */
+  --atc-a: #27ae60;  /* Alimentary - Green */
+  --atc-b: #e74c3c;  /* Blood - Red */
+  --atc-c: #e91e63;  /* Cardiovascular - Pink */
+  --atc-d: #ff9800;  /* Dermatological - Orange */
+  --atc-g: #9c27b0;  /* Genito-urinary - Purple */
+  --atc-h: #795548;  /* Hormones - Brown */
+  --atc-j: #2196f3;  /* Anti-infectives - Blue */
+  --atc-l: #f44336;  /* Antineoplastic - Dark Red */
+  --atc-m: #607d8b;  /* Musculo-skeletal - Grey */
+  --atc-n: #673ab7;  /* Nervous - Deep Purple */
+  --atc-p: #009688;  /* Antiparasitic - Teal */
+  --atc-r: #00bcd4;  /* Respiratory - Cyan */
+  --atc-s: #3f51b5;  /* Sensory - Indigo */
+  --atc-v: #9e9e9e;  /* Various - Grey */
+}
+```
+
+### ATC Tag Positioning
+
+ATC tags are positioned absolutely around the body using CSS:
+
+```css
+.atc-tag[data-category="N"] { top: 10%; left: 20%; }   /* Nervous */
+.atc-tag[data-category="S"] { top: 12%; right: 18%; }  /* Sensory */
+.atc-tag[data-category="R"] { top: 28%; right: 24%; }  /* Respiratory */
+.atc-tag[data-category="C"] { top: 30%; left: 26%; }   /* Cardiovascular */
+.atc-tag[data-category="B"] { top: 40%; right: 14%; }  /* Blood */
+.atc-tag[data-category="L"] { top: 40%; left: 14%; }   /* Oncology */
+.atc-tag[data-category="D"] { top: 52%; right: 16%; }  /* Skin */
+.atc-tag[data-category="G"] { top: 54%; left: 16%; }   /* GU/Breast */
+.atc-tag[data-category="H"] { top: 66%; right: 18%; }  /* Hormones */
+.atc-tag[data-category="M"] { top: 68%; left: 18%; }   /* Musculoskeletal */
+.atc-tag[data-category="P"] { top: 80%; right: 20%; }  /* Parasites */
+.atc-tag[data-category="A"] { top: 82%; left: 22%; }   /* Alimentary */
+.atc-tag[data-category="J"] { bottom: 8%; right: 30%; }/* Anti-infectives */
+.atc-tag[data-category="V"] { bottom: 8%; left: 30%; } /* Various */
+```
+
+---
+
 ## Key Files
 
 ### Entry Points
 | File | Purpose | Notes |
 |------|---------|-------|
-| `src/frontend/index.html` | Main HTML entry | Open directly or serve via HTTP |
-| `src/frontend/js/app.js` | Main application | DrugTreeApp class orchestrates everything |
+| `src/frontend/index.html` | Main HTML entry (227 lines) | Central Body Atlas layout |
+| `src/frontend/js/app.js` | Main application (1027 lines) | DrugTreeApp class with new methods |
 | `src/frontend/js/structure.js` | Structure viewer | Uses RDKit.js for 2D rendering |
+| `src/frontend/css/style.css` | Dark atlas theme (1158 lines) | Complete UI styling |
 
 ### Data Files
 | File | Records | Description |
@@ -181,14 +310,22 @@ python3 -m http.server 8080
 | Method | Purpose | Key Side Effects |
 |--------|---------|-------------------|
 | `init()` | Initialize app | Loads drugs, sets up events |
-| `filterByCategory(cat)` | Filter by ATC | Updates `activeCategory` |
-| `filterByBodyRegion(region)` | Filter by body | Updates `activeBodyRegion` |
-| `switchMode(mode)` | Switch display mode | Toggles `mode`, re-reenders |
+| `filterByCategory(cat)` | Filter by ATC | Updates `activeCategory`, `updateATCTagsState()`, `updateActiveFiltersBar()` |
+| `filterByBodyRegion(region)` | Filter by body | Updates `activeBodyRegion`, calls new filter bar update |
+| `switchMode(mode)` | Switch display mode | Toggles `mode`, re-renders |
 | `initBodyMap()` | Generate body SVG | Creates interactive regions |
 | `showDrugModal(drug)` | Display modal | Shows structure + details |
 | `applyFilters()` | Combine all filters | Intersects category/body/search |
 | `getDrugBodyRegions(drug)` | Map ATC → body | Returns relevant body regions |
 | `updateGenealogy(drug)` | Show lineage | Renders parent/derived drugs |
+| `setupATCTags()` | Wire ATC tag buttons | Click/hover handlers for `.atc-tag` elements |
+| `handleATCTagHover(category, element)` | Hover preview | Adds `is-hovered`, triggers tooltip |
+| `handleATCTagLeave(element)` | Clear hover | Removes hover state, clears timeout |
+| `showATCTagPreview(category, element)` | Preview tooltip | Shows category name and drug count |
+| `updateATCTagsState()` | Update tag classes | Applies `is-active`/`is-muted` classes |
+| `updateActiveFiltersBar()` | Render filter chips | Shows chips for category/search/region |
+| `clearFilters()` | Reset all filters | Resets to default state |
+| `setupClearButton()` | Wire Clear button | Connects `#clear-filters` to `clearFilters()` |
 
 ---
 
@@ -209,11 +346,30 @@ All CSS sections use comment headers:
 ### CSS Variables
 ```css
 :root {
-  --primary-color: #3498db;
-  --secondary-color: #2ecc71;
-  --atc-a: #27ae60;  /* Green */
-  --atc-c: #e91e63;  /* Pink */
-  /* ... 14 total ATC colors */
+  /* Dark Theme Base */
+  --bg-base: #0f172a;          /* Deep navy */
+  --bg-elevated: #1e293b;      /* Elevated surfaces */
+  --bg-surface: #334155;       /* Card backgrounds */
+  --text-primary: #f1f5f9;     /* Light text */
+  --text-secondary: #94a3b8;   /* Muted text */
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --glow-primary: rgba(59, 130, 246, 0.4);
+  
+  /* ATC Category Colors */
+  --atc-a: #27ae60;  /* Green - Alimentary */
+  --atc-b: #e74c3c;  /* Red - Blood */
+  --atc-c: #e91e63;  /* Pink - Cardiovascular */
+  --atc-d: #ff9800;  /* Orange - Dermatological */
+  --atc-g: #9c27b0;  /* Purple - Genito-urinary */
+  --atc-h: #795548;  /* Brown - Hormones */
+  --atc-j: #2196f3;  /* Blue - Anti-infectives */
+  --atc-l: #f44336;  /* Dark Red - Antineoplastic */
+  --atc-m: #607d8b;  /* Grey - Musculo-skeletal */
+  --atc-n: #673ab7;  /* Deep Purple - Nervous */
+  --atc-p: #009688;  /* Teal - Antiparasitic */
+  --atc-r: #00bcd4;  /* Cyan - Respiratory */
+  --atc-s: #3f51b5;  /* Indigo - Sensory */
+  --atc-v: #9e9e9e;  /* Grey - Various */
 }
 ```
 
@@ -253,13 +409,18 @@ All CSS sections use comment headers:
 ## Testing
 
 ### Manual Testing Checklist
-1. ☐ ATC filtering works for all 14 categories
-2. ☐ Body region click highlights and filters
-3. ☐ Hover preview shows after 1.2s
-4. ☐ Search returns correct results
-5. ☐ Modal displays structure + genealogy
-6. ☐ Mode switch togg scientist-only fields
-7. ☐ All 61 drugs load correctly
+1. ✅ ATC filtering works for all 14 categories
+2. ✅ Body region click highlights and filters
+3. ✅ Hover preview shows after 1.2s
+4. ✅ Search returns correct results
+5. ✅ Modal displays structure + genealogy
+6. ✅ Mode switch toggles scientist-only fields
+7. ✅ All 61 drugs load correctly
+8. ✅ ATC tags float around body with correct colors
+9. ✅ Active filters bar shows filter chips
+10. ✅ Clear button resets all filters
+11. ✅ Dark theme renders correctly
+12. ✅ Body map appears centered with glow effect
 
 ### Key Test Commands
 ```bash
@@ -307,11 +468,13 @@ cd src/frontend && python3 -m http.server 8080
 
 ## Files to Check Before Pushing
 
-- [x] `src/frontend/js/app.js` - 766 lines
-- [x] `src/frontend/index.html` - 169 lines
-- [x] `src/frontend/css/style.css` - 851 lines
+- [x] `src/frontend/js/app.js` - 1027 lines
+- [x] `src/frontend/index.html` - 227 lines
+- [x] `src/frontend/css/style.css` - 1158 lines
 - [x] `src/frontend/data/drugs-full.json` - 61 drugs
 - [x] `data/ontology/body_ontology.json` - 216 lines
+- [x] `src/frontend/assets/human-body.svg` - Body map SVG
+- [x] `docs/CENTRAL_BODY_ATLAS_IMPLEMENTATION.md` - UI transformation guide
 - [x] `README.md` - Updated
 - [x] `AGENTS.md` - This file
 

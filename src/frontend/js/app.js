@@ -26,7 +26,7 @@ class DrugTreeApp {
     this.drugs = [];
     this.filteredDrugs = [];
     this.selectedDrug = null;
-    this.activeCategory = 'all';
+    this.activeCategory = null;
     this.activeBodyRegion = null;
     this.searchQuery = '';
     this.mode = 'public';
@@ -41,7 +41,7 @@ class DrugTreeApp {
    * Initialize the application
    */
   async init() {
-    console.log('Initializing DrugTree with ATC Categories...');
+    console.log('Initializing DrugTree Central Body Atlas...');
     
     this.structureViewer = window.structureViewer;
     if (this.structureViewer) {
@@ -51,11 +51,13 @@ class DrugTreeApp {
     await this.loadDrugData();
     
     this.setupEventListeners();
+    this.setupATCTags();
     
     this.initBodyMap();
     
     document.body.classList.add('mode-public');
     
+    this.updateActiveFiltersBar();
     this.renderDrugList();
     
     console.log('DrugTree initialized with', this.drugs.length, 'drugs');
@@ -92,9 +94,18 @@ class DrugTreeApp {
     this.setupModeSwitch();
     this.setupKeyboard();
     this.setupCopySmiles();
+    this.setupClearButton();
+  }
+
+  setupClearButton() {
+    const clearBtn = document.getElementById('clear-filters');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => this.clearFilters());
+    }
   }
 
   setupFilterButtons() {
+    // Legacy filter buttons (if any remain in HTML)
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const category = e.currentTarget.getAttribute('data-category');
@@ -103,11 +114,120 @@ class DrugTreeApp {
     });
   }
 
+  /**
+   * Setup ATC floating tags in orbit layer
+   */
+  setupATCTags() {
+    const atcTags = document.querySelectorAll('.atc-tag');
+    
+    atcTags.forEach(tag => {
+      // Click handler - toggle category selection
+      tag.addEventListener('click', (e) => {
+        const category = e.currentTarget.getAttribute('data-category');
+        this.filterByCategory(category);
+      });
+      
+      // Hover handlers for preview
+      tag.addEventListener('mouseenter', (e) => {
+        const category = e.currentTarget.getAttribute('data-category');
+        this.handleATCTagHover(category, e.currentTarget);
+      });
+      
+      tag.addEventListener('mouseleave', (e) => {
+        this.handleATCTagLeave(e.currentTarget);
+      });
+    });
+    
+    console.log(`Setup ${atcTags.length} ATC tags`);
+  }
+
+  /**
+   * Handle hover on ATC tag
+   */
+  handleATCTagHover(category, element) {
+    // Add hover visual state
+    element.classList.add('is-hovered');
+    
+    // Show preview after delay
+    this.hoverTimeout = setTimeout(() => {
+      this.showATCTagPreview(category, element);
+    }, this.hoverDelay);
+  }
+
+  /**
+   * Handle leave on ATC tag
+   */
+  handleATCTagLeave(element) {
+    element.classList.remove('is-hovered');
+    
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
+    }
+    
+    // Remove any preview
+    const preview = document.querySelector('.atc-preview');
+    if (preview) {
+      preview.remove();
+    }
+  }
+
+  /**
+   * Show preview tooltip for ATC tag
+   */
+  showATCTagPreview(category, element) {
+    // Remove existing preview
+    const existingPreview = document.querySelector('.atc-preview');
+    if (existingPreview) {
+      existingPreview.remove();
+    }
+    
+    // Count drugs in this category
+    const count = this.drugs.filter(d => 
+      (d.atc_category || 'V') === category
+    ).length;
+    
+    const categoryInfo = ATC_CATEGORIES[category] || { name: 'Unknown', color: '#999' };
+    
+    // Create preview element
+    const preview = document.createElement('div');
+    preview.className = 'atc-preview';
+    preview.innerHTML = `
+      <div class="atc-preview-title" style="color: ${categoryInfo.color}">${categoryInfo.name}</div>
+      <div class="atc-preview-count">${count} drug${count !== 1 ? 's' : ''}</div>
+    `;
+    
+    // Position near the tag
+    const rect = element.getBoundingClientRect();
+    const stageRect = document.querySelector('.atlas-stage')?.getBoundingClientRect();
+    
+    if (stageRect) {
+      preview.style.position = 'fixed';
+      preview.style.left = `${rect.right + 10}px`;
+      preview.style.top = `${rect.top}px`;
+      preview.style.zIndex = '1000';
+    }
+    
+    document.body.appendChild(preview);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      preview.classList.add('visible');
+    });
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      preview.classList.remove('visible');
+      setTimeout(() => preview.remove(), 200);
+    }, 3000);
+  }
+
   setupSearch() {
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         this.searchQuery = e.target.value.toLowerCase();
+        this.updateActiveFiltersBar();
         this.applyFilters();
       });
     }
@@ -157,17 +277,156 @@ class DrugTreeApp {
    * Filter drugs by ATC category
    */
   filterByCategory(category) {
-    this.activeCategory = category;
+    // If clicking the same category again, toggle off
+    if (this.activeCategory === category) {
+      this.activeCategory = 'all';
+    } else {
+      this.activeCategory = category;
+    }
     this.activeBodyRegion = null;
     
+    // Update filter buttons (legacy)
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.classList.remove('active');
-      if (btn.getAttribute('data-category') === category) {
+      if (btn.getAttribute('data-category') === this.activeCategory) {
         btn.classList.add('active');
       }
     });
     
+    // Update ATC tags in orbit layer
+    this.updateATCTagsState();
+    
+    // Update active filters bar
+    this.updateActiveFiltersBar();
+    
     this.clearBodyMapHighlight();
+    this.applyFilters();
+  }
+
+  /**
+   * Update ATC tag visual states (active/muted)
+   */
+  updateATCTagsState() {
+    const atcTags = document.querySelectorAll('.atc-tag');
+    
+    atcTags.forEach(tag => {
+      const category = tag.getAttribute('data-category');
+      
+      // Clear all states first
+      tag.classList.remove('is-active', 'is-muted');
+      
+      if (this.activeCategory === 'all') {
+        // No active filter - all tags normal
+        return;
+      }
+      
+      if (category === this.activeCategory) {
+        // This is the active tag
+        tag.classList.add('is-active');
+      } else {
+        // Other tags are muted
+        tag.classList.add('is-muted');
+      }
+    });
+  }
+
+  /**
+   * Update the active filters bar with current filter chips
+   */
+  updateActiveFiltersBar() {
+    const container = document.getElementById('filter-chips');
+    const bar = document.getElementById('active-filters');
+    
+    if (!container || !bar) return;
+    
+    // Clear existing chips
+    container.innerHTML = '';
+    
+    // Build chips based on active filters
+    const chips = [];
+    
+    if (this.activeCategory !== 'all') {
+      const category = ATC_CATEGORIES[this.activeCategory];
+      chips.push({
+        type: 'category',
+        code: this.activeCategory,
+        label: category ? category.name : this.activeCategory,
+        onRemove: () => this.clearFilters()
+      });
+    }
+    
+    if (this.searchQuery) {
+      chips.push({
+        type: 'search',
+        code: 'search',
+        label: `"${this.searchQuery}"`,
+        onRemove: () => {
+          this.searchQuery = '';
+          document.getElementById('search-input').value = '';
+          this.updateActiveFiltersBar();
+          this.applyFilters();
+        }
+      });
+    }
+    
+    if (this.activeBodyRegion) {
+      chips.push({
+        type: 'region',
+        code: this.activeBodyRegion,
+        label: this.activeBodyRegion,
+        onRemove: () => {
+            this.activeBodyRegion = null;
+            this.clearBodyMapHighlight();
+            this.updateActiveFiltersBar();
+            this.applyFilters();
+        }
+      });
+    }
+    
+    // Render chips
+    chips.forEach(chip => {
+      const chipEl = document.createElement('div');
+      chipEl.className = 'filter-chip';
+      chipEl.innerHTML = `
+        <span class="chip-label">${chip.label}</span>
+        <button class="chip-remove" title="Remove filter">&times;}</button>
+      `;
+      
+      chipEl.querySelector('.chip-remove').addEventListener('click', chip.onRemove);
+      
+      container.appendChild(chipEl);
+    });
+    
+    // Show/hide the bar based on whether there are active filters
+    if (chips.length > 0) {
+      bar.classList.add('has-filters');
+    } else {
+      bar.classList.remove('has-filters');
+    }
+  }
+
+  /**
+   * Clear all filters
+   */
+  clearFilters() {
+    this.activeCategory = 'all';
+    this.activeBodyRegion = null;
+    this.searchQuery = '';
+    
+    // Clear search input
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    
+    // Update UI
+    this.updateATCTagsState();
+    this.updateActiveFiltersBar();
+    
+    // Reset body map
+    this.clearBodyMapHighlight();
+    
+    // Apply empty filters
     this.applyFilters();
   }
 
@@ -182,6 +441,8 @@ class DrugTreeApp {
       }
     });
     
+    this.updateATCTagsState();
+    this.updateActiveFiltersBar();
     this.applyFilters();
   }
 
