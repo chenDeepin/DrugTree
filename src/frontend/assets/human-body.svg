@@ -1,126 +1,286 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 500" width="300" height="500">
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 420 760"
+  fill="none"
+  aria-labelledby="title desc"
+  role="img"
+>
+  <title id="title">DrugTree central atlas body</title>
+  <desc id="desc">A semi-anatomical human body illustration with ontology-aligned interactive regions.</desc>
+
   <defs>
-    <style>
-      .organ-region {
-        cursor: pointer;
-        transition: all 0.3s ease;
-        stroke: #333;
-        stroke-width: 2;
-      }
-      .organ-region:hover {
-        filter: brightness(1.3);
-        stroke-width: 3;
-      }
-      .organ-label {
-        font-family: Arial, sans-serif;
-        font-size: 12px;
-        fill: #333;
-        pointer-events: none;
-        font-weight: bold;
-      }
-      .body-outline {
-        fill: #F5E6D3;
-        stroke: #8B7355;
-        stroke-width: 2;
-      }
-    </style>
+    <linearGradient id="bodyShellGradient" x1="210" y1="72" x2="210" y2="672" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2d4667"/>
+      <stop offset="44%" stop-color="#20344f"/>
+      <stop offset="100%" stop-color="#142235"/>
+    </linearGradient>
+    <radialGradient id="torsoBloom" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="rgba(128, 186, 255, 0.18)"/>
+      <stop offset="100%" stop-color="rgba(128, 186, 255, 0)"/>
+    </radialGradient>
   </defs>
-  
-  <!-- Background -->
-  <rect width="300" height="500" fill="#f8f9fa"/>
-  
-  <!-- Title -->
-  <text x="150" y="25" text-anchor="middle" class="organ-label" font-size="16">Click a Body Region</text>
-  
-  <!-- Body Outline -->
-  <path class="body-outline" d="M150,50 
-    C180,50 200,70 200,100 
-    C200,130 180,150 150,150 
-    C120,150 100,130 100,100 
-    C100,70 120,50 150,50 Z
-    M100,150 
-    C80,160 60,200 55,280
-    L55,380
-    C55,400 70,420 90,420
-    L90,380
-    L85,500
-    L100,500
-    L110,400
-    L150,400
-    L190,400
-    L200,500
-    L215,500
-    L210,380
-    L210,420
-    C230,420 245,400 245,380
-    L245,280
-    C240,200 220,160 200,150 Z"/>
-  
-  <!-- Brain - Brain/Neuro -->
-  <ellipse class="organ-region" id="brain" data-category="brain"
-    cx="150" cy="100" rx="40" ry="30" fill="#FFB6C1"/>
-  <text x="150" y="105" text-anchor="middle" class="organ-label">🧠 Brain</text>
-  
-  <!-- Heart - Cardiovascular -->
-  <path class="organ-region" id="heart" data-category="heart"
-    d="M130,180 C120,170 110,175 110,190 C110,205 130,220 150,240 C170,220 190,205 190,190 C190,175 180,170 170,180 C160,190 150,180 150,180 C150,180 140,190 130,180 Z"
-    fill="#DC143C"/>
-  <text x="150" y="280" text-anchor="middle" class="organ-label">❤️ Heart</text>
-  
-  <!-- Lungs - Infection (respiratory) -->
-  <g id="lungs" data-category="infection">
-    <path class="organ-region" data-category="infection"
-      d="M100,165 C80,175 75,200 80,240 C85,280 100,300 115,300 C130,300 135,280 130,240 L130,180 C130,170 115,160 100,165 Z"
-      fill="#87CEEB"/>
-    <path class="organ-region" data-category="infection"
-      d="M200,165 C220,175 225,200 220,240 C215,280 200,300 185,300 C170,300 165,280 170,240 L170,180 C170,170 185,160 200,165 Z"
-      fill="#87CEEB"/>
-  </g>
-  <text x="150" y="320" text-anchor="middle" class="organ-label">🫁 Lungs</text>
-  
-  <!-- Pancreas - Diabetes -->
-  <ellipse class="organ-region" id="pancreas" data-category="diabetes"
-    cx="130" cy="340" rx="35" ry="12" fill="#FFD700" transform="rotate(-20, 130, 340)"/>
-  <text x="150" y="370" text-anchor="middle" class="organ-label">🩸 Pancreas</text>
-  
-  <!-- Immune/Blood - Cancer, Autoimmune -->
-  <g id="immune" data-category="cancer">
-    <circle class="organ-region" data-category="cancer" cx="170" cy="330" r="15" fill="#FF69B4"/>
-    <circle class="organ-region" data-category="autoimmune" cx="185" cy="345" r="12" fill="#9370DB"/>
-  </g>
-  <text x="200" y="320" text-anchor="middle" class="organ-label" font-size="10">🦠 Immune</text>
-  
-  <!-- Gut - Infection (gastro) -->
-  <path class="organ-region" id="gut" data-category="infection"
-    d="M130,355 C120,365 115,385 125,400 C135,415 155,415 165,400 C175,385 170,365 160,355 C150,345 140,345 130,355 Z"
-    fill="#DEB887"/>
-  <text x="150" y="430" text-anchor="middle" class="organ-label">🫄 Gut</text>
-  
-  <!-- Joints - Pain, Autoimmune -->
-  <g id="joints" data-category="pain">
-    <circle class="organ-region" data-category="pain" cx="80" cy="350" r="18" fill="#F0E68C"/>
-    <circle class="organ-region" data-category="pain" cx="220" cy="350" r="18" fill="#F0E68C"/>
-    <circle class="organ-region" data-category="autoimmune" cx="80" cy="400" r="15" fill="#F0E68C"/>
-    <circle class="organ-region" data-category="autoimmune" cx="220" cy="400" r="15" fill="#F0E68C"/>
-  </g>
-  <text x="50" y="350" text-anchor="middle" class="organ-label" font-size="10">🦴</text>
-  <text x="250" y="350" text-anchor="middle" class="organ-label" font-size="10">🦴</text>
-  
-  <!-- Skin - Dermatology (shown as border highlight) -->
-  <rect class="organ-region" id="skin" data-category="other"
-    x="65" y="160" width="170" height="250" rx="30" ry="50" 
-    fill="none" stroke="#DDA0DD" stroke-width="6" stroke-dasharray="10,5"/>
-  <text x="150" y="470" text-anchor="middle" class="organ-label" font-size="10">👤 Skin (border)</text>
-  
-  <!-- Legend -->
-  <g transform="translate(10, 440)">
-    <text x="0" y="0" class="organ-label" font-size="10">Categories:</text>
-    <rect x="0" y="5" width="10" height="10" fill="#FFB6C1"/><text x="15" y="14" font-size="8">Brain</text>
-    <rect x="50" y="5" width="10" height="10" fill="#DC143C"/><text x="65" y="14" font-size="8">Heart</text>
-    <rect x="100" y="5" width="10" height="10" fill="#87CEEB"/><text x="115" y="14" font-size="8">Infection</text>
-    <rect x="160" y="5" width="10" height="10" fill="#FFD700"/><text x="175" y="14" font-size="8">Diabetes</text>
-    <rect x="210" y="5" width="10" height="10" fill="#FF69B4"/><text x="225" y="14" font-size="8">Cancer</text>
-    <rect x="250" y="5" width="10" height="10" fill="#9370DB"/><text x="265" y="14" font-size="8">Auto</text>
-  </g>
+
+  <ellipse class="body-shadow" cx="210" cy="710" rx="86" ry="20"/>
+
+  <path
+    class="body-shell"
+    d="M210 74
+      C247 74 272 102 272 142
+      C272 174 252 196 238 212
+      L252 242
+      C287 254 315 282 322 334
+      L330 430
+      C332 458 318 482 292 492
+      L279 674
+      C278 690 266 702 250 702
+      C235 702 223 690 221 674
+      L210 540
+      L199 674
+      C197 690 185 702 170 702
+      C154 702 142 690 141 674
+      L128 492
+      C102 482 88 458 90 430
+      L98 334
+      C105 282 133 254 168 242
+      L182 212
+      C168 196 148 174 148 142
+      C148 102 173 74 210 74 Z"
+  />
+
+  <path
+    class="body-meridian"
+    d="M210 132
+      C208 176 207 218 210 262
+      C213 318 214 372 210 430
+      C206 486 205 530 210 592"
+  />
+
+  <path
+    class="body-meridian"
+    d="M168 246 C150 276 141 316 141 364
+       M252 246 C270 276 279 316 279 364"
+  />
+
+  <path
+    class="body-region skin-region"
+    data-region="skin"
+    d="M210 92
+      C236 92 256 112 256 142
+      C256 168 239 184 228 196
+      L239 220
+      C268 230 291 257 297 304
+      L303 420
+      C304 440 294 455 275 464
+      L262 670
+      C261 680 255 687 246 687
+      C237 687 230 680 229 670
+      L217 528
+      C216 514 204 514 203 528
+      L191 670
+      C190 680 183 687 174 687
+      C165 687 159 680 158 670
+      L145 464
+      C126 455 116 440 117 420
+      L123 304
+      C129 257 152 230 181 220
+      L192 196
+      C181 184 164 168 164 142
+      C164 112 184 92 210 92 Z"
+  />
+
+  <path
+    class="body-region systemic-region"
+    data-region="systemic_multiorgan"
+    d="M130 206
+      C103 224 85 258 82 308
+      L77 432
+      C75 472 95 506 132 520
+      L136 555
+      C162 573 186 580 210 580
+      C234 580 258 573 284 555
+      L288 520
+      C325 506 345 472 343 432
+      L338 308
+      C335 258 317 224 290 206
+      C270 222 244 232 210 232
+      C176 232 150 222 130 206 Z"
+  />
+
+  <ellipse class="body-region" data-region="brain_cns" cx="210" cy="140" rx="38" ry="27"/>
+  <path class="body-region" data-region="brain_cns" d="M209 170 C205 198 205 214 210 236 C214 214 214 198 209 170 Z"/>
+
+  <ellipse class="body-region" data-region="eye_ear" cx="193" cy="140" rx="9" ry="6"/>
+  <ellipse class="body-region" data-region="eye_ear" cx="227" cy="140" rx="9" ry="6"/>
+  <path class="body-region" data-region="eye_ear" d="M167 146 C160 141 160 132 167 127 C172 131 172 142 167 146 Z"/>
+  <path class="body-region" data-region="eye_ear" d="M253 146 C260 141 260 132 253 127 C248 131 248 142 253 146 Z"/>
+
+  <path
+    class="body-region"
+    data-region="blood_immune"
+    d="M179 246
+      C168 248 160 258 160 272
+      C160 288 171 300 186 300
+      C199 300 209 290 210 276
+      C211 290 221 300 234 300
+      C249 300 260 288 260 272
+      C260 258 252 248 241 246
+      C239 230 228 220 210 220
+      C192 220 181 230 179 246 Z"
+  />
+  <circle class="body-region" data-region="blood_immune" cx="171" cy="322" r="10"/>
+  <circle class="body-region" data-region="blood_immune" cx="249" cy="322" r="10"/>
+  <circle class="body-region" data-region="blood_immune" cx="210" cy="334" r="12"/>
+
+  <path
+    class="body-region"
+    data-region="lung_respiratory"
+    d="M171 246
+      C150 256 142 284 146 334
+      C150 372 164 390 183 390
+      C197 390 204 378 203 358
+      L203 270
+      C203 252 188 241 171 246 Z"
+  />
+  <path
+    class="body-region"
+    data-region="lung_respiratory"
+    d="M249 246
+      C270 256 278 284 274 334
+      C270 372 256 390 237 390
+      C223 390 216 378 217 358
+      L217 270
+      C217 252 232 241 249 246 Z"
+  />
+  <path class="body-region" data-region="lung_respiratory" d="M205 238 C206 258 206 280 205 304 L215 304 C214 280 214 258 215 238 Z"/>
+
+  <path
+    class="body-region"
+    data-region="heart_vascular"
+    d="M210 286
+      C202 274 188 276 182 288
+      C176 300 181 316 194 327
+      L210 340
+      L226 327
+      C239 316 244 300 238 288
+      C232 276 218 274 210 286 Z"
+  />
+  <path
+    class="body-region"
+    data-region="heart_vascular"
+    d="M210 246
+      C205 262 204 276 205 292
+      M193 264 C186 273 181 284 179 297
+      M227 264 C234 273 239 284 241 297"
+  />
+
+  <path
+    class="body-region"
+    data-region="stomach_upper_gi"
+    d="M188 382
+      C174 386 168 399 170 417
+      C172 436 183 447 196 447
+      C205 447 213 439 214 426
+      C216 406 207 391 188 382 Z"
+  />
+
+  <path
+    class="body-region"
+    data-region="liver_biliary_pancreas"
+    d="M223 374
+      C250 370 272 380 278 399
+      C284 418 273 434 249 438
+      C228 441 214 434 211 420
+      C207 403 214 380 223 374 Z"
+  />
+  <ellipse class="body-region" data-region="liver_biliary_pancreas" cx="229" cy="431" rx="18" ry="7"/>
+
+  <path
+    class="body-region"
+    data-region="endocrine_metabolic"
+    d="M204 196
+      C198 199 194 204 194 210
+      C194 218 201 224 210 224
+      C219 224 226 218 226 210
+      C226 204 222 199 216 196 Z"
+  />
+  <path
+    class="body-region"
+    data-region="endocrine_metabolic"
+    d="M202 454
+      C190 458 182 468 182 481
+      C182 497 194 508 210 508
+      C226 508 238 497 238 481
+      C238 468 230 458 218 454
+      C216 465 214 475 210 487
+      C206 475 204 465 202 454 Z"
+  />
+
+  <path
+    class="body-region"
+    data-region="intestine_colorectal"
+    d="M180 444
+      C170 454 167 472 172 488
+      C176 503 188 512 203 512
+      L217 512
+      C232 512 244 503 248 488
+      C253 472 250 454 240 444
+      C230 448 223 454 220 462
+      C214 455 206 451 210 444
+      C206 451 198 455 192 462
+      C189 454 182 448 180 444 Z"
+  />
+
+  <path
+    class="body-region"
+    data-region="kidney_urinary"
+    d="M159 424
+      C147 430 143 446 146 462
+      C149 478 159 487 171 486
+      C181 485 188 476 188 462
+      C188 445 177 420 159 424 Z"
+  />
+  <path
+    class="body-region"
+    data-region="kidney_urinary"
+    d="M261 424
+      C273 430 277 446 274 462
+      C271 478 261 487 249 486
+      C239 485 232 476 232 462
+      C232 445 243 420 261 424 Z"
+  />
+  <path
+    class="body-region"
+    data-region="kidney_urinary"
+    d="M202 520
+      C196 526 194 534 196 542
+      C198 551 204 557 210 557
+      C216 557 222 551 224 542
+      C226 534 224 526 218 520 Z"
+  />
+
+  <circle class="body-region" data-region="reproductive_breast" cx="183" cy="286" r="12"/>
+  <circle class="body-region" data-region="reproductive_breast" cx="237" cy="286" r="12"/>
+  <path
+    class="body-region"
+    data-region="reproductive_breast"
+    d="M186 548
+      C186 566 197 579 210 579
+      C223 579 234 566 234 548
+      C226 540 219 536 210 536
+      C201 536 194 540 186 548 Z"
+  />
+
+  <path
+    class="body-region"
+    data-region="bone_joint_muscle"
+    d="M150 276 L139 430 L148 434 L163 280 Z
+       M270 276 L281 430 L272 434 L257 280 Z
+       M169 516 L164 660 L174 660 L179 520 Z
+       M251 516 L256 660 L246 660 L241 520 Z"
+  />
+  <circle class="body-region" data-region="bone_joint_muscle" cx="147" cy="448" r="14"/>
+  <circle class="body-region" data-region="bone_joint_muscle" cx="273" cy="448" r="14"/>
+  <circle class="body-region" data-region="bone_joint_muscle" cx="173" cy="676" r="13"/>
+  <circle class="body-region" data-region="bone_joint_muscle" cx="247" cy="676" r="13"/>
 </svg>

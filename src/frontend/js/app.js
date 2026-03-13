@@ -1,94 +1,240 @@
-/**
- * DrugTree MVP - Main Application with ATC Categories
- * Orchestrates drug list, filtering, and structure viewer
- */
+const DrugTreeState = window.DrugTreeState;
 
-// ATC Category definitions
+if (!DrugTreeState) {
+  throw new Error("DrugTreeState global missing. Load js/app-state.js before js/app.js.");
+}
+
+const {
+  applyDrugFilters,
+  buildBodyRegionLabel,
+  buildPublicSummary,
+  getModePresentation,
+  humanizeRegionId,
+  resolveDrugBodyRegions,
+  toggleBodyRegion,
+  toggleCategory,
+} = DrugTreeState;
+
+const EMBEDDED_BODY_ONTOLOGY = window.DRUGTREE_BODY_ONTOLOGY || null;
+const EMBEDDED_DRUG_DATA = window.DRUGTREE_DRUGS_DATA || null;
+const EMBEDDED_BODY_SVG = window.DRUGTREE_HUMAN_BODY_SVG || "";
+
 const ATC_CATEGORIES = {
-  'A': { name: 'Alimentary & Metabolism', color: '#27ae60' },
-  'B': { name: 'Blood & Blood-forming', color: '#e74c3c' },
-  'C': { name: 'Cardiovascular', color: '#e91e63' },
-  'D': { name: 'Dermatological', color: '#ff9800' },
-  'G': { name: 'Genito-urinary', color: '#9c27b0' },
-  'H': { name: 'Systemic Hormones', color: '#795548' },
-  'J': { name: 'Anti-infectives', color: '#2196f3' },
-  'L': { name: 'Antineoplastic', color: '#f44336' },
-  'M': { name: 'Musculo-skeletal', color: '#607d8b' },
-  'N': { name: 'Nervous System', color: '#673ab7' },
-  'P': { name: 'Antiparasitic', color: '#009688' },
-  'R': { name: 'Respiratory', color: '#00bcd4' },
-  'S': { name: 'Sensory Organs', color: '#3f51b5' },
-  'V': { name: 'Various', color: '#9e9e9e' }
+  A: { name: "Alimentary & Metabolism", color: "#27ae60" },
+  B: { name: "Blood & Blood-forming", color: "#e74c3c" },
+  C: { name: "Cardiovascular", color: "#e91e63" },
+  D: { name: "Dermatological", color: "#ff9800" },
+  G: { name: "Genito-urinary", color: "#9c27b0" },
+  H: { name: "Systemic Hormones", color: "#795548" },
+  J: { name: "Anti-infectives", color: "#2196f3" },
+  L: { name: "Antineoplastic", color: "#f44336" },
+  M: { name: "Musculo-skeletal", color: "#607d8b" },
+  N: { name: "Nervous System", color: "#673ab7" },
+  P: { name: "Antiparasitic", color: "#009688" },
+  R: { name: "Respiratory", color: "#00bcd4" },
+  S: { name: "Sensory Organs", color: "#3f51b5" },
+  V: { name: "Various", color: "#9e9e9e" },
 };
 
+const DEFAULT_RESULT_LIMIT = 120;
+const STARTER_SET_LIMIT = 72;
+
 class DrugTreeApp {
+  API_BASE_URL = "http://127.0.0.1:8000/api/v1";
+
   constructor() {
     this.drugs = [];
     this.filteredDrugs = [];
     this.selectedDrug = null;
-    this.activeCategory = null;
+    this.activeCategory = "all";
     this.activeBodyRegion = null;
-    this.searchQuery = '';
-    this.mode = 'public';
+    this.hoveredRegion = null;
+    this.searchQuery = "";
+    this.mode = "public";
     this.hoverTimeout = null;
     this.hoverDelay = 1200;
-    
     this.structureViewer = null;
-    this.bodyMap = null;
+    this.bodyOntology = null;
+    this.regionMetaById = {};
+    this.regionElementsById = new Map();
   }
 
-  /**
-   * Initialize the application
-   */
   async init() {
-    console.log('Initializing DrugTree Central Body Atlas...');
-    
+    console.log("Initializing DrugTree Central Body Atlas...");
+
     this.structureViewer = window.structureViewer;
     if (this.structureViewer) {
       await this.structureViewer.init();
     }
-    
-    await this.loadDrugData();
-    
+
+    await Promise.all([this.loadDrugData(), this.loadBodyOntology()]);
+
+    this.updateAtlasSummary();
     this.setupEventListeners();
     this.setupATCTags();
-    
-    this.initBodyMap();
-    
-    document.body.classList.add('mode-public');
-    
+    await this.initBodyMap();
+
+    document.body.classList.add("mode-public");
+    this.updateATCTagsState();
     this.updateActiveFiltersBar();
-    this.renderDrugList();
-    
-    console.log('DrugTree initialized with', this.drugs.length, 'drugs');
+    this.applyFilters();
+
+    console.log("DrugTree initialized with", this.drugs.length, "drugs");
   }
 
-  /**
-   * Load drug data from JSON
-   */
   async loadDrugData() {
-    try {
-      // Try full dataset first
-      let response = await fetch('data/drugs-full.json');
-      if (!response.ok) {
-        // Fall back to sample data
-        response = await fetch('data/sample-drugs.json');
-      }
-      const data = await response.json();
-      this.drugs = data.drugs || [];
+    const container = document.getElementById("drug-grid");
+    if (container) {
+      container.innerHTML = `
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Loading drugs from database...</div>
+        </div>
+      `;
+    }
+
+    const embeddedDrugs = EMBEDDED_DRUG_DATA?.drugs || [];
+    if (window.location.protocol === "file:" && embeddedDrugs.length > 0) {
+      this.drugs = embeddedDrugs;
       this.filteredDrugs = [...this.drugs];
-      console.log(`Loaded ${this.drugs.length} drugs`);
-    } catch (error) {
-      console.error('Failed to load drug data:', error);
-      this.showError('Failed to load drug data');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${this.API_BASE_URL}/drugs?limit=10000`);
+      if (response.ok) {
+        const data = await response.json();
+        this.drugs = data.drugs || [];
+        this.filteredDrugs = [...this.drugs];
+        return;
+      }
+      throw new Error("Backend API not available");
+    } catch (apiError) {
+      console.warn("Backend API not available, falling back to local JSON:", apiError);
+
+      try {
+        if (embeddedDrugs.length > 0) {
+          this.drugs = embeddedDrugs;
+          this.filteredDrugs = [...this.drugs];
+          return;
+        }
+
+        const fallbackPaths = [
+          "data/drugs.json",
+          "data/drugs-expanded.json",
+          "data/drugs-full.json",
+          "data/sample-drugs.json",
+        ];
+
+        let data = null;
+        for (const path of fallbackPaths) {
+          const response = await fetch(path);
+          if (response.ok) {
+            data = await response.json();
+            break;
+          }
+        }
+
+        if (!data) {
+          throw new Error("No local drug dataset found");
+        }
+
+        this.drugs = data.drugs || [];
+        this.filteredDrugs = [...this.drugs];
+      } catch (error) {
+        console.error("Failed to load drug data:", error);
+        this.showError("Failed to load drug data. Please check the backend or local datasets.");
+      }
     }
   }
 
-  /**
-   * Setup event listeners
-   */
+  async loadBodyOntology() {
+    if (EMBEDDED_BODY_ONTOLOGY?.visible_regions?.length) {
+      this.bodyOntology = EMBEDDED_BODY_ONTOLOGY;
+      this.regionMetaById = Object.fromEntries(
+        (this.bodyOntology.visible_regions || []).map((region) => [region.id, region]),
+      );
+      return;
+    }
+
+    try {
+      const response = await fetch("data/body-ontology.json");
+      if (!response.ok) {
+        throw new Error(`Unexpected ontology status: ${response.status}`);
+      }
+
+      this.bodyOntology = await response.json();
+      this.regionMetaById = Object.fromEntries(
+        (this.bodyOntology.visible_regions || []).map((region) => [region.id, region]),
+      );
+    } catch (error) {
+      console.warn("Failed to load body ontology, using basic fallback labels:", error);
+      this.bodyOntology = { visible_regions: [] };
+      this.regionMetaById = {};
+    }
+  }
+
+  async initBodyMap() {
+    const container = document.getElementById("body-map");
+    if (!container) {
+      return;
+    }
+
+    try {
+      if (EMBEDDED_BODY_SVG) {
+        container.innerHTML = EMBEDDED_BODY_SVG;
+      } else {
+        const response = await fetch("assets/human-body.svg");
+        if (!response.ok) {
+          throw new Error(`Unexpected SVG status: ${response.status}`);
+        }
+        container.innerHTML = await response.text();
+      }
+
+      const svg = container.querySelector("svg");
+      if (svg) {
+        svg.classList.add("atlas-body-svg");
+      }
+
+      this.regionElementsById.clear();
+      container.querySelectorAll("[data-region]").forEach((element) => {
+        const regionId = element.getAttribute("data-region");
+        if (!regionId) {
+          return;
+        }
+
+        const existing = this.regionElementsById.get(regionId) || [];
+        existing.push(element);
+        this.regionElementsById.set(regionId, existing);
+
+        element.addEventListener("click", () => this.handleBodyRegionClick(regionId));
+        element.addEventListener("mouseenter", () => this.handleBodyRegionHover(regionId));
+        element.addEventListener("mouseleave", () => this.handleBodyRegionLeave(regionId));
+      });
+
+      this.updateBodyMapState();
+      this.updateBodyRegionLabel();
+    } catch (error) {
+      console.error("Failed to load body atlas SVG:", error);
+      container.innerHTML = `<div class="empty-state"><p>Body atlas failed to load.</p></div>`;
+    }
+  }
+
+  updateAtlasSummary() {
+    const summary = document.getElementById("atlas-summary");
+    if (!summary) {
+      return;
+    }
+
+    const regions = this.bodyOntology?.visible_regions || [];
+    summary.innerHTML = `
+      <span class="summary-pill">${this.drugs.length.toLocaleString()} approved drugs</span>
+      <span class="summary-pill">${Object.keys(ATC_CATEGORIES).length} ATC groups</span>
+      <span class="summary-pill">${regions.length || 14} body regions</span>
+    `;
+  }
+
   setupEventListeners() {
-    this.setupFilterButtons();
     this.setupSearch();
     this.setupModal();
     this.setupModeSwitch();
@@ -97,152 +243,47 @@ class DrugTreeApp {
     this.setupClearButton();
   }
 
-  setupClearButton() {
-    const clearBtn = document.getElementById('clear-filters');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => this.clearFilters());
-    }
-  }
-
-  setupFilterButtons() {
-    // Legacy filter buttons (if any remain in HTML)
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const category = e.currentTarget.getAttribute('data-category');
-        this.filterByCategory(category);
-      });
-    });
-  }
-
-  /**
-   * Setup ATC floating tags in orbit layer
-   */
   setupATCTags() {
-    const atcTags = document.querySelectorAll('.atc-tag');
-    
-    atcTags.forEach(tag => {
-      // Click handler - toggle category selection
-      tag.addEventListener('click', (e) => {
-        const category = e.currentTarget.getAttribute('data-category');
+    document.querySelectorAll(".atc-tag").forEach((tag) => {
+      tag.addEventListener("click", (event) => {
+        const category = event.currentTarget.getAttribute("data-category");
         this.filterByCategory(category);
       });
-      
-      // Hover handlers for preview
-      tag.addEventListener('mouseenter', (e) => {
-        const category = e.currentTarget.getAttribute('data-category');
-        this.handleATCTagHover(category, e.currentTarget);
+
+      tag.addEventListener("mouseenter", (event) => {
+        const category = event.currentTarget.getAttribute("data-category");
+        this.handleATCTagHover(category, event.currentTarget);
       });
-      
-      tag.addEventListener('mouseleave', (e) => {
-        this.handleATCTagLeave(e.currentTarget);
+
+      tag.addEventListener("mouseleave", (event) => {
+        this.handleATCTagLeave(event.currentTarget);
       });
     });
-    
-    console.log(`Setup ${atcTags.length} ATC tags`);
-  }
-
-  /**
-   * Handle hover on ATC tag
-   */
-  handleATCTagHover(category, element) {
-    // Add hover visual state
-    element.classList.add('is-hovered');
-    
-    // Show preview after delay
-    this.hoverTimeout = setTimeout(() => {
-      this.showATCTagPreview(category, element);
-    }, this.hoverDelay);
-  }
-
-  /**
-   * Handle leave on ATC tag
-   */
-  handleATCTagLeave(element) {
-    element.classList.remove('is-hovered');
-    
-    if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout);
-      this.hoverTimeout = null;
-    }
-    
-    // Remove any preview
-    const preview = document.querySelector('.atc-preview');
-    if (preview) {
-      preview.remove();
-    }
-  }
-
-  /**
-   * Show preview tooltip for ATC tag
-   */
-  showATCTagPreview(category, element) {
-    // Remove existing preview
-    const existingPreview = document.querySelector('.atc-preview');
-    if (existingPreview) {
-      existingPreview.remove();
-    }
-    
-    // Count drugs in this category
-    const count = this.drugs.filter(d => 
-      (d.atc_category || 'V') === category
-    ).length;
-    
-    const categoryInfo = ATC_CATEGORIES[category] || { name: 'Unknown', color: '#999' };
-    
-    // Create preview element
-    const preview = document.createElement('div');
-    preview.className = 'atc-preview';
-    preview.innerHTML = `
-      <div class="atc-preview-title" style="color: ${categoryInfo.color}">${categoryInfo.name}</div>
-      <div class="atc-preview-count">${count} drug${count !== 1 ? 's' : ''}</div>
-    `;
-    
-    // Position near the tag
-    const rect = element.getBoundingClientRect();
-    const stageRect = document.querySelector('.atlas-stage')?.getBoundingClientRect();
-    
-    if (stageRect) {
-      preview.style.position = 'fixed';
-      preview.style.left = `${rect.right + 10}px`;
-      preview.style.top = `${rect.top}px`;
-      preview.style.zIndex = '1000';
-    }
-    
-    document.body.appendChild(preview);
-    
-    // Animate in
-    requestAnimationFrame(() => {
-      preview.classList.add('visible');
-    });
-    
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      preview.classList.remove('visible');
-      setTimeout(() => preview.remove(), 200);
-    }, 3000);
   }
 
   setupSearch() {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        this.searchQuery = e.target.value.toLowerCase();
-        this.updateActiveFiltersBar();
-        this.applyFilters();
-      });
+    const searchInput = document.getElementById("search-input");
+    if (!searchInput) {
+      return;
     }
+
+    searchInput.addEventListener("input", (event) => {
+      this.searchQuery = event.target.value.toLowerCase();
+      this.updateActiveFiltersBar();
+      this.applyFilters();
+    });
   }
 
   setupModal() {
-    const modalClose = document.querySelector('.modal-close');
+    const modalClose = document.querySelector(".modal-close");
     if (modalClose) {
-      modalClose.addEventListener('click', () => this.closeModal());
+      modalClose.addEventListener("click", () => this.closeModal());
     }
-    
-    const modalOverlay = document.getElementById('modal-overlay');
+
+    const modalOverlay = document.getElementById("modal-overlay");
     if (modalOverlay) {
-      modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) {
+      modalOverlay.addEventListener("click", (event) => {
+        if (event.target === modalOverlay) {
           this.closeModal();
         }
       });
@@ -250,529 +291,468 @@ class DrugTreeApp {
   }
 
   setupModeSwitch() {
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const mode = e.currentTarget.getAttribute('data-mode');
+    document.querySelectorAll(".mode-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        const mode = event.currentTarget.getAttribute("data-mode");
         this.switchMode(mode);
       });
     });
   }
 
   setupKeyboard() {
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
         this.closeModal();
+        this.clearTransientPreviews();
       }
     });
   }
 
   setupCopySmiles() {
-    const copyBtn = document.getElementById('copy-smiles');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', () => this.copySmiles());
+    const copyButton = document.getElementById("copy-smiles");
+    if (!copyButton) {
+      return;
+    }
+
+    copyButton.addEventListener("click", () => this.copySmiles());
+  }
+
+  setupClearButton() {
+    const clearButton = document.getElementById("clear-filters");
+    if (clearButton) {
+      clearButton.addEventListener("click", () => this.clearFilters());
     }
   }
 
-  /**
-   * Filter drugs by ATC category
-   */
+  handleATCTagHover(category, element) {
+    element.classList.add("is-hovered");
+    this.hoverTimeout = setTimeout(() => {
+      this.showATCTagPreview(category, element);
+    }, this.hoverDelay);
+  }
+
+  handleATCTagLeave(element) {
+    element.classList.remove("is-hovered");
+    this.clearHoverTimeout();
+    this.removePreview(".atc-preview");
+  }
+
+  showATCTagPreview(category, element) {
+    this.removePreview(".atc-preview");
+
+    const count = applyDrugFilters(this.drugs, {
+      activeCategory: category,
+      activeBodyRegion: this.activeBodyRegion,
+      searchQuery: this.searchQuery,
+    }).length;
+
+    const categoryInfo = ATC_CATEGORIES[category] || { name: "Unknown", color: "#999" };
+    const preview = document.createElement("div");
+    preview.className = "atc-preview";
+    preview.innerHTML = `
+      <div class="atc-preview-title" style="color: ${categoryInfo.color}">${categoryInfo.name}</div>
+      <div class="atc-preview-count">${count} matching drugs</div>
+    `;
+
+    const rect = element.getBoundingClientRect();
+    preview.style.position = "fixed";
+    preview.style.left = `${rect.right + 10}px`;
+    preview.style.top = `${rect.top}px`;
+    preview.style.zIndex = "1000";
+
+    document.body.appendChild(preview);
+    requestAnimationFrame(() => preview.classList.add("visible"));
+  }
+
+  handleBodyRegionClick(regionId) {
+    this.activeBodyRegion = toggleBodyRegion(this.activeBodyRegion, regionId);
+    this.hoveredRegion = null;
+    this.removePreview(".body-preview");
+    this.updateActiveFiltersBar();
+    this.applyFilters();
+    this.updateBodyRegionLabel();
+  }
+
+  handleBodyRegionHover(regionId) {
+    if (this.activeBodyRegion && this.activeBodyRegion !== regionId) {
+      return;
+    }
+
+    this.hoveredRegion = regionId;
+    this.updateBodyMapState();
+    this.updateBodyRegionLabel(regionId, false);
+
+    const elements = this.regionElementsById.get(regionId) || [];
+    const anchorElement = elements[0];
+    if (!anchorElement) {
+      return;
+    }
+
+    this.hoverTimeout = setTimeout(() => {
+      this.showBodyPreview(regionId, anchorElement);
+    }, this.hoverDelay);
+  }
+
+  handleBodyRegionLeave(regionId) {
+    this.clearHoverTimeout();
+    this.removePreview(".body-preview");
+
+    if (this.activeBodyRegion && this.activeBodyRegion !== regionId) {
+      return;
+    }
+
+    this.hoveredRegion = null;
+    this.updateBodyMapState();
+    this.updateBodyRegionLabel();
+  }
+
+  showBodyPreview(regionId, element) {
+    this.removePreview(".body-preview");
+
+    const count = applyDrugFilters(this.drugs, {
+      activeCategory: this.activeCategory,
+      activeBodyRegion: regionId,
+      searchQuery: this.searchQuery,
+    }).length;
+
+    const regionMeta = this.getRegionMeta(regionId);
+    const preview = document.createElement("div");
+    preview.className = "body-preview";
+    preview.innerHTML = `
+      <div class="body-preview-title">${regionMeta.display_name}</div>
+      <div class="body-preview-count">${count} matching drugs</div>
+    `;
+
+    const rect = element.getBoundingClientRect();
+    preview.style.left = `${rect.right + 12}px`;
+    preview.style.top = `${Math.max(12, rect.top - 8)}px`;
+
+    document.body.appendChild(preview);
+    requestAnimationFrame(() => preview.classList.add("visible"));
+  }
+
   filterByCategory(category) {
-    // If clicking the same category again, toggle off
-    if (this.activeCategory === category) {
-      this.activeCategory = 'all';
-    } else {
-      this.activeCategory = category;
-    }
-    this.activeBodyRegion = null;
-    
-    // Update filter buttons (legacy)
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.getAttribute('data-category') === this.activeCategory) {
-        btn.classList.add('active');
-      }
-    });
-    
-    // Update ATC tags in orbit layer
+    this.activeCategory = toggleCategory(this.activeCategory, category);
     this.updateATCTagsState();
-    
-    // Update active filters bar
     this.updateActiveFiltersBar();
-    
-    this.clearBodyMapHighlight();
     this.applyFilters();
   }
 
-  /**
-   * Update ATC tag visual states (active/muted)
-   */
-  updateATCTagsState() {
-    const atcTags = document.querySelectorAll('.atc-tag');
-    
-    atcTags.forEach(tag => {
-      const category = tag.getAttribute('data-category');
-      
-      // Clear all states first
-      tag.classList.remove('is-active', 'is-muted');
-      
-      if (this.activeCategory === 'all') {
-        // No active filter - all tags normal
-        return;
-      }
-      
-      if (category === this.activeCategory) {
-        // This is the active tag
-        tag.classList.add('is-active');
-      } else {
-        // Other tags are muted
-        tag.classList.add('is-muted');
-      }
-    });
-  }
-
-  /**
-   * Update the active filters bar with current filter chips
-   */
-  updateActiveFiltersBar() {
-    const container = document.getElementById('filter-chips');
-    const bar = document.getElementById('active-filters');
-    
-    if (!container || !bar) return;
-    
-    // Clear existing chips
-    container.innerHTML = '';
-    
-    // Build chips based on active filters
-    const chips = [];
-    
-    if (this.activeCategory !== 'all') {
-      const category = ATC_CATEGORIES[this.activeCategory];
-      chips.push({
-        type: 'category',
-        code: this.activeCategory,
-        label: category ? category.name : this.activeCategory,
-        onRemove: () => this.clearFilters()
-      });
-    }
-    
-    if (this.searchQuery) {
-      chips.push({
-        type: 'search',
-        code: 'search',
-        label: `"${this.searchQuery}"`,
-        onRemove: () => {
-          this.searchQuery = '';
-          document.getElementById('search-input').value = '';
-          this.updateActiveFiltersBar();
-          this.applyFilters();
-        }
-      });
-    }
-    
-    if (this.activeBodyRegion) {
-      chips.push({
-        type: 'region',
-        code: this.activeBodyRegion,
-        label: this.activeBodyRegion,
-        onRemove: () => {
-            this.activeBodyRegion = null;
-            this.clearBodyMapHighlight();
-            this.updateActiveFiltersBar();
-            this.applyFilters();
-        }
-      });
-    }
-    
-    // Render chips
-    chips.forEach(chip => {
-      const chipEl = document.createElement('div');
-      chipEl.className = 'filter-chip';
-      chipEl.innerHTML = `
-        <span class="chip-label">${chip.label}</span>
-        <button class="chip-remove" title="Remove filter">&times;}</button>
-      `;
-      
-      chipEl.querySelector('.chip-remove').addEventListener('click', chip.onRemove);
-      
-      container.appendChild(chipEl);
-    });
-    
-    // Show/hide the bar based on whether there are active filters
-    if (chips.length > 0) {
-      bar.classList.add('has-filters');
-    } else {
-      bar.classList.remove('has-filters');
-    }
-  }
-
-  /**
-   * Clear all filters
-   */
   clearFilters() {
-    this.activeCategory = 'all';
+    this.activeCategory = "all";
     this.activeBodyRegion = null;
-    this.searchQuery = '';
-    
-    // Clear search input
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.value = '';
-    }
-    
-    // Update UI
-    this.updateATCTagsState();
-    this.updateActiveFiltersBar();
-    
-    // Reset body map
-    this.clearBodyMapHighlight();
-    
-    // Apply empty filters
-    this.applyFilters();
-  }
+    this.hoveredRegion = null;
+    this.searchQuery = "";
 
-  filterByBodyRegion(region) {
-    this.activeBodyRegion = region;
-    this.activeCategory = 'all';
-    
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.getAttribute('data-category') === 'all') {
-        btn.classList.add('active');
-      }
-    });
-    
+    const searchInput = document.getElementById("search-input");
+    if (searchInput) {
+      searchInput.value = "";
+    }
+
     this.updateATCTagsState();
     this.updateActiveFiltersBar();
     this.applyFilters();
+    this.updateBodyRegionLabel();
   }
 
   switchMode(mode) {
     this.mode = mode;
-    
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.getAttribute('data-mode') === mode) {
-        btn.classList.add('active');
-      }
+    document.querySelectorAll(".mode-btn").forEach((button) => {
+      button.classList.toggle("active", button.getAttribute("data-mode") === mode);
     });
-    
-    document.body.classList.remove('mode-public', 'mode-scientist');
+
+    document.body.classList.remove("mode-public", "mode-scientist");
     document.body.classList.add(`mode-${mode}`);
-    
+
     this.renderDrugList();
-    
     if (this.selectedDrug) {
       this.showDrugModal(this.selectedDrug);
     }
   }
 
-  initBodyMap() {
-    const container = document.getElementById('body-map');
-    if (!container) return;
-    
-    const regions = [
-      { id: 'head', name: 'Nervous System', category: 'N', path: 'M140,20 Q160,15 180,20 Q190,35 185,50 Q170,55 155,50 Q145,45 140,20' },
-      { id: 'eyes', name: 'Sensory Organs', category: 'S', path: 'M148,35 Q153,32 158,35 Q155,40 148,35 M162,35 Q167,32 172,35 Q169,40 162,35' },
-      { id: 'heart', name: 'Cardiovascular', category: 'C', path: 'M130,85 Q145,75 165,75 Q185,75 195,90 Q200,110 190,125 Q175,135 160,125 Q140,120 130,100 Q125,90 130,85' },
-      { id: 'lungs', name: 'Respiratory', category: 'R', path: 'M115,80 Q125,75 135,80 Q140,100 135,120 Q125,130 115,120 Q105,100 115,80 M185,80 Q195,75 205,80 Q215,100 205,120 Q195,130 185,120 Q180,100 185,80' },
-      { id: 'liver', name: 'Alimentary & Metabolism', category: 'A', path: 'M155,105 Q175,100 190,110 Q200,125 195,145 Q180,155 160,150 Q145,140 150,120 Q152,110 155,105' },
-      { id: 'kidney', name: 'Genito-urinary', category: 'G', path: 'M115,120 Q125,115 130,125 Q135,145 125,160 Q115,165 110,155 Q105,140 115,120 M190,120 Q200,115 205,125 Q210,145 200,160 Q190,165 185,155 Q180,140 190,120' },
-      { id: 'intestine', name: 'Alimentary & Metabolism', category: 'A', path: 'M140,155 Q160,150 175,155 Q190,165 185,185 Q170,200 150,195 Q130,185 135,170 Q138,160 140,155' },
-      { id: 'skin', name: 'Dermatological', category: 'D', path: 'M100,50 L110,180 Q115,190 120,195 L110,200 Q100,195 95,180 L85,60 Q90,45 100,50 M220,50 L210,180 Q205,190 200,195 L210,200 Q220,195 225,180 L235,60 Q230,45 220,50' },
-      { id: 'blood', name: 'Blood & Blood-forming', category: 'B', path: 'M145,90 L155,90 L155,100 L145,100 Z M175,90 L185,90 L185,100 L175,100 Z' },
-      { id: 'muscle', name: 'Musculo-skeletal', category: 'M', path: 'M95,55 L105,180 L95,185 L85,60 Z M225,55 L215,180 L225,185 L235,60 Z M120,200 L140,280 L130,285 L110,205 Z M200,200 L180,280 L190,285 L210,205 Z' },
-      { id: 'immune', name: 'Antineoplastic', category: 'L', path: 'M138,80 Q143,78 148,80 Q150,83 148,86 Q143,88 138,86 Q136,83 138,80 M182,80 Q187,78 192,80 Q194,83 192,86 Q187,88 182,86 Q180,83 182,80' },
-      { id: 'hormone', name: 'Systemic Hormones', category: 'H', path: 'M155,70 Q160,65 165,70 Q167,75 165,80 Q160,82 155,80 Q153,75 155,70' },
-      { id: 'infection', name: 'Anti-infectives', category: 'J', path: 'M145,130 Q150,128 155,130 Q158,135 155,140 Q150,142 145,140 Q142,135 145,130' },
-      { id: 'parasite', name: 'Antiparasitic', category: 'P', path: 'M175,130 Q180,128 185,130 Q188,135 185,140 Q180,142 175,140 Q172,135 175,130' },
-      { id: 'various', name: 'Various', category: 'V', path: 'M155,170 Q160,168 165,170 Q168,175 165,180 Q160,182 155,180 Q152,175 155,170' }
-    ];
-    
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('viewBox', '0 0 300 300');
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', 'auto');
-    
-    regions.forEach(region => {
-      const path = document.createElementNS(svgNS, 'path');
-      path.setAttribute('d', region.path);
-      path.setAttribute('class', 'body-region');
-      path.setAttribute('data-region', region.id);
-      path.setAttribute('data-category', region.category);
-      path.setAttribute('data-name', region.name);
-      path.setAttribute('fill', ATC_CATEGORIES[region.category]?.color || '#999');
-      path.setAttribute('opacity', '0.6');
-      
-      path.addEventListener('click', () => this.handleBodyRegionClick(region));
-      path.addEventListener('mouseenter', () => this.handleBodyRegionHover(region, path));
-      path.addEventListener('mouseleave', () => this.handleBodyRegionLeave(path));
-      
-      svg.appendChild(path);
-    });
-    
-    container.innerHTML = '';
-    container.appendChild(svg);
-  }
+  updateATCTagsState() {
+    document.querySelectorAll(".atc-tag").forEach((tag) => {
+      const category = tag.getAttribute("data-category");
+      tag.classList.remove("is-active", "is-muted");
 
-  handleBodyRegionClick(region) {
-    this.clearBodyMapHighlight();
-    
-    document.querySelectorAll('.body-region').forEach(el => {
-      if (el.getAttribute('data-region') === region.id) {
-        el.classList.add('active');
-        el.setAttribute('opacity', '1');
-        el.setAttribute('stroke-width', '3');
+      if (this.activeCategory === "all") {
+        return;
+      }
+
+      if (category === this.activeCategory) {
+        tag.classList.add("is-active");
+      } else {
+        tag.classList.add("is-muted");
       }
     });
-    
-    const label = document.getElementById('body-region-label');
-    if (label) {
-      label.textContent = `${region.name} (${ATC_CATEGORIES[region.category]?.name || 'Unknown'})`;
-      label.classList.add('active');
-    }
-    
-    this.filterByBodyRegion(region.id);
   }
 
-  handleBodyRegionHover(region, element) {
-    this.hoverTimeout = setTimeout(() => {
-      this.showBodyPreview(region, element);
-    }, this.hoverDelay);
-    
-    element.setAttribute('opacity', '0.9');
-    
-    const label = document.getElementById('body-region-label');
-    if (label) {
-      label.textContent = region.name;
+  updateActiveFiltersBar() {
+    const container = document.getElementById("filter-chips");
+    const bar = document.getElementById("active-filters");
+    if (!container || !bar) {
+      return;
     }
+
+    container.innerHTML = "";
+    const chips = [];
+
+    if (this.activeCategory !== "all") {
+      const category = ATC_CATEGORIES[this.activeCategory];
+      chips.push({
+        label: category ? category.name : this.activeCategory,
+        onRemove: () => {
+          this.activeCategory = "all";
+          this.updateATCTagsState();
+          this.updateActiveFiltersBar();
+          this.applyFilters();
+        },
+      });
+    }
+
+    if (this.searchQuery) {
+      chips.push({
+        label: `"${this.searchQuery}"`,
+        onRemove: () => {
+          this.searchQuery = "";
+          const searchInput = document.getElementById("search-input");
+          if (searchInput) {
+            searchInput.value = "";
+          }
+          this.updateActiveFiltersBar();
+          this.applyFilters();
+        },
+      });
+    }
+
+    if (this.activeBodyRegion) {
+      chips.push({
+        label: this.getRegionMeta(this.activeBodyRegion).display_name,
+        onRemove: () => {
+          this.activeBodyRegion = null;
+          this.updateActiveFiltersBar();
+          this.applyFilters();
+          this.updateBodyRegionLabel();
+        },
+      });
+    }
+
+    chips.forEach((chip) => {
+      const chipElement = document.createElement("div");
+      chipElement.className = "filter-chip";
+      chipElement.innerHTML = `
+        <span class="chip-label">${chip.label}</span>
+        <button class="chip-remove" title="Remove filter">&times;</button>
+      `;
+      chipElement.querySelector(".chip-remove").addEventListener("click", chip.onRemove);
+      container.appendChild(chipElement);
+    });
+
+    bar.classList.toggle("has-filters", chips.length > 0);
   }
 
-  handleBodyRegionLeave(element) {
-    if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout);
-      this.hoverTimeout = null;
+  updateBodyMapState() {
+    this.regionElementsById.forEach((elements, regionId) => {
+      const regionDrugCount = applyDrugFilters(this.drugs, {
+        activeCategory: this.activeCategory,
+        activeBodyRegion: regionId,
+        searchQuery: "",
+      }).length;
+
+      elements.forEach((element) => {
+        element.classList.remove("is-active", "is-hovered", "is-muted");
+
+        if (this.activeCategory !== "all" && regionDrugCount === 0) {
+          element.classList.add("is-muted");
+        }
+
+        if (this.activeBodyRegion === regionId) {
+          element.classList.add("is-active");
+        } else if (!this.activeBodyRegion && this.hoveredRegion === regionId) {
+          element.classList.add("is-hovered");
+        }
+      });
+    });
+  }
+
+  updateBodyRegionLabel(overrideRegionId = null, isLocked = null) {
+    const label = document.getElementById("body-region-label");
+    if (!label) {
+      return;
     }
-    
-    if (!element.classList.contains('active')) {
-      element.setAttribute('opacity', '0.6');
+
+    const regionId = overrideRegionId || this.activeBodyRegion;
+    if (!regionId) {
+      label.textContent = "Hover a region to preview its drug space";
+      label.classList.remove("active");
+      return;
     }
-    
-    if (!this.activeBodyRegion) {
-      const label = document.getElementById('body-region-label');
-      if (label) {
-        label.textContent = 'Select a region to explore';
-        label.classList.remove('active');
+
+    const regionMeta = this.getRegionMeta(regionId);
+    const count = applyDrugFilters(this.drugs, {
+      activeCategory: this.activeCategory,
+      activeBodyRegion: regionId,
+      searchQuery: this.searchQuery,
+    }).length;
+
+    const locked = isLocked !== null ? isLocked : regionId === this.activeBodyRegion;
+    label.textContent = locked
+      ? `Locked: ${regionMeta.display_name} · ${count} matching drugs`
+      : `${regionMeta.display_name} · ${count} matching drugs`;
+    label.classList.add("active");
+  }
+
+  getRegionMeta(regionId) {
+    return (
+      this.regionMetaById[regionId] || {
+        id: regionId,
+        display_name: humanizeRegionId(regionId),
+        description: "",
       }
-    }
-  }
-
-  showBodyPreview(region, element) {
-    const existingPreview = document.querySelector('.body-preview');
-    if (existingPreview) {
-      existingPreview.remove();
-    }
-    
-    const drugsForRegion = this.drugs.filter(d => 
-      this.getDrugBodyRegions(d).includes(region.id)
     );
-    
-    const preview = document.createElement('div');
-    preview.className = 'body-preview';
-    preview.innerHTML = `
-      <div class="body-preview-title">${region.name}</div>
-      <div class="body-preview-count">${drugsForRegion.length} drugs</div>
-    `;
-    
-    const rect = element.getBoundingClientRect();
-    preview.style.left = `${rect.right + 10}px`;
-    preview.style.top = `${rect.top}px`;
-    
-    document.body.appendChild(preview);
-    
-    requestAnimationFrame(() => {
-      preview.classList.add('visible');
-    });
-    
-    setTimeout(() => {
-      preview.classList.remove('visible');
-      setTimeout(() => preview.remove(), 200);
-    }, 3000);
-  }
-
-  clearBodyMapHighlight() {
-    document.querySelectorAll('.body-region').forEach(el => {
-      el.classList.remove('active');
-      el.setAttribute('opacity', '0.6');
-      el.setAttribute('stroke-width', '1');
-    });
-    
-    const label = document.getElementById('body-region-label');
-    if (label) {
-      label.textContent = 'Select a region to explore';
-      label.classList.remove('active');
-    }
   }
 
   getDrugBodyRegions(drug) {
-    const atcToRegions = {
-      'A': ['liver', 'intestine'],
-      'B': ['blood'],
-      'C': ['heart', 'blood'],
-      'D': ['skin'],
-      'G': ['kidney'],
-      'H': ['hormone'],
-      'J': ['infection', 'blood'],
-      'L': ['immune', 'blood'],
-      'M': ['muscle'],
-      'N': ['head'],
-      'P': ['parasite', 'intestine'],
-      'R': ['lungs'],
-      'S': ['eyes'],
-      'V': ['various']
-    };
-    
-    const category = drug.atc_category || 'V';
-    return atcToRegions[category] || ['various'];
+    return resolveDrugBodyRegions(drug);
   }
 
-  /**
-   * Apply all filters (category + search)
-   */
   applyFilters() {
-    this.filteredDrugs = this.drugs.filter(drug => {
-      if (this.activeCategory !== 'all') {
-        const drugCategory = drug.atc_category || (drug.categories && drug.categories[0]);
-        if (drugCategory !== this.activeCategory) {
-          return false;
-        }
-      }
-      
-      if (this.activeBodyRegion) {
-        const drugRegions = this.getDrugBodyRegions(drug);
-        if (!drugRegions.includes(this.activeBodyRegion)) {
-          return false;
-        }
-      }
-      
-      if (this.searchQuery) {
-        const searchFields = [
-          drug.name.toLowerCase(),
-          drug.id.toLowerCase(),
-          drug.class || '',
-          drug.indication || '',
-          drug.company || '',
-          drug.atc_code || '',
-          ...(drug.targets || []),
-          ...(drug.synonyms || [])
-        ].map(f => (f || '').toString().toLowerCase()).join(' ');
-        
-        if (!searchFields.includes(this.searchQuery)) {
-          return false;
-        }
-      }
-      
-      return true;
+    this.filteredDrugs = applyDrugFilters(this.drugs, {
+      activeCategory: this.activeCategory,
+      activeBodyRegion: this.activeBodyRegion,
+      searchQuery: this.searchQuery,
     });
-    
+
+    this.updateBodyMapState();
     this.renderDrugList();
   }
 
-  /**
-   * Render category statistics
-   */
-  renderCategoryStats() {
-    const container = document.getElementById('category-stats');
-    if (!container) return;
-    
-    const stats = {};
-    this.drugs.forEach(drug => {
-      const cat = drug.atc_category || 'V';
-      stats[cat] = (stats[cat] || 0) + 1;
-    });
-    
-    container.innerHTML = Object.entries(stats)
-      .sort((a, b) => b[1] - a[1])
-      .map(([cat, count]) => `
-        <div class="stat-item">
-          <span class="stat-dot atc-${cat.toLowerCase()}"></span>
-          <span>${cat}: ${count}</span>
-        </div>
-      `).join('');
+  getRenderableDrugs() {
+    const hasFilters =
+      this.activeCategory !== "all" || this.activeBodyRegion || this.searchQuery;
+    const limit = hasFilters ? DEFAULT_RESULT_LIMIT : STARTER_SET_LIMIT;
+    return this.filteredDrugs.slice(0, limit);
   }
 
-  /**
-   * Render drug list
-   */
   renderDrugList() {
-    const container = document.getElementById('drug-grid');
-    if (!container) return;
-    
-    // Update count
-    const countEl = document.getElementById('drug-count');
-    if (countEl) {
-      const categoryName = this.activeCategory === 'all' 
-        ? 'All Drugs' 
-        : (ATC_CATEGORIES[this.activeCategory]?.name || this.activeCategory);
-      countEl.textContent = `${this.filteredDrugs.length} drugs - ${categoryName}`;
-    }
-    
-    // Clear container
-    container.innerHTML = '';
-    
-    if (this.filteredDrugs.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">🔍</div>
-          <p>No drugs found matching your criteria</p>
-          <button class="filter-btn" onclick="app.filterByCategory('all')">Show All Drugs</button>
-        </div>
-      `;
+    const container = document.getElementById("drug-grid");
+    const countElement = document.getElementById("drug-count");
+    const noteElement = document.getElementById("results-note");
+    if (!container) {
       return;
     }
-    
-    // Render each drug card
-    this.filteredDrugs.forEach(drug => {
-      const card = this.createDrugCard(drug);
-      container.appendChild(card);
+
+    const visibleDrugs = this.getRenderableDrugs();
+    const hasFilters =
+      this.activeCategory !== "all" || this.activeBodyRegion || this.searchQuery;
+
+    if (countElement) {
+      countElement.textContent = hasFilters
+        ? `${this.filteredDrugs.length} matching drugs`
+        : `${this.drugs.length} drugs available`;
+    }
+
+    if (noteElement) {
+      if (this.filteredDrugs.length > visibleDrugs.length) {
+        noteElement.textContent = `Showing first ${visibleDrugs.length} results to keep the atlas responsive`;
+      } else if (!hasFilters) {
+        noteElement.textContent = "Starter set shown. Use ATC, body region, or search to refine.";
+      } else {
+        noteElement.textContent = "";
+      }
+    }
+
+    container.innerHTML = "";
+
+    if (this.filteredDrugs.length === 0) {
+      container.innerHTML = this.buildEmptyState();
+      return;
+    }
+
+    visibleDrugs.forEach((drug) => {
+      container.appendChild(this.createDrugCard(drug));
     });
   }
 
-  /**
-   * Create drug card element
-   */
-  createDrugCard(drug) {
-    const card = document.createElement('div');
-    card.className = 'drug-card';
-    card.setAttribute('data-drug-id', drug.id);
-    
-    if (this.selectedDrug && this.selectedDrug.id === drug.id) {
-      card.classList.add('selected');
+  buildEmptyState() {
+    if (this.searchQuery) {
+      return `
+        <div class="empty-state">
+          <div class="empty-state-icon">🔎</div>
+          <p>No drugs matched the current search within your active atlas filters.</p>
+        </div>
+      `;
     }
-    
-    // Get ATC category
-    const category = drug.atc_category || 'V';
-    
-    // Generation badge
-    const generationBadge = drug.generation 
+
+    if (this.activeCategory !== "all" && this.activeBodyRegion) {
+      return `
+        <div class="empty-state">
+          <div class="empty-state-icon">🫀</div>
+          <p>No drugs matched this ATC and body-region combination.</p>
+        </div>
+      `;
+    }
+
+    if (this.activeCategory !== "all" || this.activeBodyRegion) {
+      return `
+        <div class="empty-state">
+          <div class="empty-state-icon">🧭</div>
+          <p>No drugs matched the active atlas filter.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="empty-state">
+        <div class="empty-state-icon">💊</div>
+        <p>The atlas is ready. Choose an ATC group, hover a body region, or search to begin.</p>
+      </div>
+    `;
+  }
+
+  createDrugCard(drug) {
+    const card = document.createElement("div");
+    const category = drug.atc_category || "V";
+    const modePresentation = getModePresentation(this.mode);
+    const bodyRegionLabel = buildBodyRegionLabel(drug, this.regionMetaById);
+    const publicSummary = buildPublicSummary(drug, this.regionMetaById);
+    const targets = (drug.targets || []).slice(0, 2).join(", ");
+
+    card.className = "drug-card";
+    card.dataset.drugId = drug.id;
+    card.dataset.category = category;
+
+    if (this.selectedDrug && this.selectedDrug.id === drug.id) {
+      card.classList.add("selected");
+    }
+
+    const generationBadge = drug.generation
       ? `<span class="generation-badge" title="Generation ${drug.generation}">G${drug.generation}</span>`
-      : '';
-    
-    // ATC badge
-    const atcBadge = drug.atc_code 
-      ? `<span class="atc-badge ${category}" title="${ATC_CATEGORIES[category]?.name || 'Unknown'}">${drug.atc_code}</span>`
-      : '';
-    
-    // Category indicator bar
-    const indicator = `<div class="category-indicator ${category}"></div>`;
-    
-    // Drug class
-    const drugClass = drug.class 
-      ? `<div class="drug-class">${drug.class}</div>`
-      : '';
-    
+      : "";
+
+    const atcBadge = drug.atc_code
+      ? `<span class="atc-badge ${category}" title="${ATC_CATEGORIES[category]?.name || "Unknown"}">${drug.atc_code}</span>`
+      : "";
+
+    const expertMeta = modePresentation.showExpertCardMeta
+      ? `
+        ${drug.class ? `<div class="drug-class">${drug.class}</div>` : ""}
+        ${targets ? `<div class="drug-targets">${targets}</div>` : ""}
+      `
+      : "";
+
+    const finalMeta = [
+      `<span>${bodyRegionLabel}</span>`,
+      `<span>${drug.year_approved || "Unknown year"}</span>`,
+      modePresentation.showExpertCardMeta && drug.molecular_weight
+        ? `<span>${drug.molecular_weight.toFixed(0)} Da</span>`
+        : "",
+      `<span>Phase ${drug.phase || "N/A"}</span>`,
+    ]
+      .filter(Boolean)
+      .join("");
+
     card.innerHTML = `
-      ${indicator}
       ${generationBadge}
       ${atcBadge}
       <div class="drug-structure" data-smiles="${drug.smiles}">
@@ -780,206 +760,214 @@ class DrugTreeApp {
       </div>
       <div class="drug-info">
         <h4>${drug.name}</h4>
-        ${drugClass}
-        <div class="drug-meta">
-          <span>Phase ${drug.phase}</span>
-          <span>${drug.year_approved || drug.year}</span>
-          ${drug.molecular_weight ? `<span>${drug.molecular_weight.toFixed(0)} Da</span>` : ''}
-        </div>
+        <div class="drug-context">${bodyRegionLabel}</div>
+        <div class="drug-summary">${publicSummary}</div>
+        ${expertMeta}
+        <div class="drug-meta">${finalMeta}</div>
       </div>
     `;
-    
-    // Click handler
-    card.addEventListener('click', () => this.selectDrug(drug, card));
-    
-    // Render structure asynchronously
-    const structureContainer = card.querySelector('.drug-structure');
+
+    card.addEventListener("click", () => this.selectDrug(drug, card));
+
+    const structureContainer = card.querySelector(".drug-structure");
     if (this.structureViewer) {
       this.structureViewer.renderStructure(drug.smiles, structureContainer);
     }
-    
+
     return card;
   }
 
-  /**
-   * Select a drug
-   */
   selectDrug(drug, cardElement) {
-    // Update selected state
-    document.querySelectorAll('.drug-card').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll(".drug-card").forEach((card) => card.classList.remove("selected"));
     if (cardElement) {
-      cardElement.classList.add('selected');
+      cardElement.classList.add("selected");
     }
-    
+
     this.selectedDrug = drug;
     this.showDrugModal(drug);
   }
 
-  /**
-   * Show drug detail modal
-   */
   showDrugModal(drug) {
-    const modal = document.getElementById('modal-overlay');
-    if (!modal) return;
-    
-    const category = drug.atc_category || 'V';
-    const categoryName = ATC_CATEGORIES[category]?.name || 'Unknown';
-    
-    // Update modal content
-    document.getElementById('modal-title').textContent = drug.name;
-    
-    // ATC code (clickable)
-    const atcCodeEl = document.getElementById('modal-atc-code');
-    if (atcCodeEl) {
-      atcCodeEl.textContent = drug.atc_code || 'N/A';
-      atcCodeEl.onclick = () => {
+    const modal = document.getElementById("modal-overlay");
+    if (!modal) {
+      return;
+    }
+
+    const category = drug.atc_category || "V";
+    const modePresentation = getModePresentation(this.mode);
+
+    document.getElementById("modal-title").textContent = drug.name;
+    document.getElementById("modal-summary").textContent = buildPublicSummary(
+      drug,
+      this.regionMetaById,
+    );
+    document.getElementById("modal-region").textContent = buildBodyRegionLabel(
+      drug,
+      this.regionMetaById,
+    );
+
+    const atcCodeElement = document.getElementById("modal-atc-code");
+    if (atcCodeElement) {
+      atcCodeElement.textContent = drug.atc_code || "N/A";
+      atcCodeElement.onclick = () => {
         this.filterByCategory(category);
         this.closeModal();
       };
     }
-    
-    // Other fields
-    document.getElementById('modal-class').textContent = drug.class || 'N/A';
-    document.getElementById('modal-mw').textContent = drug.molecular_weight 
-      ? `${drug.molecular_weight.toFixed(2)} Da` 
-      : 'N/A';
-    document.getElementById('modal-phase').textContent = `Phase ${drug.phase}`;
-    document.getElementById('modal-year').textContent = drug.year_approved || drug.year;
-    document.getElementById('modal-company').textContent = drug.company || 'N/A';
-    document.getElementById('modal-indication').textContent = drug.indication || 'N/A';
-    
-    // Targets
-    const targetsEl = document.getElementById('modal-targets');
-    if (targetsEl) {
-      targetsEl.textContent = drug.targets 
-        ? drug.targets.join(', ') 
-        : 'N/A';
-    }
-    
-    // Synonyms
-    const synonymsEl = document.getElementById('modal-synonyms');
-    if (synonymsEl) {
-      synonymsEl.textContent = drug.synonyms 
-        ? drug.synonyms.join(', ') 
-        : 'N/A';
-    }
-    
-    // SMILES
-    document.getElementById('modal-smiles').textContent = drug.smiles;
-    
-    // Genealogy
+
+    document.getElementById("modal-class").textContent = drug.class || "N/A";
+    document.getElementById("modal-mw").textContent = drug.molecular_weight
+      ? `${drug.molecular_weight.toFixed(2)} Da`
+      : "N/A";
+    document.getElementById("modal-phase").textContent = drug.phase
+      ? `Phase ${drug.phase}`
+      : "N/A";
+    document.getElementById("modal-year").textContent = drug.year_approved || "Unknown";
+    document.getElementById("modal-company").textContent = drug.company || "N/A";
+    document.getElementById("modal-indication").textContent = drug.indication || "N/A";
+    document.getElementById("modal-targets").textContent =
+      drug.targets && drug.targets.length > 0 ? drug.targets.join(", ") : "N/A";
+    document.getElementById("modal-synonyms").textContent =
+      drug.synonyms && drug.synonyms.length > 0 ? drug.synonyms.join(", ") : "N/A";
+    document.getElementById("modal-inchikey").textContent = drug.inchikey || "N/A";
+    document.getElementById("modal-smiles").textContent = drug.smiles || "N/A";
+
     this.updateGenealogy(drug);
-    
-    // Render structure in modal
-    const structureContainer = document.getElementById('modal-structure');
+
+    const structureContainer = document.getElementById("modal-structure");
     if (structureContainer && this.structureViewer) {
       this.structureViewer.renderModalStructure(drug.smiles, structureContainer);
     }
-    
-    // Show modal
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+
+    document.querySelectorAll(".scientist-only").forEach((element) => {
+      if (element.classList.contains("info-item")) {
+        element.style.display = modePresentation.showTechnicalChemistry ? "flex" : "none";
+      } else {
+        element.style.display = modePresentation.showTechnicalChemistry ? "block" : "none";
+      }
+    });
+
+    modal.classList.add("active");
+    document.body.style.overflow = "hidden";
   }
-  
+
   updateGenealogy(drug) {
-    const parentsEl = document.getElementById('modal-parents');
-    const successorsEl = document.getElementById('modal-successors');
-    const generationEl = document.getElementById('modal-generation');
-    
-    if (generationEl) {
-      generationEl.textContent = `Generation ${drug.generation || 1}`;
+    const parentsElement = document.getElementById("modal-parents");
+    const successorsElement = document.getElementById("modal-successors");
+    const generationElement = document.getElementById("modal-generation");
+
+    if (generationElement) {
+      generationElement.textContent = `Generation ${drug.generation || 1}`;
     }
-    
-    if (parentsEl) {
+
+    if (parentsElement) {
       if (drug.parent_drugs && drug.parent_drugs.length > 0) {
-        parentsEl.innerHTML = drug.parent_drugs.map(parentId => {
-          const parentDrug = this.drugs.find(d => d.id === parentId || d.name === parentId);
-          if (parentDrug) {
-            return `<span class="genealogy-drug-link" data-drug-id="${parentDrug.id}">${parentDrug.name}</span>`;
-          }
-          return `<span>${parentId}</span>`;
-        }).join(', ');
-        
-        parentsEl.querySelectorAll('.genealogy-drug-link').forEach(link => {
-          link.addEventListener('click', () => {
-            const drugId = link.getAttribute('data-drug-id');
-            const parentDrug = this.drugs.find(d => d.id === drugId);
+        parentsElement.innerHTML = drug.parent_drugs
+          .map((parentId) => {
+            const parentDrug = this.drugs.find((candidate) => candidate.id === parentId || candidate.name === parentId);
+            if (parentDrug) {
+              return `<span class="genealogy-drug-link" data-drug-id="${parentDrug.id}">${parentDrug.name}</span>`;
+            }
+            return `<span>${parentId}</span>`;
+          })
+          .join(", ");
+
+        parentsElement.querySelectorAll(".genealogy-drug-link").forEach((link) => {
+          link.addEventListener("click", () => {
+            const drugId = link.getAttribute("data-drug-id");
+            const parentDrug = this.drugs.find((candidate) => candidate.id === drugId);
             if (parentDrug) {
               this.showDrugModal(parentDrug);
             }
           });
         });
       } else {
-        parentsEl.textContent = 'First in class';
+        parentsElement.textContent = "First in class";
       }
     }
-    
-    if (successorsEl) {
-      const successors = this.drugs.filter(d => 
-        d.parent_drugs && 
-        (d.parent_drugs.includes(drug.id) || d.parent_drugs.includes(drug.name))
+
+    if (successorsElement) {
+      const successors = this.drugs.filter(
+        (candidate) =>
+          candidate.parent_drugs &&
+          (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name)),
       );
-      
+
       if (successors.length > 0) {
-        successorsEl.innerHTML = successors.map(successor => 
-          `<span class="genealogy-drug-link" data-drug-id="${successor.id}">${successor.name}</span>`
-        ).join(', ');
-        
-        successorsEl.querySelectorAll('.genealogy-drug-link').forEach(link => {
-          link.addEventListener('click', () => {
-            const drugId = link.getAttribute('data-drug-id');
-            const successorDrug = this.drugs.find(d => d.id === drugId);
+        successorsElement.innerHTML = successors
+          .map(
+            (successor) =>
+              `<span class="genealogy-drug-link" data-drug-id="${successor.id}">${successor.name}</span>`,
+          )
+          .join(", ");
+
+        successorsElement.querySelectorAll(".genealogy-drug-link").forEach((link) => {
+          link.addEventListener("click", () => {
+            const drugId = link.getAttribute("data-drug-id");
+            const successorDrug = this.drugs.find((candidate) => candidate.id === drugId);
             if (successorDrug) {
               this.showDrugModal(successorDrug);
             }
           });
         });
       } else {
-        successorsEl.textContent = 'Latest generation';
+        successorsElement.textContent = "Latest generation";
       }
     }
-    
-    const genealogySection = document.querySelector('.modal-genealogy');
-    if (genealogySection) {
-      genealogySection.style.display = this.mode === 'scientist' ? 'block' : 'none';
-    }
   }
 
-  /**
-   * Close modal
-   */
   closeModal() {
-    const modal = document.getElementById('modal-overlay');
+    const modal = document.getElementById("modal-overlay");
     if (modal) {
-      modal.classList.remove('active');
-      document.body.style.overflow = '';
+      modal.classList.remove("active");
+      document.body.style.overflow = "";
     }
   }
 
-  /**
-   * Copy SMILES to clipboard
-   */
-  copySmiles() {
-    const smiles = document.getElementById('modal-smiles').textContent;
-    if (smiles) {
-      navigator.clipboard.writeText(smiles).then(() => {
-        const btn = document.getElementById('copy-smiles');
-        const originalText = btn.textContent;
-        btn.textContent = '✓ Copied!';
-        setTimeout(() => {
-          btn.textContent = originalText;
-        }, 1500);
-      }).catch(err => {
-        console.error('Failed to copy:', err);
-      });
+  async copySmiles() {
+    const smiles = document.getElementById("modal-smiles").textContent;
+    if (!smiles || !navigator.clipboard) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(smiles);
+      const button = document.getElementById("copy-smiles");
+      if (!button) {
+        return;
+      }
+      const originalLabel = button.textContent;
+      button.textContent = "✓ Copied!";
+      setTimeout(() => {
+        button.textContent = originalLabel;
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to copy SMILES:", error);
     }
   }
 
-  /**
-   * Show error message
-   */
+  clearHoverTimeout() {
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
+    }
+  }
+
+  clearTransientPreviews() {
+    this.clearHoverTimeout();
+    this.removePreview(".body-preview");
+    this.removePreview(".atc-preview");
+  }
+
+  removePreview(selector) {
+    const element = document.querySelector(selector);
+    if (element) {
+      element.remove();
+    }
+  }
+
   showError(message) {
-    const container = document.getElementById('drug-grid');
+    const container = document.getElementById("drug-grid");
     if (container) {
       container.innerHTML = `
         <div class="empty-state">
@@ -990,38 +978,15 @@ class DrugTreeApp {
     }
   }
 
-  /**
-   * Reset all filters
-   */
   reset() {
-    this.activeCategory = 'all';
-    this.searchQuery = '';
-    this.selectedDrug = null;
-    
-    // Reset search input
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.value = '';
-    }
-    
-    // Reset filter buttons
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.getAttribute('data-category') === 'all') {
-        btn.classList.add('active');
-      }
-    });
-    
-    this.applyFilters();
+    this.clearFilters();
   }
 }
 
-// Initialize app when DOM is ready
 let app;
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", async () => {
   app = new DrugTreeApp();
-  app.init();
+  window.app = app;
+  window.DrugTreeApp = DrugTreeApp;
+  await app.init();
 });
-
-// Export for global access
-window.app = app;

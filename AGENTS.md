@@ -19,32 +19,40 @@
 
 ---
 
+## Project Scale
+
+- **57 files**, 4448 lines of code
+- **3 large files** (>500 lines): `drug_etl.py` (819), `app.js` (992), `style.css` (1158)
+- **Max depth**: 5 levels
+- **61 drugs** in dataset
+
+---
+
 ## Project Structure
 
 ```
 DrugTree/
 ├── docs/                    # Documentation
 │   ├── PROJECT_PLAN.md    # Full specification (2278 lines)
-│   ├── CENTRAL_BODY_ATLAS_IMPLEMENTATION.md  # UI transformation guide
-│   └── DATA_SCHEMA.md      # Data structure (if exists)
+│   └── CENTRAL_BODY_ATLAS_IMPLEMENTATION.md
 ├── data/
 │   ├── drugs/               # Drug data files
 │   └── ontology/            # Body ontology (14 regions)
 ├── src/
 │   ├── frontend/            # Main web app
-│   │   ├── index.html     # Entry point (227 lines) - Central Body Atlas layout
+│   │   ├── index.html     # Entry point (227 lines)
 │   │   ├── css/style.css  # Dark atlas theme (1158 lines)
-│   │   ├── js/
-│   │   │   ├── app.js          # Main application (1027 lines)
-│   │   │   ├── structure.js   # RDKit.js structure viewer
-│   │   │   └── body-map.js    # Legacy body map handler
-│   │   ├── assets/
-│   │   │   └── human-body.svg  # Body map SVG
-│   │   └── data/
-│   │       ├── drugs-full.json     # 61 drugs with ATC data
-│   │       └── sample-drugs.json   # Sample data
-│   ├── backend/              # Phase 2: FastAPI backend
-│   └── etl/                 # Phase 2: Data pipelines
+│   │   ├── js/app.js      # DrugTreeApp class (992 lines)
+│   │   └── data/drugs-full.json  # 61 drugs with ATC
+│   ├── backend/              # FastAPI service
+│   │   ├── main.py          # Entry point (89 lines)
+│   │   ├── routers/drugs.py # REST endpoints (203 lines)
+│   │   ├── models/drug.py   # Pydantic schemas (102 lines)
+│   │   └── etl/drug_etl.py  # ETL pipeline (819 lines)
+│   └── AGENTS.md            # Backend guide
+├── tests/
+│   ├── backend/             # pytest tests
+│   └── frontend/            # Node test harness
 ├── README.md
 └── AGENTS.md (this file)
 ```
@@ -387,17 +395,28 @@ All CSS sections use comment headers:
 
 ## Anti-Patterns & Gotchas
 
-### ⚠️ Avoid
+### ⚠️ Avoid (Frontend)
 1. **Multi-select ATC filter** - MVP uses single-select only
 2. **Different datasets per mode** - Same data, different visibility
 3. **Biologics/peptides** - Only small molecules for v1
 4. **Authentication** - No login required for MVP
 
-### ⚠️ Common Mistakes
+### ⚠️ Avoid (Backend)
+1. **Sync requests in endpoints** - Use `async def` with `httpx`
+2. **Hardcoded API keys** - Use environment variables
+3. **Skipping Pydantic validation** - Always validate input/output
+4. **Unbounded queries** - Add pagination to list endpoints
+
+### ⚠️ Common Mistakes (Frontend)
 1. **Forgetting to call `initBodyMap()`** - Body map won't render
 2. **Hardcoding ATC colors** - Use `ATC_CATEGORIES` object
 3. **Skipping mode check** - Test both modes
 4. **Missing hover delay** - Use 1200ms delay
+
+### ⚠️ Common Mistakes (Backend)
+1. **Missing CORS** - Frontend on different port needs CORS middleware
+2. **No error handling** - Wrap external API calls (ChEMBL/PubChem) in try/except
+3. **Blocking I/O** - Use async for all external calls
 
 ### ⚠️ Browser Compatibility
 - Requires ES6+ support
@@ -407,6 +426,16 @@ All CSS sections use comment headers:
 ---
 
 ## Testing
+
+### Test Structure
+```
+tests/
+├── backend/
+│   └── test_drug_etl.py   # pytest tests for ETL
+└── frontend/
+    ├── test_app_state.mjs # State management tests
+    └── test_file_safe_bootstrap.mjs  # Bootstrap tests
+```
 
 ### Manual Testing Checklist
 1. ✅ ATC filtering works for all 14 categories

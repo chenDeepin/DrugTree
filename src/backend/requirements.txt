@@ -1,0 +1,15 @@
+# FastAPI Backend Dependencies
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+httpx>=0.25.0
+aiofiles>=23.1.0
+
+# Data Processing
+pandas>=2.0.0
+rdkit>=2023.3.1
+
+# Utilities
+python-dotenv>=1.0.0
+tqdm>=4.60.0

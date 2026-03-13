@@ -8,7 +8,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💊</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-shell">
@@ -39,76 +39,90 @@
       <!-- Atlas Hero Section -->
       <section class="atlas-hero">
         <div class="atlas-stage">
-          <!-- Body Container -->
-          <div class="atlas-body-wrap">
-            <div class="atlas-glow"></div>
-            <div class="human-body-map" id="body-map"></div>
-            <div class="body-hotspots"></div>
+          <div class="atlas-copy">
+            <p class="atlas-kicker">Central Body Atlas</p>
+            <h1>Explore approved drugs by therapeutic class and body context.</h1>
+            <p class="atlas-subtitle">
+              Start with an ATC family, refine with a body region, then inspect the matching molecules below.
+            </p>
+            <div class="atlas-summary" id="atlas-summary">
+              <span class="summary-pill">Loading atlas dataset...</span>
+            </div>
           </div>
 
-          <!-- ATC Tag Orbit Layer -->
-          <div class="atc-orbit-layer" id="atc-orbit">
-            <button class="atc-tag atc-n" data-category="N">
-              <span class="atc-code">N</span>
-              <span class="atc-name">Nervous</span>
-            </button>
-            <button class="atc-tag atc-s" data-category="S">
-              <span class="atc-code">S</span>
-              <span class="atc-name">Sensory</span>
-            </button>
-            <button class="atc-tag atc-r" data-category="R">
-              <span class="atc-code">R</span>
-              <span class="atc-name">Respiratory</span>
-            </button>
-            <button class="atc-tag atc-c" data-category="C">
-              <span class="atc-code">C</span>
-              <span class="atc-name">Cardio</span>
-            </button>
-            <button class="atc-tag atc-l" data-category="L">
-              <span class="atc-code">L</span>
-              <span class="atc-name">Oncology</span>
-            </button>
-            <button class="atc-tag atc-b" data-category="B">
-              <span class="atc-code">B</span>
-              <span class="atc-name">Blood</span>
-            </button>
-            <button class="atc-tag atc-d" data-category="D">
-              <span class="atc-code">D</span>
-              <span class="atc-name">Skin</span>
-            </button>
-            <button class="atc-tag atc-g" data-category="G">
-              <span class="atc-code">G</span>
-              <span class="atc-name">GU/Breast</span>
-            </button>
-            <button class="atc-tag atc-h" data-category="H">
-              <span class="atc-code">H</span>
-              <span class="atc-name">Hormones</span>
-            </button>
-            <button class="atc-tag atc-m" data-category="M">
-              <span class="atc-code">M</span>
-              <span class="atc-name">Musculoskeletal</span>
-            </button>
-            <button class="atc-tag atc-p" data-category="P">
-              <span class="atc-code">P</span>
-              <span class="atc-name">Parasites</span>
-            </button>
-            <button class="atc-tag atc-a" data-category="A">
-              <span class="atc-code">A</span>
-              <span class="atc-name">Alimentary</span>
-            </button>
-            <button class="atc-tag atc-j" data-category="J">
-              <span class="atc-code">J</span>
-              <span class="atc-name">Anti-infectives</span>
-            </button>
-            <button class="atc-tag atc-v" data-category="V">
-              <span class="atc-code">V</span>
-              <span class="atc-name">Various</span>
-            </button>
-          </div>
+          <div class="atlas-constellation">
+            <div class="atc-rail atc-rail-left" aria-label="ATC categories left rail">
+              <button class="atc-tag" data-category="N">
+                <span class="atc-code">N</span>
+                <span class="atc-name">Nervous</span>
+              </button>
+              <button class="atc-tag" data-category="C">
+                <span class="atc-code">C</span>
+                <span class="atc-name">Cardio</span>
+              </button>
+              <button class="atc-tag" data-category="L">
+                <span class="atc-code">L</span>
+                <span class="atc-name">Oncology</span>
+              </button>
+              <button class="atc-tag" data-category="B">
+                <span class="atc-code">B</span>
+                <span class="atc-name">Blood</span>
+              </button>
+              <button class="atc-tag" data-category="A">
+                <span class="atc-code">A</span>
+                <span class="atc-name">Alimentary</span>
+              </button>
+              <button class="atc-tag" data-category="M">
+                <span class="atc-code">M</span>
+                <span class="atc-name">Musculoskeletal</span>
+              </button>
+              <button class="atc-tag" data-category="P">
+                <span class="atc-code">P</span>
+                <span class="atc-name">Parasites</span>
+              </button>
+            </div>
 
-          <!-- Atlas Hint -->
-          <div class="atlas-hint">
-            Hover tag/region to preview · Click to lock
+            <div class="atlas-core">
+              <div class="atlas-body-wrap">
+                <div class="atlas-glow"></div>
+                <div class="human-body-map" id="body-map"></div>
+                <div class="body-region-label" id="body-region-label">Hover a region to preview its drug space</div>
+              </div>
+              <div class="atlas-hint">
+                Hover tag or region to preview. Click once to lock the atlas intersection.
+              </div>
+            </div>
+
+            <div class="atc-rail atc-rail-right" aria-label="ATC categories right rail">
+              <button class="atc-tag" data-category="S">
+                <span class="atc-code">S</span>
+                <span class="atc-name">Sensory</span>
+              </button>
+              <button class="atc-tag" data-category="R">
+                <span class="atc-code">R</span>
+                <span class="atc-name">Respiratory</span>
+              </button>
+              <button class="atc-tag" data-category="J">
+                <span class="atc-code">J</span>
+                <span class="atc-name">Anti-infectives</span>
+              </button>
+              <button class="atc-tag" data-category="D">
+                <span class="atc-code">D</span>
+                <span class="atc-name">Skin</span>
+              </button>
+              <button class="atc-tag" data-category="G">
+                <span class="atc-code">G</span>
+                <span class="atc-name">GU/Breast</span>
+              </button>
+              <button class="atc-tag" data-category="H">
+                <span class="atc-code">H</span>
+                <span class="atc-name">Hormones</span>
+              </button>
+              <button class="atc-tag" data-category="V">
+                <span class="atc-code">V</span>
+                <span class="atc-name">Various</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -125,7 +139,10 @@
       <section class="results-section">
         <div class="results-header">
           <h2>Matching Drugs</h2>
-          <span class="result-count" id="drug-count">Loading...</span>
+          <div class="results-meta">
+            <span class="result-count" id="drug-count">Loading...</span>
+            <span class="result-note" id="results-note"></span>
+          </div>
         </div>
         
         <div class="drug-grid" id="drug-grid">
@@ -135,7 +152,7 @@
     </main>
 
     <!-- Drug Detail Modal -->
-    <div class="drug-detail-modal" id="modal-overlay">
+    <div class="modal-overlay" id="modal-overlay">
       <div class="modal-content">
         <button class="modal-close">&times;</button>
         <h2 id="modal-title">Drug Name</h2>
@@ -148,15 +165,23 @@
           </div>
           <div class="modal-right">
             <div class="modal-info-grid">
+              <div class="info-item full-width">
+                <span class="info-label">Summary</span>
+                <span class="info-value" id="modal-summary">A concise treatment summary</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Body Region</span>
+                <span class="info-value" id="modal-region">Heart / Vascular</span>
+              </div>
               <div class="info-item">
                 <span class="info-label">ATC Code</span>
                 <span class="info-value atc-link" id="modal-atc-code">C10AA05</span>
               </div>
-              <div class="info-item">
+              <div class="info-item scientist-only">
                 <span class="info-label">Drug Class</span>
                 <span class="info-value" id="modal-class">Statin</span>
               </div>
-              <div class="info-item">
+              <div class="info-item scientist-only">
                 <span class="info-label">Molecular Weight</span>
                 <span class="info-value" id="modal-mw">558.64 Da</span>
               </div>
@@ -176,13 +201,17 @@
                 <span class="info-label">Indication</span>
                 <span class="info-value" id="modal-indication">Hypercholesterolemia</span>
               </div>
-              <div class="info-item full-width">
+              <div class="info-item full-width scientist-only">
                 <span class="info-label">Targets</span>
                 <span class="info-value" id="modal-targets">HMG-CoA reductase</span>
               </div>
               <div class="info-item full-width">
                 <span class="info-label">Synonyms</span>
                 <span class="info-value" id="modal-synonyms">Lipitor, Sortis</span>
+              </div>
+              <div class="info-item full-width scientist-only">
+                <span class="info-label">InChIKey</span>
+                <span class="info-value" id="modal-inchikey">XUHSLUINWUXQOJ-UHFFFAOYSA-N</span>
               </div>
             </div>
             
@@ -204,7 +233,7 @@
               </div>
             </div>
             
-            <div class="modal-smiles-section">
+            <div class="modal-smiles-section scientist-only">
               <h3>SMILES Notation</h3>
               <code id="modal-smiles"></code>
               <div class="smiles-actions">
@@ -221,7 +250,10 @@
 
   <!-- Scripts -->
   <script src="js/structure.js"></script>
-  <script src="js/body-map.js"></script>
+  <script src="data/body-ontology.js"></script>
+  <script src="data/drugs.js"></script>
+  <script src="assets/human-body-svg.js"></script>
+  <script src="js/app-state.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
