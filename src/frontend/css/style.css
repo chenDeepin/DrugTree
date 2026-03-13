@@ -1,0 +1,851 @@
+/* DrugTree MVP - Main Stylesheet with ATC Categories */
+
+:root {
+  /* Base colors */
+  --primary-color: #3498db;
+  --secondary-color: #2ecc71;
+  --background: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-primary: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --border-color: #e0e0e0;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  /* ATC Category Colors - Level 1 */
+  --atc-a: #27ae60;  /* Alimentary & Metabolism - Green */
+  --atc-b: #e74c3c;  /* Blood & Blood-forming - Red */
+  --atc-c: #e91e63;  /* Cardiovascular - Pink */
+  --atc-d: #ff9800;  /* Dermatological - Orange */
+  --atc-g: #9c27b0;  /* Genito-urinary - Purple */
+  --atc-h: #795548;  /* Systemic Hormones - Brown */
+  --atc-j: #2196f3;  /* Anti-infectives - Blue */
+  --atc-l: #f44336;  /* Antineoplastic - Dark Red */
+  --atc-m: #607d8b;  /* Musculo-skeletal - Blue Grey */
+  --atc-n: #673ab7;  /* Nervous System - Deep Purple */
+  --atc-p: #009688;  /* Antiparasitic - Teal */
+  --atc-r: #00bcd4;  /* Respiratory - Cyan */
+  --atc-s: #3f51b5;  /* Sensory Organs - Indigo */
+  --atc-v: #9e9e9e;  /* Various - Grey */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--background);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+/* Header */
+header {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow);
+}
+
+.header-content h1 {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.header-content p {
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+/* Mode Switch */
+.mode-switch {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mode-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.mode-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.mode-btn.active {
+  background: white;
+  color: var(--primary-color);
+  border-color: white;
+}
+
+/* Main Layout */
+main {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Filters Section */
+.filters {
+  background: var(--card-bg);
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+.filters h3 {
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-btn {
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-btn:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow);
+}
+
+.filter-btn.active {
+  color: white;
+  border-color: transparent;
+}
+
+.filter-btn .atc-code {
+  font-weight: bold;
+  font-size: 0.9rem;
+  min-width: 20px;
+}
+
+/* ATC Category Active States */
+.filter-btn[data-category="all"].active { background: var(--text-primary); }
+.filter-btn[data-category="A"].active { background: var(--atc-a); }
+.filter-btn[data-category="B"].active { background: var(--atc-b); }
+.filter-btn[data-category="C"].active { background: var(--atc-c); }
+.filter-btn[data-category="D"].active { background: var(--atc-d); }
+.filter-btn[data-category="G"].active { background: var(--atc-g); }
+.filter-btn[data-category="H"].active { background: var(--atc-h); }
+.filter-btn[data-category="J"].active { background: var(--atc-j); }
+.filter-btn[data-category="L"].active { background: var(--atc-l); }
+.filter-btn[data-category="M"].active { background: var(--atc-m); }
+.filter-btn[data-category="N"].active { background: var(--atc-n); }
+.filter-btn[data-category="P"].active { background: var(--atc-p); }
+.filter-btn[data-category="R"].active { background: var(--atc-r); }
+.filter-btn[data-category="S"].active { background: var(--atc-s); }
+.filter-btn[data-category="V"].active { background: var(--atc-v); }
+
+/* Search */
+.search-container {
+  margin-top: 1rem;
+}
+
+.search-container input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.search-container input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Body Map Container */
+.body-map-container {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  position: sticky;
+  top: 1.5rem;
+}
+
+.body-map-container h2 {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.body-map-container .nav-hint {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Human Body Map SVG */
+.human-body-map {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+}
+
+.human-body-map svg {
+  width: 100%;
+  height: auto;
+}
+
+.body-region {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  fill: #e8e8e8;
+  stroke: #ccc;
+  stroke-width: 1;
+}
+
+.body-region:hover {
+  fill: #d0d0d0;
+  stroke-width: 2;
+}
+
+.body-region.active {
+  stroke-width: 3;
+  stroke: #333;
+}
+
+.body-region.highlighted {
+  filter: brightness(1.2);
+}
+
+.body-region-label {
+  text-align: center;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  background: var(--background);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  min-height: 2.5rem;
+}
+
+.body-region-label.active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.body-preview {
+  position: absolute;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 200px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.body-preview.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.body-preview-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--text-primary);
+}
+
+.body-preview-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.quick-nav {
+  text-align: center;
+}
+
+.nav-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.category-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem;
+  background: var(--background);
+  border-radius: 4px;
+}
+
+.stat-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.stat-dot.atc-a { background: var(--atc-a); }
+.stat-dot.atc-b { background: var(--atc-b); }
+.stat-dot.atc-c { background: var(--atc-c); }
+.stat-dot.atc-d { background: var(--atc-d); }
+.stat-dot.atc-g { background: var(--atc-g); }
+.stat-dot.atc-h { background: var(--atc-h); }
+.stat-dot.atc-j { background: var(--atc-j); }
+.stat-dot.atc-l { background: var(--atc-l); }
+.stat-dot.atc-m { background: var(--atc-m); }
+.stat-dot.atc-n { background: var(--atc-n); }
+.stat-dot.atc-p { background: var(--atc-p); }
+.stat-dot.atc-r { background: var(--atc-r); }
+.stat-dot.atc-s { background: var(--atc-s); }
+.stat-dot.atc-v { background: var(--atc-v); }
+
+/* Drug List Container */
+.drug-list-container {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+}
+
+.drug-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.drug-count {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Drug Grid */
+.drug-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Drug Card */
+.drug-card {
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.drug-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.drug-card.selected {
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.3);
+}
+
+.drug-structure {
+  width: 100%;
+  height: 140px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.drug-structure canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.drug-structure .placeholder {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.drug-info h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drug-info .drug-class {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: normal;
+  margin-bottom: 0.5rem;
+}
+
+.drug-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.drug-meta span {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--background);
+  border-radius: 4px;
+}
+
+/* ATC Category Tags */
+.category-tag {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  color: white;
+  text-transform: capitalize;
+}
+
+.category-tag.A { background: var(--atc-a); }
+.category-tag.B { background: var(--atc-b); }
+.category-tag.C { background: var(--atc-c); }
+.category-tag.D { background: var(--atc-d); }
+.category-tag.G { background: var(--atc-g); }
+.category-tag.H { background: var(--atc-h); }
+.category-tag.J { background: var(--atc-j); }
+.category-tag.L { background: var(--atc-l); }
+.category-tag.M { background: var(--atc-m); }
+.category-tag.N { background: var(--atc-n); }
+.category-tag.P { background: var(--atc-p); }
+.category-tag.R { background: var(--atc-r); }
+.category-tag.S { background: var(--atc-s); }
+.category-tag.V { background: var(--atc-v); }
+
+/* ATC Code Badge on Card */
+.atc-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: white;
+}
+
+.atc-badge.A { background: var(--atc-a); }
+.atc-badge.B { background: var(--atc-b); }
+.atc-badge.C { background: var(--atc-c); }
+.atc-badge.D { background: var(--atc-d); }
+.atc-badge.G { background: var(--atc-g); }
+.atc-badge.H { background: var(--atc-h); }
+.atc-badge.J { background: var(--atc-j); }
+.atc-badge.L { background: var(--atc-l); }
+.atc-badge.M { background: var(--atc-m); }
+.atc-badge.N { background: var(--atc-n); }
+.atc-badge.P { background: var(--atc-p); }
+.atc-badge.R { background: var(--atc-r); }
+.atc-badge.S { background: var(--atc-s); }
+.atc-badge.V { background: var(--atc-v); }
+
+/* Generation indicator */
+.generation-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  width: 24px;
+  height: 24px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+/* Modal for detailed view */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 900px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.modal-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-left h3 {
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.modal-structure {
+  width: 100%;
+  height: 280px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-structure canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.modal-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.atc-link {
+  color: var(--primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.atc-link:hover {
+  color: var(--secondary-color);
+}
+
+.modal-smiles-section h3 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.modal-smiles-section code {
+  display: block;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+  word-break: break-all;
+  font-size: 0.8rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.smiles-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.copy-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+  background: var(--secondary-color);
+}
+
+.modal-tip {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.modal-genealogy {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: 8px;
+}
+
+.modal-genealogy h3 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.genealogy-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.genealogy-parents,
+.genealogy-successors,
+.genealogy-generation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.genealogy-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  min-width: 120px;
+}
+
+.genealogy-value {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.genealogy-drug-link {
+  color: var(--primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+  margin-right: 0.5rem;
+}
+
+.genealogy-drug-link:hover {
+  color: var(--secondary-color);
+}
+
+.genealogy-drug-link::after {
+  content: ",";
+}
+
+.genealogy-drug-link:last-child::after {
+  content: "";
+}
+
+.scientist-only {
+  display: none;
+}
+
+body.mode-scientist .scientist-only {
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  main {
+    grid-template-columns: 280px 1fr;
+  }
+  
+  .modal-body {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-structure {
+    height: 220px;
+  }
+}
+
+@media (max-width: 800px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+  
+  .body-map-container {
+    position: static;
+  }
+  
+  .filter-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .filter-btn {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 0.5rem;
+  }
+  
+  .category-stats {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .drug-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-content {
+    padding: 1rem;
+  }
+  
+  .modal-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Loading state */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+/* Category category indicator bar */
+.category-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 12px 12px 0 0;
+}
+
+.category-indicator.A { background: var(--atc-a); }
+.category-indicator.B { background: var(--atc-b); }
+.category-indicator.C { background: var(--atc-c); }
+.category-indicator.D { background: var(--atc-d); }
+.category-indicator.G { background: var(--atc-g); }
+.category-indicator.H { background: var(--atc-h); }
+.category-indicator.J { background: var(--atc-j); }
+.category-indicator.L { background: var(--atc-l); }
+.category-indicator.M { background: var(--atc-m); }
+.category-indicator.N { background: var(--atc-n); }
+.category-indicator.P { background: var(--atc-p); }
+.category-indicator.R { background: var(--atc-r); }
+.category-indicator.S { background: var(--atc-s); }
+.category-indicator.V { background: var(--atc-v); }
+
+/* Drug card hover effect with category color */
+.drug-card:hover .category-indicator {
+  opacity: 1;
+}

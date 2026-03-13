@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 500" width="300" height="500">
+  <defs>
+    <style>
+      .organ-region {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        stroke: #333;
+        stroke-width: 2;
+      }
+      .organ-region:hover {
+        filter: brightness(1.3);
+        stroke-width: 3;
+      }
+      .organ-label {
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        fill: #333;
+        pointer-events: none;
+        font-weight: bold;
+      }
+      .body-outline {
+        fill: #F5E6D3;
+        stroke: #8B7355;
+        stroke-width: 2;
+      }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="300" height="500" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="150" y="25" text-anchor="middle" class="organ-label" font-size="16">Click a Body Region</text>
+  
+  <!-- Body Outline -->
+  <path class="body-outline" d="M150,50 
+    C180,50 200,70 200,100 
+    C200,130 180,150 150,150 
+    C120,150 100,130 100,100 
+    C100,70 120,50 150,50 Z
+    M100,150 
+    C80,160 60,200 55,280
+    L55,380
+    C55,400 70,420 90,420
+    L90,380
+    L85,500
+    L100,500
+    L110,400
+    L150,400
+    L190,400
+    L200,500
+    L215,500
+    L210,380
+    L210,420
+    C230,420 245,400 245,380
+    L245,280
+    C240,200 220,160 200,150 Z"/>
+  
+  <!-- Brain - Brain/Neuro -->
+  <ellipse class="organ-region" id="brain" data-category="brain"
+    cx="150" cy="100" rx="40" ry="30" fill="#FFB6C1"/>
+  <text x="150" y="105" text-anchor="middle" class="organ-label">🧠 Brain</text>
+  
+  <!-- Heart - Cardiovascular -->
+  <path class="organ-region" id="heart" data-category="heart"
+    d="M130,180 C120,170 110,175 110,190 C110,205 130,220 150,240 C170,220 190,205 190,190 C190,175 180,170 170,180 C160,190 150,180 150,180 C150,180 140,190 130,180 Z"
+    fill="#DC143C"/>
+  <text x="150" y="280" text-anchor="middle" class="organ-label">❤️ Heart</text>
+  
+  <!-- Lungs - Infection (respiratory) -->
+  <g id="lungs" data-category="infection">
+    <path class="organ-region" data-category="infection"
+      d="M100,165 C80,175 75,200 80,240 C85,280 100,300 115,300 C130,300 135,280 130,240 L130,180 C130,170 115,160 100,165 Z"
+      fill="#87CEEB"/>
+    <path class="organ-region" data-category="infection"
+      d="M200,165 C220,175 225,200 220,240 C215,280 200,300 185,300 C170,300 165,280 170,240 L170,180 C170,170 185,160 200,165 Z"
+      fill="#87CEEB"/>
+  </g>
+  <text x="150" y="320" text-anchor="middle" class="organ-label">🫁 Lungs</text>
+  
+  <!-- Pancreas - Diabetes -->
+  <ellipse class="organ-region" id="pancreas" data-category="diabetes"
+    cx="130" cy="340" rx="35" ry="12" fill="#FFD700" transform="rotate(-20, 130, 340)"/>
+  <text x="150" y="370" text-anchor="middle" class="organ-label">🩸 Pancreas</text>
+  
+  <!-- Immune/Blood - Cancer, Autoimmune -->
+  <g id="immune" data-category="cancer">
+    <circle class="organ-region" data-category="cancer" cx="170" cy="330" r="15" fill="#FF69B4"/>
+    <circle class="organ-region" data-category="autoimmune" cx="185" cy="345" r="12" fill="#9370DB"/>
+  </g>
+  <text x="200" y="320" text-anchor="middle" class="organ-label" font-size="10">🦠 Immune</text>
+  
+  <!-- Gut - Infection (gastro) -->
+  <path class="organ-region" id="gut" data-category="infection"
+    d="M130,355 C120,365 115,385 125,400 C135,415 155,415 165,400 C175,385 170,365 160,355 C150,345 140,345 130,355 Z"
+    fill="#DEB887"/>
+  <text x="150" y="430" text-anchor="middle" class="organ-label">🫄 Gut</text>
+  
+  <!-- Joints - Pain, Autoimmune -->
+  <g id="joints" data-category="pain">
+    <circle class="organ-region" data-category="pain" cx="80" cy="350" r="18" fill="#F0E68C"/>
+    <circle class="organ-region" data-category="pain" cx="220" cy="350" r="18" fill="#F0E68C"/>
+    <circle class="organ-region" data-category="autoimmune" cx="80" cy="400" r="15" fill="#F0E68C"/>
+    <circle class="organ-region" data-category="autoimmune" cx="220" cy="400" r="15" fill="#F0E68C"/>
+  </g>
+  <text x="50" y="350" text-anchor="middle" class="organ-label" font-size="10">🦴</text>
+  <text x="250" y="350" text-anchor="middle" class="organ-label" font-size="10">🦴</text>
+  
+  <!-- Skin - Dermatology (shown as border highlight) -->
+  <rect class="organ-region" id="skin" data-category="other"
+    x="65" y="160" width="170" height="250" rx="30" ry="50" 
+    fill="none" stroke="#DDA0DD" stroke-width="6" stroke-dasharray="10,5"/>
+  <text x="150" y="470" text-anchor="middle" class="organ-label" font-size="10">👤 Skin (border)</text>
+  
+  <!-- Legend -->
+  <g transform="translate(10, 440)">
+    <text x="0" y="0" class="organ-label" font-size="10">Categories:</text>
+    <rect x="0" y="5" width="10" height="10" fill="#FFB6C1"/><text x="15" y="14" font-size="8">Brain</text>
+    <rect x="50" y="5" width="10" height="10" fill="#DC143C"/><text x="65" y="14" font-size="8">Heart</text>
+    <rect x="100" y="5" width="10" height="10" fill="#87CEEB"/><text x="115" y="14" font-size="8">Infection</text>
+    <rect x="160" y="5" width="10" height="10" fill="#FFD700"/><text x="175" y="14" font-size="8">Diabetes</text>
+    <rect x="210" y="5" width="10" height="10" fill="#FF69B4"/><text x="225" y="14" font-size="8">Cancer</text>
+    <rect x="250" y="5" width="10" height="10" fill="#9370DB"/><text x="265" y="14" font-size="8">Auto</text>
+  </g>
+</svg>

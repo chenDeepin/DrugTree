@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DrugTree - Visual Drug Universe with ATC Classification</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💊</text></svg>">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-content">
+      <h1>🌳 DrugTree</h1>
+      <p>Visual Drug Universe - Explore therapeutics by WHO ATC Classification</p>
+    </div>
+    <div class="mode-switch">
+      <button class="mode-btn active" data-mode="public" title="Simplified view for general audience">
+        🌐 Public
+      </button>
+      <button class="mode-btn" data-mode="scientist" title="Detailed view with all scientific data">
+        🔬 Scientist
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Left Panel: Categories & Body Map -->
+    <aside>
+      <!-- ATC Category Filters -->
+      <div class="filters">
+        <h3>ATC Level 1 Categories</h3>
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-category="all">All Drugs</button>
+          <button class="filter-btn" data-category="A"><span class="atc-code">A</span> Alimentary & Metabolism</button>
+          <button class="filter-btn" data-category="B"><span class="atc-code">B</span> Blood & Blood-forming</button>
+          <button class="filter-btn" data-category="C"><span class="atc-code">C</span> Cardiovascular</button>
+          <button class="filter-btn" data-category="D"><span class="atc-code">D</span> Dermatological</button>
+          <button class="filter-btn" data-category="G"><span class="atc-code">G</span> Genito-urinary</button>
+          <button class="filter-btn" data-category="H"><span class="atc-code">H</span> Systemic Hormones</button>
+          <button class="filter-btn" data-category="J"><span class="atc-code">J</span> Anti-infectives</button>
+          <button class="filter-btn" data-category="L"><span class="atc-code">L</span> Antineoplastic</button>
+          <button class="filter-btn" data-category="M"><span class="atc-code">M</span> Musculo-skeletal</button>
+          <button class="filter-btn" data-category="N"><span class="atc-code">N</span> Nervous System</button>
+          <button class="filter-btn" data-category="P"><span class="atc-code">P</span> Antiparasitic</button>
+          <button class="filter-btn" data-category="R"><span class="atc-code">R</span> Respiratory</button>
+          <button class="filter-btn" data-category="S"><span class="atc-code">S</span> Sensory Organs</button>
+          <button class="filter-btn" data-category="V"><span class="atc-code">V</span> Various</button>
+        </div>
+        
+        <div class="search-container">
+          <input type="text" id="search-input" placeholder="Search drugs by name, target, class...">
+        </div>
+      </div>
+
+      <div class="body-map-container">
+        <h2>Explore by Body Region</h2>
+        <p class="nav-hint">Click a body region to filter drugs</p>
+        <div class="human-body-map" id="body-map"></div>
+        <div class="body-region-label" id="body-region-label">
+          Select a region to explore
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Panel: Drug List -->
+    <section class="drug-list-container">
+      <div class="drug-list-header">
+        <h2>Drug Database</h2>
+        <span id="drug-count" class="drug-count">Loading...</span>
+      </div>
+      
+      <div id="drug-grid" class="drug-grid">
+        <div class="loading">Loading drugs...</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Drug Detail Modal -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h2 id="modal-title">Drug Name</h2>
+      <div class="modal-body">
+        <div class="modal-left">
+          <h3>Molecular Structure</h3>
+          <div id="modal-structure" class="modal-structure">
+            <div class="placeholder">Loading structure...</div>
+          </div>
+        </div>
+        <div class="modal-right">
+          <div class="modal-info-grid">
+            <div class="info-item">
+              <span class="info-label">ATC Code</span>
+              <span class="info-value atc-link" id="modal-atc-code">C10AA05</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Drug Class</span>
+              <span class="info-value" id="modal-class">Statin</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Molecular Weight</span>
+              <span class="info-value" id="modal-mw">558.64 Da</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Phase</span>
+              <span class="info-value" id="modal-phase">Phase IV</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Year Approved</span>
+              <span class="info-value" id="modal-year">1996</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Company</span>
+              <span class="info-value" id="modal-company">Pfizer</span>
+            </div>
+            <div class="info-item full-width">
+              <span class="info-label">Indication</span>
+              <span class="info-value" id="modal-indication">Hypercholesterolemia</span>
+            </div>
+            <div class="info-item full-width">
+              <span class="info-label">Targets</span>
+              <span class="info-value" id="modal-targets">HMG-CoA reductase</span>
+            </div>
+            <div class="info-item full-width">
+              <span class="info-label">Synonyms</span>
+              <span class="info-value" id="modal-synonyms">Lipitor, Sortis</span>
+            </div>
+          </div>
+          
+          <div class="modal-genealogy scientist-only">
+            <h3>Drug Genealogy</h3>
+            <div class="genealogy-content">
+              <div class="genealogy-parents">
+                <span class="genealogy-label">Parent Drugs:</span>
+                <span class="genealogy-value" id="modal-parents">-</span>
+              </div>
+              <div class="genealogy-successors">
+                <span class="genealogy-label">Successor Drugs:</span>
+                <span class="genealogy-value" id="modal-successors">-</span>
+              </div>
+              <div class="genealogy-generation">
+                <span class="genealogy-label">Generation:</span>
+                <span class="genealogy-value" id="modal-generation">1</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-smiles-section">
+            <h3>SMILES Notation</h3>
+            <code id="modal-smiles"></code>
+            <div class="smiles-actions">
+              <button class="copy-btn" id="copy-smiles">📋 Copy SMILES</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <p class="modal-tip">💡 Tip: Click ATC code to filter by category, or click another drug to compare</p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/structure.js"></script>
+  <script src="js/body-map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

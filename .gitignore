@@ -1,0 +1,133 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Local editor / agent state
+.cursor/
+.opencode/
+.sisyphus/
+.config/
+
+# Logs and runtime artifacts
+artifacts/
+logs/
+*.log
+
+# Local environments and secrets
+.env
+.env.*
+auth-profiles.json
+*.pem
+*.key
+*.crt
+*_credentials.json
+*_secrets.json
+*_api_key*.txt
+*_token*.txt
+.secrets/
+secrets/
+credentials/
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+*.pub
+known_hosts
+.ssh/
+
+# MotifSAR runtime data
+.motifsar/
+telemetry.json
+*.lmdb
+
+# User/session/runtime state
+*.pid
+*.tmp
+*.swp
+*.swo
+
+# Exclude tests from canonical repo sync
+test/
+scripts/test/
+tests/bootstrap/
+
+# Local planning / update docs not meant for canonical repo
+PLAN.md
+PLAN_global.md
+findings.md
+progress.md
+task_plan.md
+TODO.md
+UPDATES.md
+*_plan*.md
+*_checklist*.md
+*_gap_matrix*.md
+*_repo_truth.md
+*_audit.md
+*_review.md
+*_report.md
+*_next_steps*.md
+*_comparison*.md
+
+# Documentation folder (auto-generated or local)
+docs/
+
+# Coverage reports
+.coverage
+.coveragerc
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+
+# Benchmark artifacts
+benchmarks/micro/
+benchmarks/mini/
+benchmarks/reports/
+benchmarks/research/
+benchmarks/standard/
+
+# Canonical bootstrap CI assets that must be tracked
+!.coveragerc
+!scripts/test/
+scripts/test/*
+!scripts/test/bootstrap/
+!scripts/test/bootstrap/**
+!tests/bootstrap/
+!tests/bootstrap/**
+!benchmarks/micro/
+!benchmarks/micro/**
+!benchmarks/mini/
+!benchmarks/mini/**
+!benchmarks/research/
+!benchmarks/research/**
+!benchmarks/standard/
+!benchmarks/standard/**
+!test/
+test/*
+!test/data/
+test/data/*
+!test/data/bootstrap/
+!test/data/bootstrap/**
+scripts/test/bootstrap/__pycache__/
+tests/bootstrap/__pycache__/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Local development plans (not for remote)
+motifsar_multi_gui_agentic_update_plan.md
