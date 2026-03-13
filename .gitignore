@@ -78,34 +78,14 @@ UPDATES.md
 *_next_steps*.md
 *_comparison*.md
 
-# DrugTree: Allow these specific files to be tracked
-!src/backend/
-!src/frontend/js/app-state.js
-!src/frontend/js/app-state.mjs
-!src/frontend/data/body-ontology.json
-!src/frontend/data/drugs.json
-!tests/backend/
-!tests/frontend/
-!scripts/
+# Tests folder (local only)
+tests/
 
-# Documentation folder (auto-generated or local)
-# NOTE: DrugTree docs/ folder contains important project documentation
-# docs/
-docs/plans/
-docs/*_plan*.md
-docs/*_checklist*.md
-docs/*_gap_matrix*.md
-docs/*_repo_truth.md
-docs/*_audit.md
-docs/*_review.md
-docs/*_report.md
-docs/*_next_steps*.md
-docs/*_comparison*.md
-!docs/PROJECT_PLAN.md
-!docs/CENTRAL_BODY_ATLAS_IMPLEMENTATION.md
-!docs/DATA_SCHEMA.md
-!docs/PROGRESS_SUMMARY.md
-!docs/CURRENT_IMPLEMENTATION_AUDIT.md
+# Scripts folder (local only)
+scripts/
+
+# Documentation folder (local only)
+docs/
 
 # Coverage reports
 .coverage
