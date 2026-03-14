@@ -537,7 +537,7 @@
       "name": "Tadalafil",
       "smiles": "CN1CC(=O)N2C(C1=O)CC3=C(C2C4=C5C(=C(C=C4)OC)N(C=C5CCC6CC(=O)NC(=O)C6)C)OCO3",
       "inchikey": "WOXKDUGGOYFFRN-IYSWYEEDSA-N",
-      "atc_code": "G04BE08",
+      "atc_code": "G04BE03",
       "atc_category": "G",
       "molecular_weight": 389.4,
       "phase": "IV",
