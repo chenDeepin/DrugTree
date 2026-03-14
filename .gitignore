@@ -80,6 +80,12 @@ UPDATES.md
 
 # Tests folder (local only)
 tests/
+!tests/backend/
+!tests/backend/**
+!tests/frontend/
+!tests/frontend/**
+!tests/disease_universe/
+!tests/disease_universe/**
 
 # Scripts folder (local only)
 scripts/
