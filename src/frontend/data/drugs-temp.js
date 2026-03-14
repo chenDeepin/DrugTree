@@ -1,0 +1,1 @@
+window.DRUGTREE_DRUGS_DATA = {}
