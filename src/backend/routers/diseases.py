@@ -13,18 +13,14 @@ from fastapi import APIRouter, HTTPException, Query
 from ..models.disease import (
     Disease,
     DiseaseListResponse,
-    DiseaseFilterParams,
-    DiseaseSummary,
-    Target,
-    TargetListResponse,
-    DrugDiseaseEdge,
-    DrugDiseaseEdgeListResponse,
     RegionalApproval,
     RegionalApprovalListResponse,
     DiseaseUniverseStats,
     PrevalenceTier,
-    EvidenceLevel,
+    Region,
+    ApprovalStatus,
 )
+from ..models.drug import Drug, DrugListResponse
 
 router = APIRouter(prefix="/api/v1", tags=["diseases"])
 
@@ -57,6 +53,17 @@ def load_body_ontology() -> dict:
         return {}
     with open(BODY_ONTOLOGY_FILE, "r") as f:
         return json.load(f)
+
+
+DRUGS_FILE = DATA_DIR / "drugs-full.json"
+
+
+def load_drugs() -> List[dict]:
+    if not DRUGS_FILE.exists():
+        return []
+    with open(DRUGS_FILE, "r") as f:
+        data = json.load(f)
+        return data.get("drugs", [])
 
 
 @router.get("/diseases", response_model=DiseaseListResponse)
@@ -169,3 +176,120 @@ async def get_diseases_by_region(region: str):
     diseases = load_diseases()
     filtered = [d for d in diseases if d.body_region == region]
     return DiseaseListResponse(total=len(filtered), diseases=filtered)
+
+
+@router.get("/diseases/{disease_id}/drugs", response_model=DrugListResponse)
+async def get_drugs_for_disease(disease_id: str):
+    diseases = load_diseases()
+    disease = None
+    for d in diseases:
+        if d.id == disease_id:
+            disease = d
+            break
+
+    if not disease:
+        raise HTTPException(status_code=404, detail=f"Disease '{disease_id}' not found")
+
+    drugs = load_drugs()
+    disease_name_lower = disease.canonical_name.lower()
+    disease_synonyms_lower = [s.lower() for s in disease.synonyms]
+
+    matching_drugs = []
+    for drug in drugs:
+        indication = (drug.get("indication") or "").lower()
+        if disease_name_lower in indication:
+            matching_drugs.append(Drug(**drug))
+            continue
+        for syn in disease_synonyms_lower:
+            if syn in indication:
+                matching_drugs.append(Drug(**drug))
+                break
+
+    return DrugListResponse(total=len(matching_drugs), drugs=matching_drugs)
+
+
+@router.get("/targets/{target_id}/drugs", response_model=DrugListResponse)
+async def get_drugs_for_target(target_id: str):
+    drugs = load_drugs()
+    target_lower = target_id.lower()
+
+    matching_drugs = []
+    for drug in drugs:
+        drug_targets = drug.get("targets", [])
+        for target in drug_targets:
+            if target_lower in target.lower():
+                matching_drugs.append(Drug(**drug))
+                break
+
+    return DrugListResponse(total=len(matching_drugs), drugs=matching_drugs)
+
+
+@router.get("/approvals", response_model=RegionalApprovalListResponse)
+async def list_approvals(
+    drug_id: Optional[str] = Query(None, description="Filter by drug ID"),
+    region: Optional[str] = Query(
+        None, description="Filter by region (FDA, EMA, etc.)"
+    ),
+    status: Optional[str] = Query(None, description="Filter by approval status"),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    drugs = load_drugs()
+    approvals = []
+
+    for drug in drugs:
+        drug_id_val = drug.get("id", "")
+        year_approved = drug.get("year_approved")
+        phase = drug.get("phase", "")
+
+        if year_approved and phase == "IV":
+            approval = RegionalApproval(
+                drug_id=drug_id_val,
+                region=Region.FDA,
+                status=ApprovalStatus.APPROVED,
+                approval_date=str(year_approved),
+                label_source=None,
+            )
+            approvals.append(approval)
+
+    if drug_id:
+        approvals = [a for a in approvals if a.drug_id == drug_id]
+    if region:
+        approvals = [a for a in approvals if a.region.value == region.upper()]
+    if status:
+        approvals = [a for a in approvals if a.status.value == status.lower()]
+
+    total = len(approvals)
+    paginated = approvals[offset : offset + limit]
+    return RegionalApprovalListResponse(total=total, approvals=paginated)
+
+
+@router.get("/approvals/{drug_id}", response_model=RegionalApprovalListResponse)
+async def get_approvals_for_drug(drug_id: str):
+    drugs = load_drugs()
+    drug_found = False
+    year_approved = None
+    phase = None
+
+    for drug in drugs:
+        if drug.get("id") == drug_id:
+            drug_found = True
+            year_approved = drug.get("year_approved")
+            phase = drug.get("phase", "")
+            break
+
+    if not drug_found:
+        raise HTTPException(status_code=404, detail=f"Drug '{drug_id}' not found")
+
+    approvals = []
+    if year_approved and phase == "IV":
+        approval = RegionalApproval(
+            drug_id=drug_id,
+            region=Region.FDA,
+            status=ApprovalStatus.APPROVED,
+            approval_date=str(year_approved),
+            label_source=None,
+        )
+        approvals.append(approval)
+
+    return RegionalApprovalListResponse(total=len(approvals), approvals=approvals)

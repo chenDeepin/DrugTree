@@ -39,17 +39,25 @@ class Drug(DrugBase):
     class_name: Optional[str] = Field(
         None, alias="class", description="Drug class (e.g., 'Statin')"
     )
+
     parent_drugs: List[str] = Field(default_factory=list, description="Parent drug IDs")
     clinical_trials: List[str] = Field(
         default_factory=list, description="Clinical trial NCT IDs"
     )
+
+    # Body region fields - consolidated to avoid duplication
     body_region: Optional[str] = Field(
         None, description="Primary ontology-aligned body region"
     )
+    body_regions: Optional[List[str]] = Field(
+        None,
+        description="All body regions where this drug is active (aggregated from ontology mapping)",
+    )
     secondary_body_regions: List[str] = Field(
         default_factory=list,
-        description="Additional ontology-aligned body regions",
+        description="Secondary body regions where this drug is active",
     )
+
     public_summary: Optional[str] = Field(
         None, description="Short public-facing treatment summary"
     )
@@ -78,8 +86,8 @@ class DrugSummary(DrugBase):
 class DrugListResponse(BaseModel):
     """Response model for drug list endpoint"""
 
-    total: int = Field(..., description="Total number of drugs matching query")
-    drugs: List[Drug] = Field(..., description="List of drugs")
+    total: int
+    drugs: List[Drug]
 
 
 class DrugFilterParams(BaseModel):
@@ -89,9 +97,11 @@ class DrugFilterParams(BaseModel):
     search: Optional[str] = Field(
         None, description="Search query (name, target, class)"
     )
-    phase: Optional[str] = Field(None, description="Filter by clinical phase")
+    phase: Optional[str] = Field(
+        None, description="Filter by clinical phase (I/II/III/IV)"
+    )
     limit: int = Field(100, ge=1, le=1000, description="Max results to return")
-    offset: int = Field(0, ge=0, description="Pagination offset")
+    offset: int = Field(0, ge=0, le=1000, description="Pagination offset")
 
 
 class HealthResponse(BaseModel):

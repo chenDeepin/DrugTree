@@ -1,25 +1,72 @@
 (function attachDrugTreeState() {
   const DEFAULT_ACTIVE_CATEGORY = "all";
 
+  // ATC to Body Region Mapping
+  // Anti-infectives (J) and Antineoplastics (L) are available in ALL body regions
+  // where infections/cancers occur respectively
   const ATC_TO_BODY_REGIONS = {
+    // A: Alimentary tract & metabolism
     A: [
       "stomach_upper_gi",
       "intestine_colorectal",
       "liver_biliary_pancreas",
       "endocrine_metabolic",
     ],
+    // B: Blood & blood-forming organs
     B: ["blood_immune"],
+    // C: Cardiovascular system
     C: ["heart_vascular", "blood_immune"],
+    // D: Dermatologicals
     D: ["skin"],
+    // G: Genito-urinary system & sex hormones
     G: ["kidney_urinary", "reproductive_breast"],
+    // H: Systemic hormonal preparations
     H: ["endocrine_metabolic"],
-    J: ["lung_respiratory", "systemic_multiorgan"],
-    L: ["blood_immune", "systemic_multiorgan"],
+    // J: Anti-infectives for systemic use
+    // Available in ALL body regions where infections occur
+    J: [
+      "brain_cns",           // meningitis, encephalitis
+      "eye_ear",             // conjunctivitis, otitis
+      "lung_respiratory",    // pneumonia, bronchitis, TB
+      "heart_vascular",      // endocarditis
+      "blood_immune",        // sepsis, bacteremia
+      "stomach_upper_gi",    // H. pylori, GI infections
+      "intestine_colorectal",// C. diff, GI infections
+      "liver_biliary_pancreas", // hepatitis
+      "kidney_urinary",      // UTIs, pyelonephritis
+      "reproductive_breast", // STDs, pelvic infections
+      "bone_joint_muscle",   // osteomyelitis, septic arthritis
+      "skin",                // cellulitis, wound infections
+      "systemic_multiorgan", // systemic infections
+    ],
+    // L: Antineoplastic & immunomodulating agents
+    // Available in ALL body regions where cancers occur
+    L: [
+      "brain_cns",           // glioblastoma, brain tumors
+      "eye_ear",             // ocular melanoma, retinoblastoma
+      "lung_respiratory",    // NSCLC, SCLC, mesothelioma
+      "heart_vascular",      // cardiac tumors (rare)
+      "blood_immune",        // leukemia, lymphoma, myeloma
+      "stomach_upper_gi",    // gastric cancer
+      "intestine_colorectal",// colorectal cancer
+      "liver_biliary_pancreas", // HCC, cholangiocarcinoma, pancreatic
+      "kidney_urinary",      // RCC, bladder cancer
+      "reproductive_breast", // breast, ovarian, prostate, testicular
+      "bone_joint_muscle",   // bone sarcomas, soft tissue
+      "skin",                // melanoma, skin cancer
+      "systemic_multiorgan", // multiple/metastatic cancers
+    ],
+    // M: Musculo-skeletal system
     M: ["bone_joint_muscle"],
+    // N: Nervous system
     N: ["brain_cns"],
-    P: ["intestine_colorectal", "systemic_multiorgan"],
+    // P: Antiparasitic products
+    P: ["intestine_colorectal", "blood_immune", "systemic_multiorgan"],
+    // R: Respiratory system
     R: ["lung_respiratory"],
+    // S: Sensory organs
     S: ["eye_ear"],
+    // V: Various
     V: ["systemic_multiorgan"],
   };
 

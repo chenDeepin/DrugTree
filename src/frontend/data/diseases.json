@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "diseases": [
     {
       "id": "glioma",
@@ -7,13 +7,15 @@
       "synonyms": ["brain tumor", "glioblastoma", "GBM"],
       "body_region": "brain_cns",
       "anatomy_nodes": ["brain", "cerebrum"],
+      "categories": ["cancer", "neurological"],
       "orphan_flag": false,
       "prevalence_tier": "uncommon",
       "prevalence_count": 300000,
       "evidence_level": "approved",
       "target_count": 15,
       "approved_drug_count": 3,
-      "clinical_drug_count": 12
+      "clinical_drug_count": 12,
+      "drugs": []
     },
     {
       "id": "alzheimers_disease",
@@ -21,13 +23,15 @@
       "synonyms": ["AD", "dementia", "senile dementia"],
       "body_region": "brain_cns",
       "anatomy_nodes": ["brain"],
+      "categories": ["neurological", "chronic", "degenerative"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 55000000,
       "evidence_level": "approved",
       "target_count": 8,
       "approved_drug_count": 7,
-      "clinical_drug_count": 25
+      "clinical_drug_count": 25,
+      "drugs": ["donepezil"]
     },
     {
       "id": "epilepsy",
@@ -35,13 +39,15 @@
       "synonyms": ["seizure disorder", "convulsions"],
       "body_region": "brain_cns",
       "anatomy_nodes": ["brain"],
+      "categories": ["neurological", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 50000000,
       "evidence_level": "approved",
       "target_count": 12,
       "approved_drug_count": 20,
-      "clinical_drug_count": 15
+      "clinical_drug_count": 15,
+      "drugs": ["carbamazepine", "diazepam"]
     },
     {
       "id": "glaucoma",
@@ -49,13 +55,15 @@
       "synonyms": ["ocular hypertension", "increased IOP"],
       "body_region": "eye_ear",
       "anatomy_nodes": ["eye"],
+      "categories": ["sensory", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 80000000,
       "evidence_level": "approved",
       "target_count": 5,
       "approved_drug_count": 15,
-      "clinical_drug_count": 8
+      "clinical_drug_count": 8,
+      "drugs": ["latanoprost", "travoprost"]
     },
     {
       "id": "asthma",
@@ -63,13 +71,15 @@
       "synonyms": ["bronchial asthma", "reactive airway disease"],
       "body_region": "lung_respiratory",
       "anatomy_nodes": ["tracheobronchial_tree"],
+      "categories": ["respiratory", "chronic", "inflammatory"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 300000000,
       "evidence_level": "approved",
       "target_count": 10,
       "approved_drug_count": 25,
-      "clinical_drug_count": 20
+      "clinical_drug_count": 20,
+      "drugs": ["albuterol", "fluticasone", "montelukast"]
     },
     {
       "id": "copd",
@@ -77,13 +87,15 @@
       "synonyms": ["COPD", "emphysema", "chronic bronchitis"],
       "body_region": "lung_respiratory",
       "anatomy_nodes": ["lung", "tracheobronchial_tree"],
+      "categories": ["respiratory", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 250000000,
       "evidence_level": "approved",
       "target_count": 6,
       "approved_drug_count": 12,
-      "clinical_drug_count": 18
+      "clinical_drug_count": 18,
+      "drugs": ["albuterol", "fluticasone", "tiotropium"]
     },
     {
       "id": "nsclc",
@@ -91,13 +103,15 @@
       "synonyms": ["NSCLC", "lung adenocarcinoma", "squamous cell carcinoma"],
       "body_region": "lung_respiratory",
       "anatomy_nodes": ["lung"],
+      "categories": ["cancer", "respiratory"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 2000000,
       "evidence_level": "approved",
       "target_count": 20,
       "approved_drug_count": 18,
-      "clinical_drug_count": 40
+      "clinical_drug_count": 40,
+      "drugs": ["erlotinib", "paclitaxel", "cisplatin"]
     },
     {
       "id": "hypertension",
@@ -105,13 +119,15 @@
       "synonyms": ["high blood pressure", "HTN"],
       "body_region": "heart_vascular",
       "anatomy_nodes": ["blood_vessels"],
+      "categories": ["cardiovascular", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 1200000000,
       "evidence_level": "approved",
       "target_count": 15,
       "approved_drug_count": 50,
-      "clinical_drug_count": 30
+      "clinical_drug_count": 30,
+      "drugs": ["lisinopril", "amlodipine", "losartan", "metoprolol"]
     },
     {
       "id": "hyperlipidemia",
@@ -119,13 +135,15 @@
       "synonyms": ["high cholesterol", "dyslipidemia"],
       "body_region": "heart_vascular",
       "anatomy_nodes": ["blood_vessels", "systemic_multiorgan_core"],
+      "categories": ["cardiovascular", "metabolic", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 95000000,
       "evidence_level": "approved",
       "target_count": 8,
       "approved_drug_count": 12,
-      "clinical_drug_count": 15
+      "clinical_drug_count": 15,
+      "drugs": ["atorvastatin", "simvastatin"]
     },
     {
       "id": "cml",
@@ -133,13 +151,15 @@
       "synonyms": ["CML", "chronic granulocytic leukemia"],
       "body_region": "blood_immune",
       "anatomy_nodes": ["blood", "bone_marrow"],
+      "categories": ["cancer", "orphan", "hematologic"],
       "orphan_flag": true,
       "prevalence_tier": "rare",
       "prevalence_count": 70000,
       "evidence_level": "approved",
       "target_count": 3,
       "approved_drug_count": 8,
-      "clinical_drug_count": 5
+      "clinical_drug_count": 5,
+      "drugs": ["imatinib"]
     },
     {
       "id": "lymphoma",
@@ -147,13 +167,15 @@
       "synonyms": ["Hodgkin lymphoma", "non-Hodgkin lymphoma", "NHL"],
       "body_region": "blood_immune",
       "anatomy_nodes": ["lymphatic_system"],
+      "categories": ["cancer", "hematologic"],
       "orphan_flag": false,
       "prevalence_tier": "uncommon",
       "prevalence_count": 800000,
       "evidence_level": "approved",
       "target_count": 18,
       "approved_drug_count": 25,
-      "clinical_drug_count": 35
+      "clinical_drug_count": 35,
+      "drugs": ["methotrexate", "prednisone"]
     },
     {
       "id": "gerd",
@@ -161,13 +183,15 @@
       "synonyms": ["GERD", "acid reflux", "heartburn"],
       "body_region": "stomach_upper_gi",
       "anatomy_nodes": ["esophagus", "stomach"],
+      "categories": ["gastrointestinal", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 800000000,
       "evidence_level": "approved",
       "target_count": 3,
       "approved_drug_count": 10,
-      "clinical_drug_count": 5
+      "clinical_drug_count": 5,
+      "drugs": ["omeprazole", "lansoprazole"]
     },
     {
       "id": "peptic_ulcer_disease",
@@ -175,13 +199,15 @@
       "synonyms": ["PUD", "gastric ulcer", "duodenal ulcer"],
       "body_region": "stomach_upper_gi",
       "anatomy_nodes": ["stomach", "duodenum"],
+      "categories": ["gastrointestinal", "infectious"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 50000000,
       "evidence_level": "approved",
       "target_count": 4,
       "approved_drug_count": 8,
-      "clinical_drug_count": 4
+      "clinical_drug_count": 4,
+      "drugs": ["omeprazole", "lansoprazole", "amoxicillin"]
     },
     {
       "id": "crohns_disease",
@@ -189,13 +215,15 @@
       "synonyms": ["Crohn disease", "regional enteritis", "CD"],
       "body_region": "intestine_colorectal",
       "anatomy_nodes": ["small_intestine", "colon"],
+      "categories": ["gastrointestinal", "autoimmune", "orphan", "chronic"],
       "orphan_flag": true,
       "prevalence_tier": "rare",
       "prevalence_count": 800000,
       "evidence_level": "approved",
       "target_count": 10,
       "approved_drug_count": 12,
-      "clinical_drug_count": 20
+      "clinical_drug_count": 20,
+      "drugs": ["methotrexate", "prednisone"]
     },
     {
       "id": "ulcerative_colitis",
@@ -203,13 +231,15 @@
       "synonyms": ["UC", "colitis ulcerosa"],
       "body_region": "intestine_colorectal",
       "anatomy_nodes": ["colon", "rectum"],
+      "categories": ["gastrointestinal", "autoimmune", "orphan", "chronic"],
       "orphan_flag": true,
       "prevalence_tier": "rare",
       "prevalence_count": 900000,
       "evidence_level": "approved",
       "target_count": 8,
       "approved_drug_count": 10,
-      "clinical_drug_count": 18
+      "clinical_drug_count": 18,
+      "drugs": ["methotrexate", "prednisone"]
     },
     {
       "id": "hepatocellular_carcinoma",
@@ -217,13 +247,15 @@
       "synonyms": ["HCC", "liver cancer", "hepatoma"],
       "body_region": "liver_biliary_pancreas",
       "anatomy_nodes": ["liver"],
+      "categories": ["cancer", "hepatic"],
       "orphan_flag": false,
       "prevalence_tier": "uncommon",
       "prevalence_count": 900000,
       "evidence_level": "approved",
       "target_count": 15,
       "approved_drug_count": 6,
-      "clinical_drug_count": 30
+      "clinical_drug_count": 30,
+      "drugs": []
     },
     {
       "id": "type_2_diabetes",
@@ -231,13 +263,15 @@
       "synonyms": ["T2DM", "NIDDM", "adult-onset diabetes"],
       "body_region": "endocrine_metabolic",
       "anatomy_nodes": ["pancreatic_endocrine", "adipose_metabolic_system"],
+      "categories": ["metabolic", "endocrine", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 462000000,
       "evidence_level": "approved",
       "target_count": 12,
       "approved_drug_count": 40,
-      "clinical_drug_count": 25
+      "clinical_drug_count": 25,
+      "drugs": ["metformin", "sitagliptin", "dapagliflozin"]
     },
     {
       "id": "hypothyroidism",
@@ -245,13 +279,15 @@
       "synonyms": ["underactive thyroid", "myxedema"],
       "body_region": "endocrine_metabolic",
       "anatomy_nodes": ["thyroid"],
+      "categories": ["endocrine", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 200000000,
       "evidence_level": "approved",
       "target_count": 2,
       "approved_drug_count": 5,
-      "clinical_drug_count": 3
+      "clinical_drug_count": 3,
+      "drugs": ["levothyroxine"]
     },
     {
       "id": "ckd",
@@ -259,13 +295,15 @@
       "synonyms": ["CKD", "chronic renal failure", "CRF"],
       "body_region": "kidney_urinary",
       "anatomy_nodes": ["kidney"],
+      "categories": ["renal", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 850000000,
       "evidence_level": "approved",
       "target_count": 8,
       "approved_drug_count": 15,
-      "clinical_drug_count": 20
+      "clinical_drug_count": 20,
+      "drugs": ["lisinopril", "losartan"]
     },
     {
       "id": "bph",
@@ -273,13 +311,15 @@
       "synonyms": ["BPH", "enlarged prostate", "prostatic hypertrophy"],
       "body_region": "reproductive_breast",
       "anatomy_nodes": ["prostate"],
+      "categories": ["reproductive", "chronic"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 100000000,
       "evidence_level": "approved",
       "target_count": 4,
       "approved_drug_count": 8,
-      "clinical_drug_count": 5
+      "clinical_drug_count": 5,
+      "drugs": ["tamsulosin", "finasteride"]
     },
     {
       "id": "breast_cancer",
@@ -287,13 +327,15 @@
       "synonyms": ["mammary carcinoma", "BC"],
       "body_region": "reproductive_breast",
       "anatomy_nodes": ["breast"],
+      "categories": ["cancer", "reproductive"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 2800000,
       "evidence_level": "approved",
       "target_count": 22,
       "approved_drug_count": 30,
-      "clinical_drug_count": 50
+      "clinical_drug_count": 50,
+      "drugs": ["paclitaxel", "methotrexate"]
     },
     {
       "id": "osteoarthritis",
@@ -301,13 +343,15 @@
       "synonyms": ["OA", "degenerative joint disease", "DJD"],
       "body_region": "bone_joint_muscle",
       "anatomy_nodes": ["joint"],
+      "categories": ["musculoskeletal", "chronic", "degenerative"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 500000000,
       "evidence_level": "approved",
       "target_count": 6,
       "approved_drug_count": 15,
-      "clinical_drug_count": 12
+      "clinical_drug_count": 12,
+      "drugs": ["ibuprofen", "celecoxib"]
     },
     {
       "id": "osteoporosis",
@@ -315,13 +359,15 @@
       "synonyms": ["bone loss", "low bone mass"],
       "body_region": "bone_joint_muscle",
       "anatomy_nodes": ["bone"],
+      "categories": ["musculoskeletal", "chronic", "degenerative"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 200000000,
       "evidence_level": "approved",
       "target_count": 5,
       "approved_drug_count": 12,
-      "clinical_drug_count": 10
+      "clinical_drug_count": 10,
+      "drugs": ["alendronate"]
     },
     {
       "id": "psoriasis",
@@ -329,13 +375,15 @@
       "synonyms": ["psoriasis vulgaris", "plaque psoriasis"],
       "body_region": "skin",
       "anatomy_nodes": ["skin_surface"],
+      "categories": ["dermatological", "autoimmune", "chronic", "inflammatory"],
       "orphan_flag": false,
       "prevalence_tier": "common",
       "prevalence_count": 125000000,
       "evidence_level": "approved",
       "target_count": 12,
       "approved_drug_count": 18,
-      "clinical_drug_count": 22
+      "clinical_drug_count": 22,
+      "drugs": ["acitretin", "methotrexate"]
     },
     {
       "id": "systemic_lupus_erythematosus",
@@ -343,13 +391,79 @@
       "synonyms": ["SLE", "lupus"],
       "body_region": "systemic_multiorgan",
       "anatomy_nodes": ["immune_system", "systemic_multiorgan_core"],
+      "categories": ["autoimmune", "orphan", "systemic"],
       "orphan_flag": true,
       "prevalence_tier": "rare",
       "prevalence_count": 5000000,
       "evidence_level": "approved",
       "target_count": 15,
       "approved_drug_count": 5,
-      "clinical_drug_count": 15
+      "clinical_drug_count": 15,
+      "drugs": ["prednisone", "hydrocortisone"]
+    },
+    {
+      "id": "uveal_melanoma",
+      "canonical_name": "Uveal Melanoma",
+      "synonyms": ["Ocular melanoma", "Choroidal melanoma", "Eye melanoma"],
+      "body_region": "eye_ear",
+      "anatomy_nodes": ["eye", "choroid", "iris", "ciliary_body"],
+      "categories": ["cancer", "orphan", "sensory"],
+      "orphan_flag": true,
+      "prevalence_tier": "rare",
+      "prevalence_count": 7000,
+      "evidence_level": "approved",
+      "target_count": 5,
+      "approved_drug_count": 3,
+      "clinical_drug_count": 8,
+      "drugs": ["imatinib", "pembrolizumab"]
+    },
+    {
+      "id": "retinoblastoma",
+      "canonical_name": "Retinoblastoma",
+      "synonyms": ["RB", "Eye cancer (pediatric)", "Retinal tumor"],
+      "body_region": "eye_ear",
+      "anatomy_nodes": ["eye", "retina"],
+      "categories": ["cancer", "orphan", "pediatric", "sensory"],
+      "orphan_flag": true,
+      "prevalence_tier": "rare",
+      "prevalence_count": 8000,
+      "evidence_level": "approved",
+      "target_count": 3,
+      "approved_drug_count": 5,
+      "clinical_drug_count": 12,
+      "drugs": ["cisplatin", "etoposide", "carboplatin"]
+    },
+    {
+      "id": "ocular_conjunctivitis",
+      "canonical_name": "Conjunctivitis",
+      "synonyms": ["Pink eye", "Eye infection", "Bacterial conjunctivitis"],
+      "body_region": "eye_ear",
+      "anatomy_nodes": ["eye", "conjunctiva"],
+      "categories": ["infectious", "sensory", "acute"],
+      "orphan_flag": false,
+      "prevalence_tier": "common",
+      "prevalence_count": 6000000,
+      "evidence_level": "approved",
+      "target_count": 8,
+      "approved_drug_count": 12,
+      "clinical_drug_count": 5,
+      "drugs": ["azithromycin", "ofloxacin"]
+    },
+    {
+      "id": "diabetic_retinopathy",
+      "canonical_name": "Diabetic Retinopathy",
+      "synonyms": ["DR", "Diabetic eye disease", "Retinal damage"],
+      "body_region": "eye_ear",
+      "anatomy_nodes": ["eye", "retina", "blood_vessels"],
+      "categories": ["metabolic", "sensory", "chronic", "vascular"],
+      "orphan_flag": false,
+      "prevalence_tier": "common",
+      "prevalence_count": 100000000,
+      "evidence_level": "approved",
+      "target_count": 6,
+      "approved_drug_count": 8,
+      "clinical_drug_count": 15,
+      "drugs": ["bevacizumab", "ranibizumab", "aflibercept"]
     }
   ]
 }

@@ -144,3 +144,9 @@ Thumbs.db
 
 # Local development plans (not for remote)
 motifsar_multi_gui_agentic_update_plan.md
+
+# Backup/alternate data files
+*-v2.json
+*-backup.json
+*-old.json
+*.bak

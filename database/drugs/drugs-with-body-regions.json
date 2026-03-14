@@ -1,5 +1,7 @@
 {
   "version": "2.0.0",
+  "description": "Drugs with body region mappings for filtering",
+  "generated": "2026-03-14",
   "total_drugs": 61,
   "drugs": [
     {
@@ -296,7 +298,8 @@
       "body_regions": [
         "heart_vascular",
         "blood_immune",
-        "kidney_urinary"
+        "kidney_urinary",
+        "eye_ear"
       ]
     },
     {
@@ -607,7 +610,8 @@
       "class": "Corticosteroid",
       "body_regions": [
         "endocrine_metabolic",
-        "systemic_multiorgan"
+        "systemic_multiorgan",
+        "blood_immune"
       ]
     },
     {
@@ -659,7 +663,8 @@
       "class": "Corticosteroid",
       "body_regions": [
         "endocrine_metabolic",
-        "systemic_multiorgan"
+        "systemic_multiorgan",
+        "kidney_urinary"
       ]
     },
     {
@@ -684,20 +689,7 @@
       ],
       "class": "Penicillin antibiotic",
       "body_regions": [
-        "brain_cns",
-        "eye_ear",
-        "lung_respiratory",
-        "heart_vascular",
-        "blood_immune",
-        "stomach_upper_gi",
-        "intestine_colorectal",
-        "liver_biliary_pancreas",
-        "endocrine_metabolic",
-        "kidney_urinary",
-        "reproductive_breast",
-        "bone_joint_muscle",
-        "skin",
-        "systemic_multiorgan"
+        "blood_immune"
       ]
     },
     {
@@ -729,7 +721,6 @@
         "stomach_upper_gi",
         "intestine_colorectal",
         "liver_biliary_pancreas",
-        "endocrine_metabolic",
         "kidney_urinary",
         "reproductive_breast",
         "bone_joint_muscle",
@@ -767,7 +758,6 @@
         "stomach_upper_gi",
         "intestine_colorectal",
         "liver_biliary_pancreas",
-        "endocrine_metabolic",
         "kidney_urinary",
         "reproductive_breast",
         "bone_joint_muscle",
@@ -797,20 +787,7 @@
       ],
       "class": "Macrolide antibiotic",
       "body_regions": [
-        "brain_cns",
-        "eye_ear",
-        "lung_respiratory",
-        "heart_vascular",
-        "blood_immune",
-        "stomach_upper_gi",
-        "intestine_colorectal",
-        "liver_biliary_pancreas",
-        "endocrine_metabolic",
-        "kidney_urinary",
-        "reproductive_breast",
-        "bone_joint_muscle",
-        "skin",
-        "systemic_multiorgan"
+        "blood_immune"
       ]
     },
     {
@@ -836,20 +813,7 @@
       ],
       "class": "Fluoroquinolone",
       "body_regions": [
-        "brain_cns",
-        "eye_ear",
-        "lung_respiratory",
-        "heart_vascular",
-        "blood_immune",
-        "stomach_upper_gi",
-        "intestine_colorectal",
-        "liver_biliary_pancreas",
-        "endocrine_metabolic",
-        "kidney_urinary",
-        "reproductive_breast",
-        "bone_joint_muscle",
-        "skin",
-        "systemic_multiorgan"
+        "blood_immune"
       ]
     },
     {
@@ -881,7 +845,6 @@
         "stomach_upper_gi",
         "intestine_colorectal",
         "liver_biliary_pancreas",
-        "endocrine_metabolic",
         "kidney_urinary",
         "reproductive_breast",
         "bone_joint_muscle",
@@ -951,20 +914,8 @@
       ],
       "class": "Taxane",
       "body_regions": [
-        "brain_cns",
-        "eye_ear",
-        "lung_respiratory",
-        "heart_vascular",
-        "blood_immune",
-        "stomach_upper_gi",
-        "intestine_colorectal",
-        "liver_biliary_pancreas",
-        "endocrine_metabolic",
-        "kidney_urinary",
         "reproductive_breast",
-        "bone_joint_muscle",
-        "skin",
-        "systemic_multiorgan"
+        "lung_respiratory"
       ]
     },
     {
@@ -988,20 +939,8 @@
       ],
       "class": "Platinum compound",
       "body_regions": [
-        "brain_cns",
-        "eye_ear",
-        "lung_respiratory",
-        "heart_vascular",
-        "blood_immune",
-        "stomach_upper_gi",
-        "intestine_colorectal",
-        "liver_biliary_pancreas",
-        "endocrine_metabolic",
-        "kidney_urinary",
         "reproductive_breast",
-        "bone_joint_muscle",
-        "skin",
-        "systemic_multiorgan"
+        "lung_respiratory"
       ]
     },
     {
@@ -1025,20 +964,7 @@
       ],
       "class": "EGFR TKI",
       "body_regions": [
-        "brain_cns",
-        "eye_ear",
-        "lung_respiratory",
-        "heart_vascular",
-        "blood_immune",
-        "stomach_upper_gi",
-        "intestine_colorectal",
-        "liver_biliary_pancreas",
-        "endocrine_metabolic",
-        "kidney_urinary",
-        "reproductive_breast",
-        "bone_joint_muscle",
-        "skin",
-        "systemic_multiorgan"
+        "liver_biliary_pancreas"
       ]
     },
     {
@@ -1103,20 +1029,7 @@
       ],
       "class": "Antimetabolite",
       "body_regions": [
-        "brain_cns",
-        "eye_ear",
-        "lung_respiratory",
-        "heart_vascular",
-        "blood_immune",
-        "stomach_upper_gi",
-        "intestine_colorectal",
-        "liver_biliary_pancreas",
-        "endocrine_metabolic",
-        "kidney_urinary",
-        "reproductive_breast",
-        "bone_joint_muscle",
-        "skin",
-        "systemic_multiorgan"
+        "skin"
       ]
     },
     {
@@ -1372,7 +1285,8 @@
       "class": "Benzodiazepine",
       "body_regions": [
         "brain_cns",
-        "systemic_multiorgan"
+        "systemic_multiorgan",
+        "bone_joint_muscle"
       ]
     },
     {
@@ -1582,7 +1496,8 @@
       ],
       "class": "Prostaglandin analog",
       "body_regions": [
-        "eye_ear"
+        "eye_ear",
+        "heart_vascular"
       ]
     },
     {

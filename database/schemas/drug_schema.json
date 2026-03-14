@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DrugTree Drug Schema",
+  "description": "Schema for drug data with body region mappings",
+  "version": "2.0",
+  "updated": "2026-03-14",
+  "type": "object",
+  "required": ["id", "name", "smiles", "inchikey", "atc_code", "atc_category", "molecular_weight", "phase", "year_approved", "generation", "indication", "targets", "company", "synonyms", "class", "body_regions"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique drug identifier (lowercase, no spaces)",
+      "pattern": "^[a-z0-9_-]+$",
+      "examples": ["atorvastatin", "imatinib", "amoxicillin"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Drug generic name",
+      "examples": ["Atorvastatin", "Imatinib", "Amoxicillin"]
+    },
+    "smiles": {
+      "type": "string",
+      "description": "Simplified Molecular Input Line Entry System",
+      "examples": ["CC(C)C1=C(C(=C(N1CCC(CC(CC(=O)O)O)O)C2=CC=C(C=C2)F)C3=CC=CC=C3)C(=O)NC4=CC=CC=C4"]
+    },
+    "inchikey": {
+      "type": "string",
+      "description": "InChI Key (14 characters, first segment)",
+      "pattern": "^[A-Z]{14}-[A-Z]{10}-[A-Z]",
+      "examples": ["XUKUURHRXDUEBC-UHFFFAOYSA-N"]
+    },
+    "atc_code": {
+      "type": "string",
+      "description": "WHO ATC code (5-7 characters)",
+      "pattern": "^[A-Z][0-9]{2}[A-Z]{2}[0-9]{2}$",
+      "examples": ["C10AA05", "L01XE01", "J01CA04"]
+    },
+    "atc_category": {
+      "type": "string",
+      "description": "ATC Level 1 category (single letter)",
+      "enum": ["A", "B", "C", "D", "G", "H", "J", "L", "M", "N", "P", "R", "S", "V"],
+      "examples": ["C", "L", "J"]
+    },
+    "molecular_weight": {
+      "type": "number",
+      "description": "Molecular weight in Daltons",
+      "minimum": 50,
+      "maximum": 2000,
+      "examples": [558.64, 493.6, 365.4]
+    },
+    "phase": {
+      "type": "string",
+      "description": "Clinical development phase",
+      "enum": ["I", "II", "III", "IV"],
+      "examples": ["IV"]
+    },
+    "year_approved": {
+      "type": "integer",
+      "description": "Year of FDA approval",
+      "minimum": 1900,
+      "maximum": 2026,
+      "examples": [1996, 2001, 1972]
+    },
+    "generation": {
+      "type": "integer",
+      "description": "Drug generation (1=first-in-class, 2=improved, 3+ later)",
+      "minimum": 1,
+      "maximum": 5,
+      "examples": [1, 2, 3]
+    },
+    "indication": {
+      "type": "string",
+      "description": "Primary indication/disease treated",
+      "examples": ["Hypercholesterolemia", "CML", "Bacterial infections"]
+    },
+    "targets": {
+      "type": "array",
+      "description": "Molecular targets",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "examples": [["HMG-CoA reductase"], ["BCR-ABL", "c-KIT"], ["Penicillin-binding proteins"]]
+    },
+    "company": {
+      "type": "string",
+      "description": "Pharmaceutical company",
+      "examples": ["Pfizer", "Novartis", "GlaxoSmithKline"]
+    },
+    "synonyms": {
+      "type": "array",
+      "description": "Brand names and other names",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "examples": [["Lipitor", "Sortis"], ["Gleevec", "Glivec"], ["Amoxil", "Trimox"]]
+    },
+    "class": {
+      "type": "string",
+      "description": "Drug class/mechanism",
+      "examples": ["Statin", "Tyrosine kinase inhibitor", "Penicillin antibiotic"]
+    },
+    "body_regions": {
+      "type": "array",
+      "description": "Primary body regions affected (from body_ontology.json)",
+      "items": {
+        "type": "string",
+        "enum": [
+          "brain_cns",
+          "eye_ear", 
+          "lung_respiratory", 
+          "heart_vascular", 
+          "blood_immune",
+          "stomach_upper_gi", 
+          "intestine_colorectal",
+          "liver_biliary_pancreas", 
+          "endocrine_metabolic", 
+          "kidney_urinary", 
+          "reproductive_breast",
+          "bone_joint_muscle", 
+          "skin", 
+          "systemic_multiorgan"
+        ]
+      },
+      "minItems": 1,
+      "examples": [["heart_vascular", "blood_immune"], ["blood_immune", "systemic_multiorgan"]]
+    },
+    "secondary_body_regions": {
+      "type": "array",
+      "description": "Secondary body regions (optional, for broader coverage)",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["kidney_urinary"], ["skin"]]
+    },
+    "parent_drugs": {
+      "type": "array",
+      "description": "Drugs this was derived from",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["lovastatin"], []]
+    },
+    "mechanism_detail": {
+      "type": "string",
+      "description": "Detailed mechanism of action (optional)",
+      "examples": ["Inhibits HMG-CoA reductase, the rate-limiting enzyme in cholesterol synthesis"]
+    },
+    "route_of_administration": {
+      "type": "string",
+      "description": "How drug is administered",
+      "enum": ["oral", "intravenous", "topical", "inhaled", "subcutaneous", "intramuscular", "ophthalmic", "rectal", "transdermal"],
+      "examples": ["oral", "intravenous"]
+    },
+    "half_life_hours": {
+      "type": "number",
+      "description": "Elimination half-life in hours (optional)",
+      "minimum": 0.1,
+      "maximum": 1000,
+      "examples": [14, 7]
+    }
+  }
+}
