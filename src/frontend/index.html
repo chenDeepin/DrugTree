@@ -127,6 +127,39 @@
         </div>
       </section>
 
+      <!-- Disease Panel -->
+      <section class="disease-panel" id="disease-panel">
+        <div class="disease-panel-header">
+          <h3 class="disease-panel-title">Disease Filter</h3>
+          <div id="disease-stats" class="disease-stats"></div>
+        </div>
+        
+        <div class="disease-panel-body">
+          <div class="disease-search-wrap">
+            <input type="text" 
+                   id="disease-search-input" 
+                   class="disease-search-input"
+                   placeholder="Search diseases..."
+                   autocomplete="off" />
+          </div>
+          
+          <button class="orphan-toggle" id="orphan-toggle" title="Show only orphan diseases">
+            🔬 Orphan Only
+          </button>
+        </div>
+        
+        <div class="disease-dropdown" id="disease-dropdown">
+          <div class="disease-list" id="disease-list">
+            <div class="disease-loading">
+              <div class="loading-spinner-small"></div>
+              <span>Loading...</span>
+            </div>
+          </div>
+        </div>
+        
+        <div id="selected-disease"></div>
+      </section>
+
       <!-- Active Filters Bar -->
       <section class="active-filters-bar" id="active-filters">
         <div class="filters-label">Active Filters:</div>
@@ -254,6 +287,7 @@
   <script src="data/drugs.js"></script>
   <script src="assets/human-body-svg.js"></script>
   <script src="js/app-state.js"></script>
+  <script src="js/components/disease-panel.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

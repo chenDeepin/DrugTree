@@ -441,6 +441,13 @@ body {
   opacity: 0.22;
 }
 
+.body-region.highlighted {
+  fill: rgba(147, 112, 219, 0.32);
+  stroke-width: 2.8;
+  stroke: rgba(186, 155, 255, 0.92);
+  filter: drop-shadow(0 0 14px rgba(147, 112, 219, 0.36));
+}
+
 .body-region.skin-region {
   fill: rgba(123, 185, 255, 0.08);
   stroke: rgba(164, 202, 255, 0.2);
@@ -611,8 +618,250 @@ body {
 }
 
 /* ============================================
-   Active Filters Bar
+   Disease Panel
    ============================================ */
+.disease-panel {
+  position: relative;
+  margin-bottom: var(--space-xl);
+}
+
+.disease-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.disease-panel-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.disease-search-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.disease-search-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.disease-search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.orphan-toggle {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.orphan-toggle.active {
+  background: var(--accent-secondary);
+  color: white;
+  border-color: var(--accent-secondary);
+}
+
+.disease-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-height: 400px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+  overflow-y: auto;
+  opacity: 0;
+  z-index: 100;
+  transition: opacity 0.2s ease;
+}
+
+.disease-dropdown.open {
+  opacity: 1;
+}
+
+.disease-stats {
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  display: flex;
+  gap: var(--space-md);
+}
+
+.stat-item {
+  color: var(--text-secondary);
+}
+
+.selected-disease-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-medium);
+}
+
+.disease-name {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.orphan-badge {
+  background: #e91e63;
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.clear-disease-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.clear-disease-btn:hover {
+  color: var(--text-primary);
+}
+
+.disease-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+}
+
+.disease-group {
+  margin-bottom: var(--space-sm);
+}
+
+.disease-group-label {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-xs);
+}
+
+.disease-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.disease-item:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+
+.disease-item.is-active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.disease-item.is-active .disease-name {
+  color: white;
+}
+
+.disease-item.is-orphan {
+  border-left: 3px solid #e91e63;
+}
+
+.disease-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.disease-item .disease-name {
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.disease-item .orphan-tag {
+  background: #e91e63;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.disease-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.disease-drugs {
+  color: var(--accent-secondary);
+}
+
+.disease-prevalence {
+  color: var(--text-muted);
+}
+
+.disease-loading,
+.disease-error,
+.disease-empty {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--text-muted);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+.disease-error {
+  color: #ef4444;
+}
+
+.disease-empty .hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-sm);
+}
+
+
 .active-filters-bar {
   width: min(1200px, 96vw);
   margin: 0 auto;
@@ -1390,6 +1639,92 @@ body.mode-scientist .info-item.scientist-only {
 }
 
 /* ============================================
+   Approval Chips
+   ============================================ */
+.approval-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: default;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.approval-chip__icon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.approval-chip__label {
+  line-height: 1;
+}
+
+/* Approved - Green */
+.approval-chip--approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.approval-chip--approved .approval-chip__icon {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+/* Conditional/Under Review - Yellow */
+.approval-chip--conditional {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.approval-chip--conditional .approval-chip__icon {
+  background: #eab308;
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.6);
+}
+
+/* Unknown/Not Approved - Gray */
+.approval-chip--unknown {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.approval-chip--unknown .approval-chip__icon {
+  background: var(--text-muted);
+}
+
+/* Approval Chip Tooltip */
+.approval-chip-tooltip {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.approval-chip-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
    Animations
    ============================================ */
 @keyframes fadeIn {
@@ -1414,6 +1749,69 @@ body.mode-scientist .info-item.scientist-only {
 
 .drug-card {
   animation: fadeIn 0.3s ease;
+}
+
+/* ============================================
+   Mechanism Card Component
+   ============================================ */
+.mechanism-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.mechanism-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.mechanism-card__summary {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.mechanism-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  margin-top: var(--space-xs);
+}
+
+.mechanism-card__citation,
+.mechanism-card__learn-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.mechanism-card__citation:hover,
+.mechanism-card__learn-more:hover {
+  color: var(--accent-secondary);
+  text-decoration: underline;
+}
+
+.mechanism-card__link-icon {
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+}
+
+.mechanism-card__disclaimer {
+  font-size: var(--font-size-xs);
+  font-style: italic;
+  color: var(--text-muted);
+  margin: var(--space-sm) 0 0 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+  opacity: 0.8;
 }
 
 /* Smooth transitions for theme elements */

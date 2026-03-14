@@ -48,6 +48,7 @@ class DrugTreeApp {
     this.selectedDrug = null;
     this.activeCategory = "all";
     this.activeBodyRegion = null;
+    this.activeDisease = null;
     this.hoveredRegion = null;
     this.searchQuery = "";
     this.mode = "public";
@@ -57,6 +58,7 @@ class DrugTreeApp {
     this.bodyOntology = null;
     this.regionMetaById = {};
     this.regionElementsById = new Map();
+    this.diseasePanel = null;
   }
 
   async init() {
@@ -73,6 +75,11 @@ class DrugTreeApp {
     this.setupEventListeners();
     this.setupATCTags();
     await this.initBodyMap();
+
+    if (window.DiseasePanel) {
+      this.diseasePanel = new window.DiseasePanel(this);
+      await this.diseasePanel.init();
+    }
 
     document.body.classList.add("mode-public");
     this.updateATCTagsState();
@@ -441,12 +448,18 @@ class DrugTreeApp {
   clearFilters() {
     this.activeCategory = "all";
     this.activeBodyRegion = null;
+    this.activeDisease = null;
     this.hoveredRegion = null;
     this.searchQuery = "";
 
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
       searchInput.value = "";
+    }
+
+    if (this.diseasePanel) {
+      this.diseasePanel.activeDisease = null;
+      this.diseasePanel.render();
     }
 
     this.updateATCTagsState();
@@ -497,6 +510,25 @@ class DrugTreeApp {
     container.innerHTML = "";
     const chips = [];
 
+    if (this.activeDisease) {
+      const diseaseName = this.activeDisease.canonical_name;
+      const orphanBadge = this.activeDisease.orphan_flag ? " [ORPHAN]" : "";
+      chips.push({
+        label: `Disease: ${diseaseName}${orphanBadge}`,
+        onRemove: () => {
+          this.activeDisease = null;
+          this.activeBodyRegion = null;
+          if (this.diseasePanel) {
+            this.diseasePanel.activeDisease = null;
+            this.diseasePanel.render();
+          }
+          this.clearBodyMapHighlight();
+          this.updateActiveFiltersBar();
+          this.applyFilters();
+        },
+      });
+    }
+
     if (this.activeCategory !== "all") {
       const category = ATC_CATEGORIES[this.activeCategory];
       chips.push({
@@ -525,7 +557,7 @@ class DrugTreeApp {
       });
     }
 
-    if (this.activeBodyRegion) {
+    if (this.activeBodyRegion && !this.activeDisease) {
       chips.push({
         label: this.getRegionMeta(this.activeBodyRegion).display_name,
         onRemove: () => {
@@ -560,7 +592,7 @@ class DrugTreeApp {
       }).length;
 
       elements.forEach((element) => {
-        element.classList.remove("is-active", "is-hovered", "is-muted");
+        element.classList.remove("is-active", "is-hovered", "is-muted", "highlighted");
 
         if (this.activeCategory !== "all" && regionDrugCount === 0) {
           element.classList.add("is-muted");
@@ -573,6 +605,20 @@ class DrugTreeApp {
         }
       });
     });
+  }
+
+  clearBodyMapHighlight() {
+    this.regionElementsById.forEach((elements) => {
+      elements.forEach((element) => {
+        element.classList.remove("is-active", "is-hovered", "highlighted");
+      });
+    });
+
+    const label = document.getElementById("body-region-label");
+    if (label && !this.activeBodyRegion) {
+      label.textContent = "Hover a region to preview its drug space";
+      label.classList.remove("active");
+    }
   }
 
   updateBodyRegionLabel(overrideRegionId = null, isLocked = null) {
@@ -622,6 +668,14 @@ class DrugTreeApp {
       activeBodyRegion: this.activeBodyRegion,
       searchQuery: this.searchQuery,
     });
+
+    if (this.activeDisease) {
+      const diseaseBodyRegion = this.activeDisease.body_region;
+      this.filteredDrugs = this.filteredDrugs.filter((drug) => {
+        const drugRegions = resolveDrugBodyRegions(drug);
+        return drugRegions.includes(diseaseBodyRegion);
+      });
+    }
 
     this.updateBodyMapState();
     this.renderDrugList();
