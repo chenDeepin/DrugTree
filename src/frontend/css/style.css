@@ -224,6 +224,117 @@ body {
   color: white;
 }
 
+.view-switch {
+  display: flex;
+  gap: var(--space-xs);
+  background: var(--bg-surface);
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+}
+
+.view-btn {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.view-btn:hover {
+  color: var(--text-primary);
+}
+
+.view-btn.active {
+  background: var(--accent-secondary);
+  color: white;
+}
+
+.disease-view-section {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.disease-view-header {
+  margin-bottom: var(--space-md);
+}
+
+.disease-view-header h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+.disease-view-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+.disease-view-container {
+  background: var(--bg-base);
+  border-radius: var(--radius-md);
+  min-height: 400px;
+  overflow: auto;
+}
+
+.disease-view-svg {
+  width: 100%;
+  height: 500px;
+}
+
+.region-node circle {
+  fill: var(--accent-primary);
+  stroke: var(--text-primary);
+  stroke-width: 2px;
+  cursor: pointer;
+}
+
+.region-node:hover circle {
+  fill: var(--accent-secondary);
+}
+
+.disease-node rect {
+  fill: var(--bg-elevated);
+  stroke: var(--accent-primary);
+  stroke-width: 1.5px;
+  rx: 6;
+  cursor: pointer;
+}
+
+.disease-node:hover rect {
+  fill: var(--bg-card);
+  stroke: var(--accent-secondary);
+}
+
+.drug-node {
+  cursor: pointer;
+}
+
+.drug-node:hover {
+  opacity: 0.8;
+}
+
+.disease-node text,
+.region-node text,
+.drug-node text {
+  fill: var(--text-primary);
+  font-size: 12px;
+}
+
+.disease-link,
+.region-link {
+  fill: none;
+  stroke: var(--border-medium);
+  stroke-width: 1.5px;
+}
+
 /* ============================================
    Main Page Layout
    ============================================ */
@@ -441,6 +552,13 @@ body {
   opacity: 0.22;
 }
 
+.body-region.highlighted {
+  fill: rgba(147, 112, 219, 0.32);
+  stroke-width: 2.8;
+  stroke: rgba(186, 155, 255, 0.92);
+  filter: drop-shadow(0 0 14px rgba(147, 112, 219, 0.36));
+}
+
 .body-region.skin-region {
   fill: rgba(123, 185, 255, 0.08);
   stroke: rgba(164, 202, 255, 0.2);
@@ -611,8 +729,250 @@ body {
 }
 
 /* ============================================
-   Active Filters Bar
+   Disease Panel
    ============================================ */
+.disease-panel {
+  position: relative;
+  margin-bottom: var(--space-xl);
+}
+
+.disease-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.disease-panel-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.disease-search-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.disease-search-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.disease-search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.orphan-toggle {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.orphan-toggle.active {
+  background: var(--accent-secondary);
+  color: white;
+  border-color: var(--accent-secondary);
+}
+
+.disease-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-height: 400px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+  overflow-y: auto;
+  opacity: 0;
+  z-index: 100;
+  transition: opacity 0.2s ease;
+}
+
+.disease-dropdown.open {
+  opacity: 1;
+}
+
+.disease-stats {
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  display: flex;
+  gap: var(--space-md);
+}
+
+.stat-item {
+  color: var(--text-secondary);
+}
+
+.selected-disease-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-medium);
+}
+
+.disease-name {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+}
+
+.orphan-badge {
+  background: #e91e63;
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.clear-disease-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.clear-disease-btn:hover {
+  color: var(--text-primary);
+}
+
+.disease-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+}
+
+.disease-group {
+  margin-bottom: var(--space-sm);
+}
+
+.disease-group-label {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-xs);
+}
+
+.disease-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.disease-item:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+
+.disease-item.is-active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.disease-item.is-active .disease-name {
+  color: white;
+}
+
+.disease-item.is-orphan {
+  border-left: 3px solid #e91e63;
+}
+
+.disease-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.disease-item .disease-name {
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.disease-item .orphan-tag {
+  background: #e91e63;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.disease-item-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.disease-drugs {
+  color: var(--accent-secondary);
+}
+
+.disease-prevalence {
+  color: var(--text-muted);
+}
+
+.disease-loading,
+.disease-error,
+.disease-empty {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--text-muted);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+.disease-error {
+  color: #ef4444;
+}
+
+.disease-empty .hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-sm);
+}
+
+
 .active-filters-bar {
   width: min(1200px, 96vw);
   margin: 0 auto;
@@ -1390,6 +1750,92 @@ body.mode-scientist .info-item.scientist-only {
 }
 
 /* ============================================
+   Approval Chips
+   ============================================ */
+.approval-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: default;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.approval-chip__icon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.approval-chip__label {
+  line-height: 1;
+}
+
+/* Approved - Green */
+.approval-chip--approved {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.approval-chip--approved .approval-chip__icon {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+/* Conditional/Under Review - Yellow */
+.approval-chip--conditional {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.approval-chip--conditional .approval-chip__icon {
+  background: #eab308;
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.6);
+}
+
+/* Unknown/Not Approved - Gray */
+.approval-chip--unknown {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.approval-chip--unknown .approval-chip__icon {
+  background: var(--text-muted);
+}
+
+/* Approval Chip Tooltip */
+.approval-chip-tooltip {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.approval-chip-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
    Animations
    ============================================ */
 @keyframes fadeIn {
@@ -1416,6 +1862,69 @@ body.mode-scientist .info-item.scientist-only {
   animation: fadeIn 0.3s ease;
 }
 
+/* ============================================
+   Mechanism Card Component
+   ============================================ */
+.mechanism-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.mechanism-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.mechanism-card__summary {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.mechanism-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  margin-top: var(--space-xs);
+}
+
+.mechanism-card__citation,
+.mechanism-card__learn-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.mechanism-card__citation:hover,
+.mechanism-card__learn-more:hover {
+  color: var(--accent-secondary);
+  text-decoration: underline;
+}
+
+.mechanism-card__link-icon {
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+}
+
+.mechanism-card__disclaimer {
+  font-size: var(--font-size-xs);
+  font-style: italic;
+  color: var(--text-muted);
+  margin: var(--space-sm) 0 0 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+  opacity: 0.8;
+}
+
 /* Smooth transitions for theme elements */
 * {
   transition-property: background-color, border-color, color, opacity, transform, box-shadow;
@@ -1426,4 +1935,327 @@ body.mode-scientist .info-item.scientist-only {
 /* Disable transitions on page load */
 .preload * {
   transition: none !important;
+}
+
+/* ============================================
+   Genealogy Tree Components
+   ============================================ */
+
+/* Tree Container */
+.genealogy-tree-container {
+  width: 100%;
+  min-height: 200px;
+  max-height: 400px;
+  overflow: auto;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  margin-top: var(--space-md);
+  position: relative;
+}
+
+.genealogy-tree-empty,
+.genealogy-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.genealogy-tree-empty__icon,
+.genealogy-empty__icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-sm);
+  opacity: 0.5;
+}
+
+/* Genealogy SVG */
+.genealogy-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+}
+
+/* Tree Nodes */
+.tree-node {
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.tree-node:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.tree-node.selected {
+  filter: drop-shadow(0 0 8px var(--accent-primary));
+}
+
+.node-circle {
+  fill: var(--bg-surface);
+  stroke: var(--border-subtle);
+  stroke-width: 2;
+  transition: all 0.2s ease;
+}
+
+.tree-node:hover .node-circle {
+  stroke: var(--accent-primary);
+  stroke-width: 3;
+}
+
+.tree-node.selected .node-circle {
+  fill: var(--accent-primary);
+  stroke: var(--accent-secondary);
+  stroke-width: 3;
+}
+
+/* Node Labels */
+.node-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  fill: var(--text-primary);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.node-label--generation {
+  font-size: 10px;
+  fill: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Generation Badges */
+.generation-badge {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  fill: var(--text-muted);
+  text-anchor: middle;
+  font-weight: 600;
+}
+
+/* Tree Links (Parent-Child) */
+.tree-link {
+  fill: none;
+  stroke: var(--border-subtle);
+  stroke-width: 1.5;
+  stroke-opacity: 0.6;
+  transition: stroke-opacity 0.2s ease, stroke-width 0.2s ease;
+}
+
+.tree-link:hover {
+  stroke: var(--text-secondary);
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+
+.tree-link.highlighted {
+  stroke: var(--accent-primary);
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+
+/* Cross-Links (Multi-Parent) */
+.cross-link {
+  fill: none;
+  stroke: var(--accent-secondary);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 2;
+  stroke-opacity: 0.4;
+  transition: stroke-opacity 0.2s ease;
+}
+
+.cross-link:hover {
+  stroke-opacity: 0.8;
+}
+
+.cross-link.highlighted {
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+
+/* Genealogy Tooltips (Scientist Mode) */
+.genealogy-tooltip-container {
+  position: absolute;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  max-width: 280px;
+}
+
+.genealogy-tooltip-container.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.genealogy-tooltip__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.genealogy-tooltip__name {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.genealogy-tooltip__generation {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.genealogy-tooltip__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.genealogy-tooltip__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: var(--font-size-xs);
+}
+
+.genealogy-tooltip__label {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.genealogy-tooltip__value {
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+/* Confidence Indicator */
+.genealogy-tooltip__confidence {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.genealogy-tooltip__confidence-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.genealogy-tooltip__confidence-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-surface);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.genealogy-tooltip__confidence-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.genealogy-tooltip__confidence-value {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Rationale Section */
+.genealogy-tooltip__rationale {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* Genealogy Legend */
+.genealogy-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-base);
+}
+
+.genealogy-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.genealogy-legend__line {
+  width: 20px;
+  height: 2px;
+}
+
+.genealogy-legend__line--tree {
+  background: var(--border-subtle);
+}
+
+.genealogy-legend__line--cross {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent-secondary),
+    var(--accent-secondary) 4px,
+    transparent 4px,
+    transparent 6px
+  );
+}
+
+/* Node Type Colors */
+.tree-node[data-type="parent"] .node-circle {
+  fill: rgba(59, 130, 246, 0.2);
+  stroke: #3b82f6;
+}
+
+.tree-node[data-type="child"] .node-circle {
+  fill: rgba(34, 197, 94, 0.2);
+  stroke: #22c55e;
+}
+
+.tree-node[data-type="sibling"] .node-circle {
+  fill: rgba(168, 85, 247, 0.2);
+  stroke: #a855f7;
+}
+
+.tree-node[data-type="root"] .node-circle {
+  fill: rgba(234, 179, 8, 0.2);
+  stroke: #eab308;
+}
+
+/* Hide tooltips in Public mode */
+.mode-public .genealogy-tooltip-container {
+  display: none !important;
+}
+
+/* Show tooltips only in Scientist mode */
+.mode-scientist .genealogy-tooltip-container {
+  display: block;
 }

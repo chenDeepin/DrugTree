@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .models.drug import HealthResponse
 from .routers.drugs import router as drugs_router
+from .routers.diseases import router as diseases_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -58,6 +59,7 @@ drugs_db = load_drugs()
 
 # Include routers
 app.include_router(drugs_router)
+app.include_router(diseases_router)
 
 
 # Health check endpoint
@@ -77,6 +79,7 @@ async def root():
         "docs": "/docs",
         "endpoints": {
             "drugs": "/api/v1/drugs",
+            "diseases": "/api/v1/diseases",
             "health": "/health",
             "search": "/api/v1/drugs/search",
         },

@@ -48,15 +48,23 @@ class DrugTreeApp {
     this.selectedDrug = null;
     this.activeCategory = "all";
     this.activeBodyRegion = null;
+    this.activeDisease = null;
     this.hoveredRegion = null;
     this.searchQuery = "";
     this.mode = "public";
+    this.viewMode = "genealogy";
     this.hoverTimeout = null;
     this.hoverDelay = 1200;
     this.structureViewer = null;
     this.bodyOntology = null;
     this.regionMetaById = {};
     this.regionElementsById = new Map();
+    this.diseasePanel = null;
+    
+    this.graphStore = null;
+    this.selectionStore = null;
+    this.diseaseView = null;
+    this.genealogyView = null;
   }
 
   async init() {
@@ -69,10 +77,22 @@ class DrugTreeApp {
 
     await Promise.all([this.loadDrugData(), this.loadBodyOntology()]);
 
+    this.initStores();
+    await this.loadGraphData();
+    
     this.updateAtlasSummary();
     this.setupEventListeners();
     this.setupATCTags();
+    this.setupViewToggle();
     await this.initBodyMap();
+
+    if (window.DiseasePanel) {
+      this.diseasePanel = new window.DiseasePanel(this);
+      await this.diseasePanel.init();
+    }
+
+    this.initDiseaseView();
+    this.initGenealogyView();
 
     document.body.classList.add("mode-public");
     this.updateATCTagsState();
@@ -80,6 +100,100 @@ class DrugTreeApp {
     this.applyFilters();
 
     console.log("DrugTree initialized with", this.drugs.length, "drugs");
+  }
+  
+  initStores() {
+    if (window.GraphStore) {
+      this.graphStore = new window.GraphStore();
+      console.log("GraphStore initialized");
+    }
+    
+    if (window.SelectionStore) {
+      this.selectionStore = new window.SelectionStore();
+      this.selectionStore.addEventListener('drug:selected', (e) => {
+        this.handleDrugSelected(e.detail);
+      });
+      this.selectionStore.addEventListener('view:changed', (e) => {
+        this.handleViewChanged(e.detail);
+      });
+      console.log("SelectionStore initialized");
+    }
+  }
+  
+  async loadGraphData() {
+    if (this.graphStore && this.drugs.length > 0 && this.bodyOntology) {
+      await this.graphStore.loadGraph(this.drugs, this.bodyOntology);
+    }
+  }
+  
+  initDiseaseView() {
+    const container = document.getElementById('disease-view-container');
+    if (container && window.DiseaseView && this.graphStore && this.selectionStore) {
+      this.diseaseView = new window.DiseaseView(this);
+      this.diseaseView.init(container, this.graphStore, this.selectionStore);
+      console.log("DiseaseView initialized");
+    }
+  }
+  
+  initGenealogyView() {
+    if (window.GenealogyView) {
+      this.genealogyView = new window.GenealogyView({ app: this });
+      console.log("GenealogyView initialized");
+    }
+  }
+  
+  setupViewToggle() {
+    const viewButtons = document.querySelectorAll('.view-btn');
+    viewButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
+        if (view === 'genealogy' || view === 'disease') {
+          this.setViewMode(view);
+        }
+      });
+    });
+  }
+  
+  setViewMode(mode) {
+    this.viewMode = mode;
+    
+    if (this.selectionStore) {
+      this.selectionStore.setViewMode(mode);
+    }
+    
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === mode);
+    });
+    
+    const diseaseSection = document.getElementById('disease-view-section');
+    const resultsSection = document.querySelector('.results-section');
+    
+    if (mode === 'disease') {
+      if (diseaseSection) diseaseSection.style.display = 'block';
+      if (resultsSection) resultsSection.style.display = 'none';
+      if (this.diseaseView && this.activeBodyRegion) {
+        this.diseaseView.render(this.activeBodyRegion);
+      }
+    } else {
+      if (diseaseSection) diseaseSection.style.display = 'none';
+      if (resultsSection) resultsSection.style.display = 'block';
+    }
+    
+    console.log(`View mode set to: ${mode}`);
+  }
+  
+  handleDrugSelected(detail) {
+    const drugId = detail.drugId;
+    const drug = this.drugs.find(d => d.id === drugId);
+    if (drug) {
+      this.selectDrug(drug);
+      this.showDrugModal(drug);
+    }
+  }
+  
+  handleViewChanged(detail) {
+    this.viewMode = detail.mode;
+    this.setViewMode(detail.mode);
   }
 
   async loadDrugData() {
@@ -93,7 +207,10 @@ class DrugTreeApp {
       `;
     }
 
-    const embeddedDrugs = EMBEDDED_DRUG_DATA?.drugs || [];
+    // Handle both array and object format
+    const embeddedDrugs = Array.isArray(EMBEDDED_DRUG_DATA) 
+      ? EMBEDDED_DRUG_DATA 
+      : (EMBEDDED_DRUG_DATA?.drugs || []);
     if (window.location.protocol === "file:" && embeddedDrugs.length > 0) {
       this.drugs = embeddedDrugs;
       this.filteredDrugs = [...this.drugs];
@@ -116,6 +233,7 @@ class DrugTreeApp {
         if (embeddedDrugs.length > 0) {
           this.drugs = embeddedDrugs;
           this.filteredDrugs = [...this.drugs];
+          console.log(`Loaded ${this.drugs.length} drugs from embedded data`);
           return;
         }
 
@@ -441,12 +559,18 @@ class DrugTreeApp {
   clearFilters() {
     this.activeCategory = "all";
     this.activeBodyRegion = null;
+    this.activeDisease = null;
     this.hoveredRegion = null;
     this.searchQuery = "";
 
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
       searchInput.value = "";
+    }
+
+    if (this.diseasePanel) {
+      this.diseasePanel.activeDisease = null;
+      this.diseasePanel.render();
     }
 
     this.updateATCTagsState();
@@ -497,6 +621,25 @@ class DrugTreeApp {
     container.innerHTML = "";
     const chips = [];
 
+    if (this.activeDisease) {
+      const diseaseName = this.activeDisease.canonical_name;
+      const orphanBadge = this.activeDisease.orphan_flag ? " [ORPHAN]" : "";
+      chips.push({
+        label: `Disease: ${diseaseName}${orphanBadge}`,
+        onRemove: () => {
+          this.activeDisease = null;
+          this.activeBodyRegion = null;
+          if (this.diseasePanel) {
+            this.diseasePanel.activeDisease = null;
+            this.diseasePanel.render();
+          }
+          this.clearBodyMapHighlight();
+          this.updateActiveFiltersBar();
+          this.applyFilters();
+        },
+      });
+    }
+
     if (this.activeCategory !== "all") {
       const category = ATC_CATEGORIES[this.activeCategory];
       chips.push({
@@ -525,7 +668,7 @@ class DrugTreeApp {
       });
     }
 
-    if (this.activeBodyRegion) {
+    if (this.activeBodyRegion && !this.activeDisease) {
       chips.push({
         label: this.getRegionMeta(this.activeBodyRegion).display_name,
         onRemove: () => {
@@ -560,7 +703,7 @@ class DrugTreeApp {
       }).length;
 
       elements.forEach((element) => {
-        element.classList.remove("is-active", "is-hovered", "is-muted");
+        element.classList.remove("is-active", "is-hovered", "is-muted", "highlighted");
 
         if (this.activeCategory !== "all" && regionDrugCount === 0) {
           element.classList.add("is-muted");
@@ -573,6 +716,20 @@ class DrugTreeApp {
         }
       });
     });
+  }
+
+  clearBodyMapHighlight() {
+    this.regionElementsById.forEach((elements) => {
+      elements.forEach((element) => {
+        element.classList.remove("is-active", "is-hovered", "highlighted");
+      });
+    });
+
+    const label = document.getElementById("body-region-label");
+    if (label && !this.activeBodyRegion) {
+      label.textContent = "Hover a region to preview its drug space";
+      label.classList.remove("active");
+    }
   }
 
   updateBodyRegionLabel(overrideRegionId = null, isLocked = null) {
@@ -622,6 +779,14 @@ class DrugTreeApp {
       activeBodyRegion: this.activeBodyRegion,
       searchQuery: this.searchQuery,
     });
+
+    if (this.activeDisease) {
+      const diseaseBodyRegion = this.activeDisease.body_region;
+      this.filteredDrugs = this.filteredDrugs.filter((drug) => {
+        const drugRegions = resolveDrugBodyRegions(drug);
+        return drugRegions.includes(diseaseBodyRegion);
+      });
+    }
 
     this.updateBodyMapState();
     this.renderDrugList();
@@ -838,6 +1003,8 @@ class DrugTreeApp {
     if (structureContainer && this.structureViewer) {
       this.structureViewer.renderModalStructure(drug.smiles, structureContainer);
     }
+    
+    this.renderGenealogyTree(drug);
 
     document.querySelectorAll(".scientist-only").forEach((element) => {
       if (element.classList.contains("info-item")) {
@@ -914,6 +1081,102 @@ class DrugTreeApp {
         successorsElement.textContent = "Latest generation";
       }
     }
+  }
+
+  renderGenealogyTree(drug) {
+    const container = document.getElementById('genealogy-tree-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    const isScientistMode = this.mode === 'scientist';
+    
+    if (window.GenealogyView) {
+      if (!this.genealogyView) {
+        this.genealogyView = new window.GenealogyView({ app: this });
+      }
+      
+      const treeData = this._buildGenealogyTreeData(drug);
+      if (treeData) {
+        this.genealogyView.render(container, treeData, isScientistMode);
+      } else {
+        container.innerHTML = '<div class="genealogy-tree-empty">No lineage data available</div>';
+      }
+    } else {
+      container.innerHTML = '<div class="genealogy-tree-empty">GenealogyView not loaded</div>';
+    }
+  }
+  
+  _buildGenealogyTreeData(drug) {
+    if (!drug) return null;
+    
+    const nodes = [];
+    const links = [];
+    const crossLinks = [];
+    
+    const root = {
+      id: drug.id,
+      name: drug.name,
+      depth: drug.generation || 1,
+      children: []
+    };
+    nodes.push({ id: drug.id, name: drug.name, depth: drug.generation || 1 });
+    
+    const parentDrugs = (drug.parent_drugs || []).map(parentId => {
+      const parentDrug = this.drugs.find(d => d.id === parentId || d.name === parentId);
+      return parentDrug ? { id: parentDrug.id, name: parentDrug.name, depth: (parentDrug.generation || 1) } : null;
+    }).filter(Boolean);
+    
+    const successorDrugs = this.drugs.filter(candidate => 
+      candidate.parent_drugs && 
+      (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name))
+    );
+    
+    if (successorDrugs.length > 0) {
+      root.children = successorDrugs.map(s => ({
+        id: s.id,
+        name: s.name,
+        depth: s.generation || (drug.generation || 1) + 1,
+        children: []
+      }));
+      
+      successorDrugs.forEach(s => {
+        nodes.push({ id: s.id, name: s.name, depth: s.generation || (drug.generation || 1) + 1 });
+        links.push({
+          source: drug.id,
+          target: s.id,
+          edge_type: 'generation_successor',
+          confidence: 0.8
+        });
+      });
+    }
+    
+    const fullRoot = {
+      id: drug.id,
+      name: drug.name,
+      depth: drug.generation || 1,
+      children: root.children
+    };
+    
+    if (parentDrugs.length > 0) {
+      fullRoot.children = fullRoot.children || [];
+    }
+    
+    return {
+      drug_id: drug.id,
+      drug_name: drug.name,
+      tree: {
+        root: fullRoot,
+        nodes: nodes,
+        links: links,
+        cross_links: crossLinks
+      },
+      statistics: {
+        total_nodes: nodes.length,
+        max_depth: drug.generation || 1,
+        cross_links: 0
+      }
+    };
   }
 
   closeModal() {

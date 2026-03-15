@@ -1,0 +1,83 @@
+# DrugTree - Periodic Update Schedule Configuration
+#
+# Defines automated data sync schedules and notification settings.
+
+scheduler:
+  enabled: true
+  timezone: "UTC"
+  
+  # Weekly full sync schedule
+  weekly_sync:
+    # Run every Sunday at 2:00 AM UTC
+    cron: "0 2 * * 0"
+    description: "Weekly full data synchronization from all sources"
+    enabled: true
+
+sources:
+  # ChEMBL data sync
+  chembl:
+    enabled: true
+    rate_limit_per_sec: 1.0
+    batch_size: 100
+    timeout_seconds: 3600
+    
+  # KEGG drug data sync
+  kegg:
+    enabled: true
+    rate_limit_per_sec: 1.0
+    batch_size: 50
+    timeout_seconds: 1800
+    
+  # PubChem compound data
+  pubchem:
+    enabled: true
+    rate_limit_per_sec: 5.0
+    batch_size: 100
+    timeout_seconds: 3600
+    
+  # FDA drug data
+  fda:
+    enabled: true
+    rate_limit_per_sec: 4.0
+    batch_size: 100
+    timeout_seconds: 1800
+
+notifications:
+  # Notification channels for sync events
+  enabled: true
+  
+  # Email notifications (optional)
+  email:
+    enabled: false
+    smtp_host: ""
+    smtp_port: 587
+    sender: ""
+    recipients: []
+    
+  # Slack notifications (optional)
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#drugtree-updates"
+    
+  # Log file notifications (always enabled)
+  log:
+    enabled: true
+    path: "logs/sync_notifications.log"
+
+retry:
+  # Retry configuration for failed syncs
+  max_attempts: 3
+  backoff_base: 60  # seconds, exponential backoff base
+  max_backoff: 3600  # max 1 hour between retries
+
+maintenance:
+  # Database maintenance tasks
+  vacuum:
+    enabled: true
+    cron: "0 3 * * 0"  # Sunday 3 AM, after sync
+    
+  log_rotation:
+    enabled: true
+    retention_days: 90
+    archive_enabled: true

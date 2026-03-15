@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- D3.js for visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -20,18 +22,27 @@
         <input type="text" id="search-input" placeholder="Search drug, disease, target..." />
       </div>
       
-      <div class="topbar-actions">
-        <button class="clear-btn" id="clear-filters">Clear</button>
-        
-        <div class="mode-switch">
-          <button class="mode-btn active" data-mode="public" title="Simplified view for general audience">
-            🌐 Public
-          </button>
-          <button class="mode-btn" data-mode="scientist" title="Detailed view with all scientific data">
-            🔬 Scientist
-          </button>
-        </div>
-      </div>
+       <div class="topbar-actions">
+         <button class="clear-btn" id="clear-filters">Clear</button>
+         
+         <div class="view-switch">
+           <button class="view-btn active" data-view="genealogy" title="View drug lineage and genealogy">
+             🌳 Genealogy
+           </button>
+           <button class="view-btn" data-view="disease" title="View body→disease→drug hierarchy">
+             🏥 Disease
+           </button>
+         </div>
+         
+         <div class="mode-switch">
+           <button class="mode-btn active" data-mode="public" title="Simplified view for general audience">
+             🌐 Public
+           </button>
+           <button class="mode-btn" data-mode="scientist" title="Detailed view with all scientific data">
+             🔬 Scientist
+           </button>
+         </div>
+       </div>
     </header>
 
     <!-- Main Page -->
@@ -127,11 +138,58 @@
         </div>
       </section>
 
+      <!-- Disease Panel -->
+      <section class="disease-panel" id="disease-panel">
+        <div class="disease-panel-header">
+          <h3 class="disease-panel-title">Disease Filter</h3>
+          <div id="disease-stats" class="disease-stats"></div>
+        </div>
+        
+        <div class="disease-panel-body">
+          <div class="disease-search-wrap">
+            <input type="text" 
+                   id="disease-search-input" 
+                   class="disease-search-input"
+                   placeholder="Search diseases..."
+                   autocomplete="off" />
+          </div>
+          
+          <button class="orphan-toggle" id="orphan-toggle" title="Show only orphan diseases">
+            🔬 Orphan Only
+          </button>
+        </div>
+        
+        <div class="disease-dropdown" id="disease-dropdown">
+          <div class="disease-list" id="disease-list">
+            <div class="disease-loading">
+              <div class="loading-spinner-small"></div>
+              <span>Loading...</span>
+            </div>
+          </div>
+        </div>
+        
+        <div id="selected-disease"></div>
+      </section>
+
       <!-- Active Filters Bar -->
       <section class="active-filters-bar" id="active-filters">
         <div class="filters-label">Active Filters:</div>
         <div class="filter-chips" id="filter-chips">
           <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- Disease View Container -->
+      <section class="disease-view-section" id="disease-view-section" style="display: none;">
+        <div class="disease-view-header">
+          <h3>Disease Hierarchy</h3>
+          <p class="disease-view-subtitle">Body → Disease → Drugs</p>
+        </div>
+        <div class="disease-view-container" id="disease-view-container">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading disease hierarchy...</div>
+          </div>
         </div>
       </section>
 
@@ -231,6 +289,7 @@
                   <span class="genealogy-value" id="modal-generation">1</span>
                 </div>
               </div>
+              <div class="genealogy-tree-container" id="genealogy-tree-container"></div>
             </div>
             
             <div class="modal-smiles-section scientist-only">
@@ -249,11 +308,17 @@
   </div>
 
   <!-- Scripts -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="js/structure.js"></script>
+  <script src="js/stores/graphStore.js"></script>
+  <script src="js/stores/selectionStore.js"></script>
+  <script src="js/views/genealogyView.js"></script>
+  <script src="js/views/diseaseView.js"></script>
   <script src="data/body-ontology.js"></script>
   <script src="data/drugs.js"></script>
   <script src="assets/human-body-svg.js"></script>
   <script src="js/app-state.js"></script>
+  <script src="js/components/disease-panel.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

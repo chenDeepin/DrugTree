@@ -80,6 +80,12 @@ UPDATES.md
 
 # Tests folder (local only)
 tests/
+!tests/backend/
+!tests/backend/**
+!tests/frontend/
+!tests/frontend/**
+!tests/disease_universe/
+!tests/disease_universe/**
 
 # Scripts folder (local only)
 scripts/
@@ -138,3 +144,38 @@ Thumbs.db
 
 # Local development plans (not for remote)
 motifsar_multi_gui_agentic_update_plan.md
+
+# Backup/alternate data files
+*-v2.json
+*-backup.json
+*-old.json
+*.bak
+
+# Project-specific generated data
+data/curated/
+data/processed/
+generate_families.py
+update_drug_families.py
+test-results/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Backend
+*.db
+*.sqlite
+*.sqlite3
+.venv/
+venv/
+.env.local
+.env.*.local
+
+# Backend state/checkpoint files
+src/backend/etl/*.json
+src/backend/etl/checkpoints/
+src/backend/data/*.json
+
+# Backend logs
+src/backend/logs/
+src/backend/*.log

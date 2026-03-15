@@ -4,14 +4,24 @@ DrugTree - Pydantic Models for Drug Data
 Defines the data schema for drugs, matching the frontend DrugTreeApp expectations.
 """
 
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Literal, Optional
+from pydantic import BaseModel, Field, computed_field
+
+from .version import CURRENT_SCHEMA_VERSION
+from .provenance import Provenance
 
 
 class DrugBase(BaseModel):
     """Base drug model with common fields"""
 
     id: str = Field(..., description="Unique drug identifier (e.g., 'atorvastatin')")
+    node_type: Literal["drug"] = Field(
+        default="drug", description="Node type discriminator for graph queries"
+    )
+    schema_version: str = Field(
+        default=CURRENT_SCHEMA_VERSION,
+        description="Schema version for migration tracking",
+    )
     name: str = Field(..., description="Drug name")
     smiles: Optional[str] = Field(
         None, description="SMILES notation for molecular structure"
@@ -39,17 +49,29 @@ class Drug(DrugBase):
     class_name: Optional[str] = Field(
         None, alias="class", description="Drug class (e.g., 'Statin')"
     )
+
     parent_drugs: List[str] = Field(default_factory=list, description="Parent drug IDs")
     clinical_trials: List[str] = Field(
         default_factory=list, description="Clinical trial NCT IDs"
     )
+
+    family_ids: List[str] = Field(
+        default_factory=list, description="Family IDs this drug belongs to"
+    )
+
+    # Body region fields - consolidated to avoid duplication
     body_region: Optional[str] = Field(
         None, description="Primary ontology-aligned body region"
     )
+    body_regions: Optional[List[str]] = Field(
+        None,
+        description="All body regions where this drug is active (aggregated from ontology mapping)",
+    )
     secondary_body_regions: List[str] = Field(
         default_factory=list,
-        description="Additional ontology-aligned body regions",
+        description="Secondary body regions where this drug is active",
     )
+
     public_summary: Optional[str] = Field(
         None, description="Short public-facing treatment summary"
     )
@@ -59,8 +81,17 @@ class Drug(DrugBase):
     pubchem_cid: Optional[int] = Field(None, description="PubChem Compound ID")
     drugbank_id: Optional[str] = Field(None, description="DrugBank ID")
 
-    class Config:
-        populate_by_name = True
+    # Provenance tracking
+    provenance: Optional[Provenance] = Field(
+        None, description="Data provenance tracking (sources, timestamps, confidence)"
+    )
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def full_id(self) -> str:
+        return f"drug:{self.id}"
+
+    model_config = {"populate_by_name": True}
 
 
 class DrugSummary(DrugBase):
@@ -71,15 +102,14 @@ class DrugSummary(DrugBase):
     indication: Optional[str] = None
     class_name: Optional[str] = Field(None, alias="class")
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class DrugListResponse(BaseModel):
     """Response model for drug list endpoint"""
 
-    total: int = Field(..., description="Total number of drugs matching query")
-    drugs: List[Drug] = Field(..., description="List of drugs")
+    total: int
+    drugs: List[Drug]
 
 
 class DrugFilterParams(BaseModel):
@@ -89,9 +119,11 @@ class DrugFilterParams(BaseModel):
     search: Optional[str] = Field(
         None, description="Search query (name, target, class)"
     )
-    phase: Optional[str] = Field(None, description="Filter by clinical phase")
+    phase: Optional[str] = Field(
+        None, description="Filter by clinical phase (I/II/III/IV)"
+    )
     limit: int = Field(100, ge=1, le=1000, description="Max results to return")
-    offset: int = Field(0, ge=0, description="Pagination offset")
+    offset: int = Field(0, ge=0, le=1000, description="Pagination offset")
 
 
 class HealthResponse(BaseModel):

@@ -1,0 +1,34 @@
+{
+  "change_id": "3df90406-9691-434b-9b4a-56dd3e6d46f4",
+  "drug_id": "drug_2",
+  "change_type": "new",
+  "field_changes": [],
+  "old_snapshot": null,
+  "new_snapshot": {
+    "id": "test_drug_001",
+    "name": "Test Drug",
+    "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+    "atc_code": "C10AA05",
+    "atc_category": "C",
+    "molecular_weight": 348.48,
+    "indication": "Hypercholesterolemia",
+    "targets": [
+      "HMG-CoA reductase"
+    ],
+    "company": "Test Pharma",
+    "phase": "IV",
+    "year_approved": 1996,
+    "generation": 2
+  },
+  "source": "test_changeset",
+  "timestamp": "2026-03-15 08:54:47.672287+00:00",
+  "applied_at": "2026-03-15 08:54:47.672482+00:00",
+  "applied_by": "system",
+  "reviewed": false,
+  "reviewed_at": null,
+  "reviewed_by": null,
+  "approved": null,
+  "rolled_back": false,
+  "rolled_back_at": null,
+  "rollback_change_id": null
+}
