@@ -11,9 +11,9 @@ from typing import List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .models.drug import HealthResponse
-from .routers.drugs import router as drugs_router
-from .routers.diseases import router as diseases_router
+from models.drug import HealthResponse
+from routers.drugs import router as drugs_router
+from routers.diseases import router as diseases_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -40,7 +40,7 @@ app.add_middleware(
 )
 
 # Load drug data
-DATA_PATH = Path(__file__).parent.parent / "frontend" / "data" / "drugs.json"
+DATA_PATH = Path(__file__).parent.parent.parent / "data" / "drugs.json"
 
 
 def load_drugs() -> List[dict]:
