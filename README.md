@@ -18,11 +18,14 @@
 - 🔍 **Dual Display Modes** - Public (simplified) and Scientist (detailed) views
 
 ### Data Features
-- **61 Approved Small-Molecule Drugs** with verified SMILES and full ATC classification
+- **7,359 Small-Molecule Drugs** from ChEMBL, KEGG, DrugBank, and FDA sources
+- **55.4% ATC Coverage** (4,079 drugs with valid ATC codes, 3,280 awaiting enrichment)
 - **14 ATC Level 1 Categories** with color-coded navigation
 - **14 Body Regions** mapped to therapeutic areas
 - **Drug Families** - Group related drugs by mechanism/target
 - **Drug Lineages** - Track evolutionary relationships
+- **Source Provenance** - Track where each drug's data originated
+- **61 Curated Drugs** - Manually verified core drug set with complete data
 
 ## Quick Start
 
@@ -110,22 +113,24 @@ DrugTree/
 
 ## ATC Categories (14 Total)
 
-| Code | Category | Color |
-|------|----------|-------|
-| A | Alimentary & Metabolism | Green |
-| B | Blood & Blood-forming | Red |
-| C | Cardiovascular | Pink |
-| D | Dermatological | Orange |
-| G | Genito-urinary | Purple |
-| H | Systemic Hormones | Brown |
-| J | Anti-infectives | Blue |
-| L | Antineoplastic | Dark Red |
-| M | Musculo-skeletal | Grey |
-| N | Nervous System | Deep Purple |
-| P | Antiparasitic | Teal |
-| R | Respiratory | Cyan |
-| S | Sensory Organs | Indigo |
-| V | Various | Grey |
+| Code | Category | Color | Drugs (valid ATC) |
+|------|----------|-------|-------------------|
+| A | Alimentary & Metabolism | Green | ~300+ |
+| B | Blood & Blood-forming | Red | ~250+ |
+| C | Cardiovascular | Pink | ~400+ |
+| D | Dermatological | Orange | ~200+ |
+| G | Genito-urinary | Purple | ~250+ |
+| H | Systemic Hormones | Brown | ~150+ |
+| J | Anti-infectives | Blue | ~800+ |
+| L | Antineoplastic | Dark Red | ~600+ |
+| M | Musculo-skeletal | Grey | ~200+ |
+| N | Nervous System | Deep Purple | ~700+ |
+| P | Antiparasitic | Teal | ~100+ |
+| R | Respiratory | Cyan | ~300+ |
+| S | Sensory Organs | Indigo | ~150+ |
+| V | Various | Grey | ~3,097 (many need re-classification) |
+
+> **Note**: Exact counts vary as ATC enrichment continues. See `/data/drugs.json` for current state.
 
 ## Data Schemas
 
@@ -203,29 +208,13 @@ DrugTree/
 | `/api/diseases` | GET | List disease hierarchy |
 | `/api/diseases/{id}/drugs` | GET | Get drugs for disease |
 
-## Status
 
-✅ **Phase 1: MVP Complete** - 61 drugs, ATC classification, body atlas
-✅ **Phase 2: Graph Evolution Complete** - Genealogy, families, lineages, disease hierarchy
-
-### Completed Waves
-- **WAVE 1**: Foundation (backend models, ETL, graph schema)
-- **WAVE 2**: Data Layer (family builder, lineage builder, graph index)
-- **WAVE 3**: Curation + API (override loader, DAG validator, REST endpoints)
-- **WAVE 4**: Frontend Genealogy (graph store, selection store, genealogy view)
-- **WAVE 5**: Frontend Disease (disease view, hierarchy navigation)
-
-### Upcoming
-- **Phase 3**: 3D structure viewer, drug comparison, clinical trial data
-- **Phase 4**: Scale to 1000+ drugs, performance optimization, CDN deployment
 
 ## Documentation
 
 - [Project Plan](docs/PROJECT_PLAN.md) - Full architecture and roadmap
 - [Data Schema](docs/DATA_SCHEMA.md) - Drug data structure
-- [Central Body Atlas](docs/CENTRAL_BODY_ATLAS_IMPLEMENTATION.md) - UI transformation guide
-- [Backend Guide](src/AGENTS.md) - Backend architecture
-- [Frontend Guide](src/frontend/AGENTS.md) - Frontend components
+
 
 ## License
 
