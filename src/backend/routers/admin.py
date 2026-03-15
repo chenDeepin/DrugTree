@@ -15,21 +15,21 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from ..models.audit import (
+from models.audit import (
     AuditAction,
     AuditActor,
     AuditLog,
     AuditQuery,
     AuditSummary,
 )
-from ..models.change import (
+from models.change import (
     ChangeSetSummary,
     ChangeType,
 )
-from ..services.audit_logger import get_audit_logger
-from ..services.change_detector import get_change_detector
-from ..services.update_scheduler import get_scheduler
-from ..services.validation_pipeline import get_validation_pipeline
+from services.audit_logger import get_audit_logger
+from services.change_detector import get_change_detector
+from services.update_scheduler import get_scheduler
+from services.validation_pipeline import get_validation_pipeline
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])

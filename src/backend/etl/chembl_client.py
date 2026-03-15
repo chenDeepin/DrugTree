@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from ..cache.cache_manager import get_cache_manager
+from cache.cache_manager import get_cache_manager
 
 CHEMBL_API_BASE = "https://www.ebi.ac.uk/chembl/api/data"
 

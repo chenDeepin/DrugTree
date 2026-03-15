@@ -10,7 +10,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from ..models.disease import (
+from models.disease import (
     Disease,
     DiseaseListResponse,
     RegionalApproval,
@@ -20,7 +20,7 @@ from ..models.disease import (
     Region,
     ApprovalStatus,
 )
-from ..models.drug import Drug, DrugListResponse
+from models.drug import Drug, DrugListResponse
 
 router = APIRouter(prefix="/api/v1", tags=["diseases"])
 

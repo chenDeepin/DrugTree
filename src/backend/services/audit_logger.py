@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from ..models.audit import (
+from models.audit import (
     AuditAction,
     AuditActor,
     AuditBatch,
@@ -23,7 +23,7 @@ from ..models.audit import (
     RETENTION_DAYS_ONLINE,
     RETENTION_DAYS_ARCHIVE,
 )
-from ..models.change import DrugChange
+from models.change import DrugChange
 
 logger = logging.getLogger(__name__)
 

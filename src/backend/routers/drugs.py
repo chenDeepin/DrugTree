@@ -12,10 +12,10 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from ..models.drug import Drug, DrugListResponse, DrugFilterParams
-from ..models.lineage import LineageEdge
-from ..services.graph_index import get_graph_index, GraphIndex
-from ..services.tree_builder import TreeBuilder, GenealogyTree
+from models.drug import Drug, DrugListResponse, DrugFilterParams
+from models.lineage import LineageEdge
+from services.graph_index import get_graph_index, GraphIndex
+from services.tree_builder import TreeBuilder, GenealogyTree
 
 # Path to drug data
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"

@@ -8,6 +8,7 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, Field, computed_field
 
 from .version import CURRENT_SCHEMA_VERSION
+from .provenance import Provenance
 
 
 class DrugBase(BaseModel):
@@ -79,6 +80,11 @@ class Drug(DrugBase):
     kegg_id: Optional[str] = Field(None, description="KEGG Drug ID (e.g., 'D00496')")
     pubchem_cid: Optional[int] = Field(None, description="PubChem Compound ID")
     drugbank_id: Optional[str] = Field(None, description="DrugBank ID")
+
+    # Provenance tracking
+    provenance: Optional[Provenance] = Field(
+        None, description="Data provenance tracking (sources, timestamps, confidence)"
+    )
 
     @computed_field  # type: ignore[misc]
     @property

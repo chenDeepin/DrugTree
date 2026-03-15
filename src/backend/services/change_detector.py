@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..models.change import (
+from models.change import (
     ChangeDetector,
     ChangeSet,
     ChangeSetSummary,
@@ -20,7 +20,7 @@ from ..models.change import (
     DrugChange,
     ROLLBACK_DAYS,
 )
-from ..models.drug import Drug
+from models.drug import Drug
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ class ChangeDetectorService:
 
         changes_to_apply = changeset.changes
         if filter_critical_only:
-            from ..models.change import ChangePriority
+            from models.change import ChangePriority
 
             changes_to_apply = [
                 c for c in changes_to_apply if c.priority == ChangePriority.CRITICAL

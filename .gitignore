@@ -161,3 +161,21 @@ test-results/
 # Node.js
 node_modules/
 package-lock.json
+
+# Backend
+*.db
+*.sqlite
+*.sqlite3
+.venv/
+venv/
+.env.local
+.env.*.local
+
+# Backend state/checkpoint files
+src/backend/etl/*.json
+src/backend/etl/checkpoints/
+src/backend/data/*.json
+
+# Backend logs
+src/backend/logs/
+src/backend/*.log

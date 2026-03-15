@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from ..models.audit import AuditAction, AuditActor, AuditLog
+from models.audit import AuditAction, AuditActor, AuditLog
 
 logger = logging.getLogger(__name__)
 

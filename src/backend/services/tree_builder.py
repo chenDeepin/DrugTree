@@ -10,7 +10,7 @@ Reference: .sisyphus/plans/drugtree-graph-evolution.md (Task 13)
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set
 
-from ..models.lineage import LineageEdge
+from models.lineage import LineageEdge
 
 
 @dataclass

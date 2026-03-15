@@ -143,9 +143,9 @@ class UpdateScheduler:
 
         try:
             # Import ETL clients (lazy to avoid circular imports)
-            from ..etl.chembl_client import get_chembl_client
-            from ..etl.fetch_atc_from_kegg import fetch_atc_from_kegg
-            from ..etl.fda_client import FDAClient
+            from etl.chembl_client import get_chembl_client
+            from etl.fetch_atc_from_kegg import fetch_kegg_atc
+            from etl.fda_client import FDAClient
 
             # Sync from each enabled source
             for source_name, source_config in self.config["sources"].items():

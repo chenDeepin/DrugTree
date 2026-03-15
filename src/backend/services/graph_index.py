@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from ..models.drug_family import DrugFamily
-from ..models.lineage import LineageEdge
+from models.drug_family import DrugFamily
+from models.lineage import LineageEdge
 
 
 class DrugNode:

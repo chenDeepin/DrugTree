@@ -20,9 +20,12 @@ def write_global(output_path: Path, global_name: str, payload) -> None:
 
 
 def main() -> None:
-    drugs = json.loads((FRONTEND_ROOT / "data" / "drugs.json").read_text(encoding="utf-8"))
+    # Read from new data/drugs.json (consolidated from drugs-full.json)
+    drugs = json.loads((REPO_ROOT / "data" / "drugs.json").read_text(encoding="utf-8"))
     body_ontology = json.loads(
-        (FRONTEND_ROOT / "data" / "body-ontology.json").read_text(encoding="utf-8")
+        (REPO_ROOT / "data" / "ontology" / "body-ontology.json").read_text(
+            encoding="utf-8"
+        )
     )
     human_body_svg = (FRONTEND_ROOT / "assets" / "human-body.svg").read_text(
         encoding="utf-8"

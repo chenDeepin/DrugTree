@@ -12,9 +12,9 @@ try:
 except ImportError:
     RDKIT_AVAILABLE = False
 
-from ..models.drug import Drug
-from ..models.drug_family import DrugFamily
-from ..models.lineage import LineageEdge, EdgeType, Provenance, RationaleTag
+from models.drug import Drug
+from models.drug_family import DrugFamily
+from models.lineage import LineageEdge, EdgeType, Provenance, RationaleTag
 
 
 @dataclass

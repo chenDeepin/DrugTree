@@ -15,9 +15,9 @@ from collections import defaultdict
 from typing import List, Dict, Optional, Set
 from dataclasses import dataclass
 
-from ..models.drug import Drug
-from ..models.drug_family import DrugFamily, FamilyBasis
-from ..models.version import CURRENT_SCHEMA_VERSION
+from models.drug import Drug
+from models.drug_family import DrugFamily, FamilyBasis
+from models.version import CURRENT_SCHEMA_VERSION
 
 
 @dataclass
