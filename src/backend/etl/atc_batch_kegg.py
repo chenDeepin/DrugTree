@@ -130,7 +130,7 @@ class KEGGBatchProcessor:
         kegg_id = drug.get("kegg_id")
 
         if kegg_id:
-            text = await self._request_with_retry(f"/get/dr:{kegg_id}")
+            text = await self._request_with_retry(f"/get/drug:{kegg_id}")
             if text:
                 atc_data = self._parse_kegg_response(text)
                 if atc_data:
@@ -147,11 +147,11 @@ class KEGGBatchProcessor:
         name = drug.get("name", "")
         if name:
             clean_name = name.split("/")[0].strip()
-            text = await self._request_with_retry(f"/find/drugs/{clean_name}")
+            text = await self._request_with_retry(f"/find/drug/{clean_name}")
             if text:
                 kegg_ids = self._parse_find_response(text)
                 for kid in kegg_ids[:3]:
-                    detail = await self._request_with_retry(f"/get/dr:{kid}")
+                    detail = await self._request_with_retry(f"/get/drug:{kid}")
                     if detail:
                         atc_data = self._parse_kegg_response(detail)
                         if atc_data:
@@ -170,16 +170,28 @@ class KEGGBatchProcessor:
     def _parse_kegg_response(self, text: str) -> Optional[Dict[str, Any]]:
         atc_codes = []
 
-        patterns = [
-            r"ATC code:\s*([A-Z]\d{2}[A-Z]{2}\d{2})",
-            r"ATC:\s*([A-Z]\d{2}[A-Z]{2}\d{2})",
-        ]
+        atc_line_pattern = (
+            r"ATC code:\s*([A-Z]\d{2}[A-Z]{2}\d{2}(?:\s+[A-Z]\d{2}[A-Z]{2}\d{2})*)"
+        )
+        match = re.search(atc_line_pattern, text)
 
-        for pattern in patterns:
-            matches = re.findall(pattern, text)
-            for code in matches:
+        if match:
+            codes_str = match.group(1)
+            codes = codes_str.split()
+            for code in codes:
                 if self._validate_atc_format(code):
                     atc_codes.append(code)
+
+        if not atc_codes:
+            patterns = [
+                r"ATC code:\s*([A-Z]\d{2}[A-Z]{2}\d{2})",
+                r"ATC:\s*([A-Z]\d{2}[A-Z]{2}\d{2})",
+            ]
+            for pattern in patterns:
+                matches = re.findall(pattern, text)
+                for code in matches:
+                    if self._validate_atc_format(code):
+                        atc_codes.append(code)
 
         if not atc_codes:
             return None
@@ -231,6 +243,8 @@ class KEGGBatchProcessor:
 
         for i, drug in enumerate(drugs_to_process):
             drug_id = drug.get("id")
+            if not drug_id:
+                continue
 
             if (i + 1) % 10 == 0:
                 elapsed = time.time() - start_time
