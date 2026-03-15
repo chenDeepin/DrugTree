@@ -150,3 +150,14 @@ motifsar_multi_gui_agentic_update_plan.md
 *-backup.json
 *-old.json
 *.bak
+
+# Project-specific generated data
+data/curated/
+data/processed/
+generate_families.py
+update_drug_families.py
+test-results/
+
+# Node.js
+node_modules/
+package-lock.json

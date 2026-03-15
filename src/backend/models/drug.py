@@ -4,14 +4,23 @@ DrugTree - Pydantic Models for Drug Data
 Defines the data schema for drugs, matching the frontend DrugTreeApp expectations.
 """
 
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Literal, Optional
+from pydantic import BaseModel, Field, computed_field
+
+from .version import CURRENT_SCHEMA_VERSION
 
 
 class DrugBase(BaseModel):
     """Base drug model with common fields"""
 
     id: str = Field(..., description="Unique drug identifier (e.g., 'atorvastatin')")
+    node_type: Literal["drug"] = Field(
+        default="drug", description="Node type discriminator for graph queries"
+    )
+    schema_version: str = Field(
+        default=CURRENT_SCHEMA_VERSION,
+        description="Schema version for migration tracking",
+    )
     name: str = Field(..., description="Drug name")
     smiles: Optional[str] = Field(
         None, description="SMILES notation for molecular structure"
@@ -45,6 +54,10 @@ class Drug(DrugBase):
         default_factory=list, description="Clinical trial NCT IDs"
     )
 
+    family_ids: List[str] = Field(
+        default_factory=list, description="Family IDs this drug belongs to"
+    )
+
     # Body region fields - consolidated to avoid duplication
     body_region: Optional[str] = Field(
         None, description="Primary ontology-aligned body region"
@@ -67,8 +80,12 @@ class Drug(DrugBase):
     pubchem_cid: Optional[int] = Field(None, description="PubChem Compound ID")
     drugbank_id: Optional[str] = Field(None, description="DrugBank ID")
 
-    class Config:
-        populate_by_name = True
+    @computed_field  # type: ignore[misc]
+    @property
+    def full_id(self) -> str:
+        return f"drug:{self.id}"
+
+    model_config = {"populate_by_name": True}
 
 
 class DrugSummary(DrugBase):
@@ -79,8 +96,7 @@ class DrugSummary(DrugBase):
     indication: Optional[str] = None
     class_name: Optional[str] = Field(None, alias="class")
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class DrugListResponse(BaseModel):

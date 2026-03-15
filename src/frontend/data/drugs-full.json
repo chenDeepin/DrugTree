@@ -28,6 +28,10 @@
         "intestine_colorectal",
         "liver_biliary_pancreas",
         "endocrine_metabolic"
+      ],
+      "family_ids": [
+        "target_h__k__atpase_72250c9c",
+        "mechanism_a02b_72250c9c"
       ]
     },
     {
@@ -57,6 +61,9 @@
         "intestine_colorectal",
         "liver_biliary_pancreas",
         "endocrine_metabolic"
+      ],
+      "family_ids": [
+        "mechanism_a10b_f8611758"
       ]
     },
     {
@@ -85,7 +92,8 @@
         "intestine_colorectal",
         "liver_biliary_pancreas",
         "endocrine_metabolic"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "lansoprazole",
@@ -113,6 +121,10 @@
         "intestine_colorectal",
         "liver_biliary_pancreas",
         "endocrine_metabolic"
+      ],
+      "family_ids": [
+        "target_h__k__atpase_72250c9c",
+        "mechanism_a02b_72250c9c"
       ]
     },
     {
@@ -141,6 +153,9 @@
         "intestine_colorectal",
         "liver_biliary_pancreas",
         "endocrine_metabolic"
+      ],
+      "family_ids": [
+        "mechanism_a10b_f8611758"
       ]
     },
     {
@@ -167,6 +182,9 @@
       "body_regions": [
         "blood_immune",
         "heart_vascular"
+      ],
+      "family_ids": [
+        "mechanism_b01a_86c01a55"
       ]
     },
     {
@@ -193,6 +211,9 @@
       "body_regions": [
         "blood_immune",
         "heart_vascular"
+      ],
+      "family_ids": [
+        "mechanism_b01a_86c01a55"
       ]
     },
     {
@@ -218,6 +239,9 @@
       "body_regions": [
         "blood_immune",
         "heart_vascular"
+      ],
+      "family_ids": [
+        "mechanism_b01a_86c01a55"
       ]
     },
     {
@@ -243,6 +267,9 @@
       "body_regions": [
         "blood_immune",
         "heart_vascular"
+      ],
+      "family_ids": [
+        "mechanism_b01a_86c01a55"
       ]
     },
     {
@@ -270,6 +297,10 @@
         "heart_vascular",
         "blood_immune",
         "kidney_urinary"
+      ],
+      "family_ids": [
+        "target_hmg_coa_reductase_7169b791",
+        "mechanism_c10a_7169b791"
       ]
     },
     {
@@ -297,7 +328,8 @@
         "heart_vascular",
         "blood_immune",
         "kidney_urinary"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "metoprolol",
@@ -324,7 +356,8 @@
         "heart_vascular",
         "blood_immune",
         "kidney_urinary"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "amlodipine",
@@ -351,7 +384,8 @@
         "heart_vascular",
         "blood_immune",
         "kidney_urinary"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "losartan",
@@ -377,7 +411,8 @@
         "heart_vascular",
         "blood_immune",
         "kidney_urinary"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "simvastatin",
@@ -403,6 +438,10 @@
         "heart_vascular",
         "blood_immune",
         "kidney_urinary"
+      ],
+      "family_ids": [
+        "target_hmg_coa_reductase_7169b791",
+        "mechanism_c10a_7169b791"
       ]
     },
     {
@@ -428,6 +467,9 @@
       "class": "Retinoid",
       "body_regions": [
         "skin"
+      ],
+      "family_ids": [
+        "target_retinoic_acid_receptors_b9e2c168"
       ]
     },
     {
@@ -453,6 +495,9 @@
       "class": "Retinoid",
       "body_regions": [
         "skin"
+      ],
+      "family_ids": [
+        "target_retinoic_acid_receptors_b9e2c168"
       ]
     },
     {
@@ -478,7 +523,8 @@
       "class": "Calcineurin inhibitor",
       "body_regions": [
         "skin"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "sildenafil",
@@ -504,6 +550,10 @@
       "body_regions": [
         "kidney_urinary",
         "reproductive_breast"
+      ],
+      "family_ids": [
+        "target_pde5_9c351ebb",
+        "mechanism_g04b_9c351ebb"
       ]
     },
     {
@@ -530,6 +580,9 @@
       "body_regions": [
         "kidney_urinary",
         "reproductive_breast"
+      ],
+      "family_ids": [
+        "mechanism_g04c_147dee21"
       ]
     },
     {
@@ -556,6 +609,10 @@
       "body_regions": [
         "kidney_urinary",
         "reproductive_breast"
+      ],
+      "family_ids": [
+        "target_pde5_9c351ebb",
+        "mechanism_g04b_9c351ebb"
       ]
     },
     {
@@ -582,7 +639,8 @@
       "body_regions": [
         "endocrine_metabolic",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "prednisone",
@@ -608,6 +666,10 @@
       "body_regions": [
         "endocrine_metabolic",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_glucocorticoid_receptor_4b8632a2",
+        "mechanism_h02a_86de824b"
       ]
     },
     {
@@ -634,6 +696,10 @@
       "body_regions": [
         "endocrine_metabolic",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_glucocorticoid_receptor_4b8632a2",
+        "mechanism_h02a_86de824b"
       ]
     },
     {
@@ -660,6 +726,10 @@
       "body_regions": [
         "endocrine_metabolic",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_glucocorticoid_receptor_4b8632a2",
+        "mechanism_h02a_86de824b"
       ]
     },
     {
@@ -698,7 +768,8 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "oseltamivir",
@@ -735,6 +806,9 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "mechanism_j05a_54cbd377"
       ]
     },
     {
@@ -773,7 +847,8 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "azithromycin",
@@ -811,7 +886,8 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "ciprofloxacin",
@@ -850,7 +926,8 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "acyclovir",
@@ -887,6 +964,9 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "mechanism_j05a_54cbd377"
       ]
     },
     {
@@ -927,6 +1007,11 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_c_kit_b0d1f693",
+        "target_pdgfr_b0d1f693",
+        "mechanism_l01x_e870ea55"
       ]
     },
     {
@@ -965,6 +1050,9 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_tubulin_0663c687"
       ]
     },
     {
@@ -1002,6 +1090,9 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "mechanism_l01x_e870ea55"
       ]
     },
     {
@@ -1039,6 +1130,9 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "mechanism_l01x_e870ea55"
       ]
     },
     {
@@ -1079,6 +1173,11 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_c_kit_b0d1f693",
+        "target_pdgfr_b0d1f693",
+        "mechanism_l01x_e870ea55"
       ]
     },
     {
@@ -1117,7 +1216,8 @@
         "bone_joint_muscle",
         "skin",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "ibuprofen",
@@ -1144,6 +1244,11 @@
       "body_regions": [
         "bone_joint_muscle",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_cox_1_96ff6e3b",
+        "target_cox_2_18f26be7",
+        "mechanism_m01a_375f6e0b"
       ]
     },
     {
@@ -1169,6 +1274,10 @@
       "body_regions": [
         "bone_joint_muscle",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_cox_2_18f26be7",
+        "mechanism_m01a_375f6e0b"
       ]
     },
     {
@@ -1194,7 +1303,8 @@
       "body_regions": [
         "bone_joint_muscle",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "colchicine",
@@ -1220,6 +1330,9 @@
       "body_regions": [
         "bone_joint_muscle",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_tubulin_0663c687"
       ]
     },
     {
@@ -1245,7 +1358,8 @@
       "body_regions": [
         "brain_cns",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "donepezil",
@@ -1270,7 +1384,8 @@
       "body_regions": [
         "brain_cns",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "levodopa",
@@ -1296,7 +1411,8 @@
       "body_regions": [
         "brain_cns",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "morphine",
@@ -1322,7 +1438,8 @@
       "body_regions": [
         "brain_cns",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "carbamazepine",
@@ -1348,7 +1465,8 @@
       "body_regions": [
         "brain_cns",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "diazepam",
@@ -1373,7 +1491,8 @@
       "body_regions": [
         "brain_cns",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "ivermectin",
@@ -1401,6 +1520,9 @@
         "blood_immune",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "mechanism_p02c_13f2280d"
       ]
     },
     {
@@ -1429,6 +1551,9 @@
         "blood_immune",
         "skin",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "mechanism_p02c_13f2280d"
       ]
     },
     {
@@ -1456,7 +1581,8 @@
         "blood_immune",
         "skin",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "albuterol",
@@ -1483,7 +1609,8 @@
       "body_regions": [
         "lung_respiratory",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "fluticasone",
@@ -1509,6 +1636,10 @@
       "body_regions": [
         "lung_respiratory",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_glucocorticoid_receptor_4b8632a2",
+        "mechanism_r03b_90549179"
       ]
     },
     {
@@ -1534,7 +1665,8 @@
       "body_regions": [
         "lung_respiratory",
         "systemic_multiorgan"
-      ]
+      ],
+      "family_ids": []
     },
     {
       "id": "tiotropium",
@@ -1559,6 +1691,9 @@
       "body_regions": [
         "lung_respiratory",
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "mechanism_r03b_90549179"
       ]
     },
     {
@@ -1583,6 +1718,10 @@
       "class": "Prostaglandin analog",
       "body_regions": [
         "eye_ear"
+      ],
+      "family_ids": [
+        "target_prostaglandin_f_receptor_661d4a07",
+        "mechanism_s01e_661d4a07"
       ]
     },
     {
@@ -1607,6 +1746,10 @@
       "class": "Prostaglandin analog",
       "body_regions": [
         "eye_ear"
+      ],
+      "family_ids": [
+        "target_prostaglandin_f_receptor_661d4a07",
+        "mechanism_s01e_661d4a07"
       ]
     },
     {
@@ -1631,6 +1774,10 @@
       "class": "Non-ionic contrast medium",
       "body_regions": [
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_radiographic_imaging_7d4eff6e",
+        "mechanism_v08a_7d4eff6e"
       ]
     },
     {
@@ -1658,6 +1805,11 @@
       "body_regions": [
         "blood_immune",
         "heart_vascular"
+      ],
+      "family_ids": [
+        "target_cox_1_96ff6e3b",
+        "target_cox_2_18f26be7",
+        "mechanism_b01a_86c01a55"
       ]
     },
     {
@@ -1686,6 +1838,9 @@
         "intestine_colorectal",
         "liver_biliary_pancreas",
         "endocrine_metabolic"
+      ],
+      "family_ids": [
+        "mechanism_a10b_f8611758"
       ]
     },
     {
@@ -1710,6 +1865,10 @@
       "class": "Non-ionic contrast medium",
       "body_regions": [
         "systemic_multiorgan"
+      ],
+      "family_ids": [
+        "target_radiographic_imaging_7d4eff6e",
+        "mechanism_v08a_7d4eff6e"
       ]
     },
     {
@@ -1735,6 +1894,9 @@
       "body_regions": [
         "kidney_urinary",
         "reproductive_breast"
+      ],
+      "family_ids": [
+        "mechanism_g04c_147dee21"
       ]
     }
   ]
