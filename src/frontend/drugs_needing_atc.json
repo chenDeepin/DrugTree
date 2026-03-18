@@ -1,0 +1,62 @@
+[
+  {
+    "id": "1-d10216",
+    "name": "1,1,1,2,3,3,3-Heptafluoropropane",
+    "kegg_id": "D10216",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "1-d01792",
+    "name": "1,3,5-Trimethoxybenzene",
+    "kegg_id": "D01792",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "1-butanol",
+    "name": "1-Butanol",
+    "kegg_id": "D03200",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "1-deoxynojirimycin",
+    "name": "1-Deoxynojirimycin",
+    "kegg_id": "D09605",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "17alpha-estradiol",
+    "name": "17alpha-Estradiol",
+    "kegg_id": "D07121",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "3-d12715",
+    "name": "3,4-Methylenedioxyamphetamine",
+    "kegg_id": "D12715",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "935u-83",
+    "name": "935U-83",
+    "kegg_id": "D05695",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "abecarnil",
+    "name": "Abecarnil",
+    "kegg_id": "D02594",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "abequolixron",
+    "name": "Abequolixron",
+    "kegg_id": "D12298",
+    "atc_code": "V99XX99"
+  },
+  {
+    "id": "abexinostat",
+    "name": "Abexinostat",
+    "kegg_id": "D10060",
+    "atc_code": "V99XX99"
+  }
+]

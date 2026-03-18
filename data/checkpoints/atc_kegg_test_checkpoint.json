@@ -1,0 +1,25 @@
+{
+  "stats": {
+    "found": 3,
+    "not_found": 7,
+    "errors": {
+      "no_atc_in_response": 39,
+      "error_": 1
+    }
+  },
+  "results": {
+    "adenine": {
+      "name": "Adenine",
+      "atc_code": "A11HA01"
+    },
+    "adenosine-triphosphate-disodium-hydrate": {
+      "name": "Adenosine triphosphate disodium hydrate",
+      "atc_code": "C01EB10"
+    },
+    "adriamycin": {
+      "name": "Adriamycin",
+      "atc_code": "L01DB01"
+    }
+  },
+  "timestamp": "2026-03-15T16:07:51.412247"
+}
