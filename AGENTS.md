@@ -2,101 +2,92 @@
 
 ## Overview
 
-**DrugTree**: Visual drug exploration tool with interactive human body map + ATC therapeutic classification.
+**DrugTree** is a visual drug exploration tool built around a human body atlas, ATC therapeutic classification, drug genealogy, and an emerging disease graph.
 
-**Tech**: Vanilla JS + RDKit.js (frontend) | FastAPI Python (backend) | ChEMBL + DrugBank + PubChem (data)
+**Stack**: Vanilla JS + RDKit.js (frontend) | FastAPI Python (backend) | JSON/ETL pipelines (data)
 
-**Scale**: 57 files, 4448 LOC, 61 drugs | Large: `drug_etl.py` (819), `app.js` (992), `style.css` (1158)
+## Current Repo Reality
 
----
+- Canonical drug source: `data/drugs.json`
+- Canonical disease source: `data/diseases.json`
+- Canonical disease-drug edge source: `data/disease_drug_edges.json`
+- Canonical ontology source: `data/ontology/body-ontology.json`
+- Frontend `src/frontend/data/*.json` and `*.js` files are generated embeds, not the source of truth
+- Current atlas scale: `data/drugs.json` contains 7,359 drugs
+- Current disease dataset is still small and ETL-generated from local seed data plus explicit disease-drug edges
 
 ## Project Structure
 
-```
+```text
 DrugTree/
-├── src/frontend/          # Main web app (Vanilla JS)
-│   ├── index.html         # Entry (227 lines)
-│   ├── js/app.js          # DrugTreeApp class (992 lines)
-│   └── data/drugs-full.json  # 61 drugs
-├── src/backend/           # FastAPI service (Phase 2)
-│   ├── main.py            # Entry (89 lines)
-│   ├── routers/drugs.py   # REST endpoints (203 lines)
-│   └── etl/drug_etl.py    # ETL pipeline (819 lines)
-├── data/                  # Drug data + body ontology
-├── tests/                 # pytest + Playwright tests
-└── docs/                  # PROJECT_PLAN.md (2278 lines)
+├── data/
+│   ├── drugs.json
+│   ├── diseases.json
+│   ├── disease_drug_edges.json
+│   └── ontology/body-ontology.json
+├── scripts/
+│   └── build_frontend_embeds.py
+├── src/frontend/
+│   ├── index.html
+│   ├── js/app.js
+│   ├── js/stores/graphStore.js
+│   └── data/                    # generated mirrors/embeds
+├── src/backend/
+│   ├── main.py
+│   ├── routers/
+│   ├── models/
+│   └── etl/
+│       ├── drug_etl.py
+│       ├── disease_etl.py
+│       └── atc_orchestrator.py
+└── tests/
+    ├── backend/
+    └── frontend/
 ```
-
----
 
 ## Core Concepts
 
-**ATC Categories (14)**: A (Alimentary), B (Blood), C (Cardiovascular), D (Dermatological), G (Genito-urinary), H (Hormones), J (Anti-infectives), L (Antineoplastic), M (Musculo-skeletal), N (Nervous), P (Antiparasitic), R (Respiratory), S (Sensory), V (Various)
-
-**Body Regions (14)**: Interactive SVG map with clickable regions mapped to ATC categories.
-
-**DrugTreeApp State**: `drugs`, `filteredDrugs`, `selectedDrug`, `activeCategory`, `activeBodyRegion`, `mode`
-
----
-
-## Key Files
-
-| File | Size | Purpose |
-|------|------|---------|
-| `src/frontend/index.html` | 227 lines | Entry point |
-| `src/frontend/js/app.js` | 992 lines | DrugTreeApp class |
-| `src/frontend/css/style.css` | 1158 lines | Dark atlas theme |
-| `src/frontend/data/drugs-full.json` | 61 drugs | Drug data |
-| `src/backend/etl/drug_etl.py` | 819 lines | ETL pipeline |
-| `data/ontology/body_ontology.json` | 14 regions | Body mapping |
-
----
+- **ATC Categories (14)**: A, B, C, D, G, H, J, L, M, N, P, R, S, V
+- **Body Regions (14)**: SVG atlas regions aligned to ontology metadata
+- **Explicit disease graph**: disease search/panel and disease-drug relationships should be driven by `data/diseases.json` plus `data/disease_drug_edges.json`, not by body-region coincidence
 
 ## Development
 
 ```bash
-# Start local server
+# Frontend
 cd src/frontend && python3 -m http.server 8080
 
-# Run backend tests
-cd src/backend && pytest
+# Backend
+uvicorn src.backend.main:app --reload --port 8000
 
-# Run frontend tests
-cd tests/frontend && node test_runner.mjs
+# Canonical ETL refresh
+bash src/backend/run_etl.sh
+
+# Regenerate frontend embeds only
+python3 scripts/build_frontend_embeds.py
 ```
-
----
-
-## Critical Anti-patterns
-
-- **NEVER** modify curated drugs in `drugs-full.json`
-- **NEVER** modify original edge objects in lineage
-- **NO** multi-select ATC filter (MVP single-select only)
-- **NO** biologics/peptides (small molecules only)
-- **ALWAYS** use 1200ms hover delay for previews
-- **ALWAYS** wrap external API calls in try/except
-
----
 
 ## Testing
 
-- **Backend**: pytest (15 test files in `tests/backend/`)
-- **Frontend**: Playwright E2E (7 test files in `tests/frontend/`)
+```bash
+# Focused backend suites
+pytest tests/backend/test_drug_etl.py tests/backend/test_disease_api.py tests/backend/test_graph_index.py
 
----
+# Frontend disease/data integration
+node tests/frontend/e2e/disease-universe.mjs
+```
 
-## Next Steps
+## Critical Constraints
 
-- Phase 2: FastAPI backend + ChEMBL API integration
-- Phase 3: 3D structure viewer (3Dmol.js)
-- Phase 4: Scale to 1000+ drugs
-
----
+- Do not reintroduce runtime dependency on `src/frontend/data/drugs-full.json` or `drugs-expanded.json`
+- Do not treat `src/frontend/data/*.json` as canonical input
+- Keep valid existing ATC codes stable; placeholder codes are the enrichment target
+- Keep disease filtering edge-backed where explicit disease-drug edges exist
+- Wrap external data-source calls in error handling; network lookups must degrade gracefully
 
 ## References
 
-- `docs/PROJECT_PLAN.md` - Full specification
-- `src/frontend/AGENTS.md` - Frontend guide
-- `src/backend/AGENTS.md` - Backend guide
-- [WHO ATC Classification](https://www.whocc.no/atc_ddd_index_and_excisions/)
-
+- `README.md` - project overview
+- `src/frontend/AGENTS.md` - frontend notes
+- `src/backend/AGENTS.md` - backend notes
+- `tests/AGENTS.md` - testing notes

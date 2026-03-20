@@ -2,18 +2,17 @@
 
 ## Overview
 
-FastAPI backend for DrugTree drug discovery platform. Provides REST API for drug data, search, and ETL pipelines.
+FastAPI backend for DrugTree. Runtime data should come from the canonical repo-root `data/` directory, not frontend-local JSON files.
 
 ---
 
 ## Quick Start
 
 ```bash
-cd src/backend
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+pip install -r src/backend/requirements.txt
+uvicorn src.backend.main:app --reload --port 8000
 ```
 
 ---
@@ -25,8 +24,15 @@ backend/
 ├── main.py              # FastAPI entry (89 lines)
 ├── routers/drugs.py     # REST endpoints (203 lines)
 ├── models/drug.py       # Pydantic schemas (102 lines)
-└── etl/drug_etl.py      # ETL pipeline (819 lines)
+└── etl/                 # drug / disease / ATC pipelines
 ```
+
+## Canonical Inputs
+
+- `data/drugs.json`
+- `data/diseases.json`
+- `data/disease_drug_edges.json`
+- `data/ontology/body-ontology.json`
 
 ---
 
@@ -62,4 +68,3 @@ backend/
 pytest tests/backend/
 pytest tests/backend/test_drug_etl.py -v
 ```
-

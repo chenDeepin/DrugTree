@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from models.drug_family import DrugFamily
-from models.lineage import LineageEdge
+from ..models.drug_family import DrugFamily
+from ..models.lineage import LineageEdge
 
 
 class DrugNode:
@@ -62,7 +62,7 @@ class GraphIndex:
         Args:
             families_path: Path to drug_families.json
             edges_path: Path to lineage_edges.json
-            drugs_path: Path to drugs-full.json for node names
+            drugs_path: Path to canonical drugs.json for node names
         """
         # Default paths relative to project root
         base_path = Path(__file__).parent.parent.parent.parent / "data"
@@ -72,7 +72,7 @@ class GraphIndex:
         )
         self.edges_path = edges_path or base_path / "processed" / "lineage_edges.json"
         self.drugs_path = (
-            drugs_path or base_path / "frontend" / "data" / "drugs-full.json"
+            drugs_path or base_path / "drugs.json"
         )
 
         # Index structures
@@ -145,13 +145,14 @@ class GraphIndex:
                     self._edges_by_drug[drug_id].append(edge.edge_id)
 
     def _load_drug_names(self) -> None:
-        """Load drug names from drugs-full.json for better display."""
+        """Load drug names from canonical drugs.json for better display."""
         if not self.drugs_path.exists():
             # Non-fatal - just skip name enrichment
             return
 
         with open(self.drugs_path, "r") as f:
-            drugs = json.load(f)
+            payload = json.load(f)
+            drugs = payload.get("drugs", []) if isinstance(payload, dict) else payload
 
         for drug_data in drugs:
             drug_id = drug_data.get("id")

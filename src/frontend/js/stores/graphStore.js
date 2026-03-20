@@ -29,13 +29,21 @@ class GraphStore {
    * @param {Array} drugs - Array of drug objects
    * @param {Object} bodyOntology - Body ontology JSON
    */
-  async loadGraph(drugs, bodyOntology) {
+  async loadGraph(graphData, legacyBodyOntology = null) {
     if (this.loading) return null;
     
     this.loading = true;
     this.error = null;
     
     try {
+      const payload = Array.isArray(graphData)
+        ? { drugs: graphData, bodyOntology: legacyBodyOntology, diseases: [], diseaseDrugEdges: [] }
+        : (graphData || {});
+      const drugs = payload.drugs || [];
+      const bodyOntology = payload.bodyOntology || null;
+      const diseases = payload.diseases || [];
+      const diseaseDrugEdges = payload.diseaseDrugEdges || [];
+
       // Load body regions from ontology
       if (bodyOntology?.visible_regions) {
         for (const region of bodyOntology.visible_regions) {
@@ -49,8 +57,10 @@ class GraphStore {
         }
       }
       
-      // Load disease hierarchy from ontology
-      if (bodyOntology?.disease_to_anatomy) {
+      // Load disease hierarchy from canonical disease data first.
+      if (diseases.length > 0) {
+        this._processDiseases(diseases, diseaseDrugEdges);
+      } else if (bodyOntology?.disease_to_anatomy) {
         this._processDiseaseHierarchy(bodyOntology.disease_to_anatomy, drugs);
       }
       
@@ -75,6 +85,35 @@ class GraphStore {
       this.error = err.message;
       console.error('GraphStore.loadGraph error:', err);
       throw err;
+    }
+  }
+
+  _processDiseases(diseases, diseaseDrugEdges) {
+    const drugIdsByDisease = new Map();
+
+    for (const edge of diseaseDrugEdges || []) {
+      if (!edge?.disease_id || !edge?.drug_id) {
+        continue;
+      }
+      const drugIds = drugIdsByDisease.get(edge.disease_id) || [];
+      if (!drugIds.includes(edge.drug_id)) {
+        drugIds.push(edge.drug_id);
+      }
+      drugIdsByDisease.set(edge.disease_id, drugIds);
+    }
+
+    for (const disease of diseases) {
+      const diseaseNode = {
+        id: disease.id,
+        canonical_name: disease.canonical_name || this._humanizeDiseaseId(disease.id),
+        body_region: disease.body_region,
+        anatomy_nodes: disease.anatomy_nodes || [],
+        orphan_flag: Boolean(disease.orphan_flag),
+        approved_drug_count: disease.approved_drug_count || 0,
+        clinical_drug_count: disease.clinical_drug_count || 0,
+        drugs: drugIdsByDisease.get(disease.id) || [],
+      };
+      this.diseaseHierarchy.set(disease.id, diseaseNode);
     }
   }
 
@@ -207,6 +246,11 @@ class GraphStore {
    */
   getDiseaseNode(diseaseId) {
     return this.diseaseHierarchy.get(diseaseId) || null;
+  }
+
+  getDrugIdsForDisease(diseaseId) {
+    const disease = this.diseaseHierarchy.get(diseaseId);
+    return disease?.drugs || [];
   }
 
   /**

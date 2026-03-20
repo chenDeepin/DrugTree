@@ -2,77 +2,54 @@
 
 ## Overview
 
-Main frontend for DrugTree - visual drug exploration tool with ATC therapeutic classification.
+Frontend for the DrugTree atlas and disease graph.
 
-**Stack**: Vanilla JS + RDKit.js | **Scale**: 1255 lines (`app.js`) + 61 drugs
+**Stack**: Vanilla JS + RDKit.js  
+**Canonical data source**: repo-root `data/`  
+**Generated frontend data**: `src/frontend/data/`
 
----
+## Key Files
 
-## Quick Start
-
-```bash
-cd src/frontend && python3 -m http.server 8080
-# Open http://localhost:8080
+```text
+src/frontend/
+├── index.html
+├── css/style.css
+├── js/app.js
+├── js/components/disease-panel.js
+├── js/stores/graphStore.js
+└── data/
+    ├── drugs.json
+    ├── diseases.json
+    ├── disease-drug-edges.json
+    ├── body-ontology.json
+    └── *.js                 # embedded globals generated from root data
 ```
 
----
+## Current Data Flow
 
-## File Structure
+- Canonical drug data lives in `data/drugs.json`
+- Canonical disease data lives in `data/diseases.json`
+- Canonical disease-drug edges live in `data/disease_drug_edges.json`
+- `scripts/build_frontend_embeds.py` mirrors those files into `src/frontend/data/`
+- `app.js` should prefer backend APIs when available and fall back to the generated local embeds
 
-```
-frontend/
-├── index.html          # Entry (227 lines)
-├── js/app.js           # DrugTreeApp class (1255 lines)
-├── js/structure.js     # RDKit.js viewer
-├── css/style.css       # Dark atlas theme (1158 lines)
-└── data/drugs-full.json  # 61 drugs
-```
+## Critical Behaviors
 
----
-
-## Key Methods
-
-| Method | Purpose |
-|--------|---------|
-| `filterByCategory(cat)` | Filter by ATC category (14 categories) |
-| `filterByBodyRegion(region)` | Filter by body region (14 regions) |
-| `switchMode(mode)` | Switch Public/Scientist mode |
-| `showDrugModal(drug)` | Display drug details + genealogy |
-| `applyFilters()` | Combine category/body/search filters |
-
----
-
-## Display Modes
-
-- **Public Mode**: Simplified view, hides `.scientist-only` elements
-- **Scientist Mode**: Full data, shows all drug properties
-
----
-
-## Critical Anti-patterns
-
-- **ALWAYS** use 1200ms hover delay (see `hoverDelay` property)
-- **NEVER** skip mode check - test both modes
-- **NEVER** hardcode ATC colors - use `ATC_CATEGORIES` object
-- **NEVER** forget `initBodyMap()` call - body map won't render
-
----
+- `DrugTreeApp.init()` loads drugs, diseases, disease-drug edges, and body ontology before graph boot
+- Disease filtering should use explicit edge-linked `drug_id`s, not same-body-region inference
+- `GraphStore.loadGraph()` now expects an object payload with `drugs`, `diseases`, `bodyOntology`, and `diseaseDrugEdges`
+- Keep the 1200ms hover delay behavior intact
 
 ## Common Tasks
 
-**Add new drug**: Add to `drugs-full.json` with all required fields + valid SMILES
+```bash
+# Serve frontend
+cd src/frontend && python3 -m http.server 8080
 
-**Add ATC category**: Update `ATC_CATEGORIES` in `app.js` + CSS variable + filter button in HTML
+# Regenerate embedded data after ETL changes
+python3 scripts/build_frontend_embeds.py
+```
 
-**Modify body map**: Update `regions` array in `initBodyMap()` + SVG paths + ATC mapping
-
----
-
-## Troubleshooting
-
-**"Structure not loading"**: Check RDKit.js console errors + internet + SMILES validity
-
-**"Body map not responding"**: Verify `initBodyMap()` called + `#body-map` element exists
-
-**"Filters not working"**: Check `activeCategory` state + `applyFilters()` called + drug data structure
-
+- Add or edit canonical datasets under repo-root `data/`, then regenerate embeds
+- Do not hand-edit generated `src/frontend/data/*.js` files unless you are fixing the generator itself
+- Do not reintroduce fallback reads from `drugs-full.json` or `drugs-expanded.json`

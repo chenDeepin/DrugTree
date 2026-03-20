@@ -25,6 +25,7 @@ class DiseaseView extends EventTarget {
     
     this.expandedNodes = new Set();
     this.currentRegionId = null;
+    this.currentDiseaseId = null;
   }
 
   /**
@@ -68,23 +69,47 @@ class DiseaseView extends EventTarget {
   /**
    * Render the disease hierarchy for a body region
    */
-  render(regionId) {
+  render(regionId, diseaseId = null) {
     if (!this.graphStore || !this.g) {
       console.warn('DiseaseView not initialized');
       return;
     }
+
+    if (!regionId && diseaseId) {
+      const selectedDisease = this.graphStore.getDiseaseNode(diseaseId);
+      regionId = selectedDisease?.body_region || null;
+    }
+
+    if (!regionId) {
+      this.renderFallback('Select a disease or a body region to view the disease hierarchy.');
+      return;
+    }
     
     this.currentRegionId = regionId;
+    this.currentDiseaseId = diseaseId;
     
     const region = this.graphStore.getBodyRegion(regionId);
     if (!region) {
       console.warn(`DiseaseView: Region not found: ${regionId}`);
-      this.renderEmpty();
+      this.renderFallback('No disease hierarchy is available for the selected region.');
       return;
     }
     
     // Get diseases for this region
     const diseases = this.graphStore.getDiseasesForRegion(regionId);
+    const visibleDiseases = diseaseId
+      ? diseases.filter((d) => d.id === diseaseId)
+      : diseases;
+    if (diseaseId && visibleDiseases.length === 0) {
+      console.warn(`DiseaseView: Disease not found in region '${regionId}': ${diseaseId}`);
+      this.renderFallback('The selected disease is not available in this region.');
+      return;
+    }
+
+    if (!visibleDiseases.length) {
+      this.renderFallback(`No diseases are linked to ${region.display_name} yet.`);
+      return;
+    }
     
     // Build hierarchy data
     const hierarchyData = {
@@ -92,7 +117,7 @@ class DiseaseView extends EventTarget {
       name: region.display_name,
       type: 'region',
       icon: region.icon,
-      children: diseases.map(d => ({
+      children: visibleDiseases.map(d => ({
         id: d.id,
         name: d.canonical_name,
         type: 'disease',
@@ -113,8 +138,17 @@ class DiseaseView extends EventTarget {
     // Collapse all disease children initially
     this.root.children?.forEach(d => {
       if (d.data._children) {
-        d._children = d.data._children.map(c => d3.hierarchy(c));
-        // Don't clear d.children here - let D3 manage visibility
+        const drugChildren = d.data._children.map(c => d3.hierarchy(c));
+        const shouldExpand = diseaseId && d.data.id === diseaseId;
+        if (shouldExpand) {
+          d.children = drugChildren;
+          d._children = null;
+          this.expandedNodes.add(d.data.id);
+        } else {
+          d.children = null;
+          d._children = drugChildren;
+          this.expandedNodes.delete(d.data.id);
+        }
       }
     });
     
@@ -373,7 +407,7 @@ class DiseaseView extends EventTarget {
   /**
    * Render empty state
    */
-  renderEmpty() {
+  renderFallback(message = 'Select a body region to view disease hierarchy') {
     if (!this.g) return;
     
     this.g.selectAll('*').remove();
@@ -384,7 +418,11 @@ class DiseaseView extends EventTarget {
       .attr('text-anchor', 'middle')
       .style('fill', '#64748b')
       .style('font-size', '14px')
-      .text('Select a body region to view disease hierarchy');
+      .text(message);
+  }
+
+  renderEmpty() {
+    this.renderFallback('Select a body region to view disease hierarchy');
   }
 
   /**
@@ -396,6 +434,7 @@ class DiseaseView extends EventTarget {
     }
     this.root = null;
     this.currentRegionId = null;
+    this.currentDiseaseId = null;
     this.expandedNodes.clear();
   }
 }

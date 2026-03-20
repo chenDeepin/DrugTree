@@ -5,6 +5,7 @@ Provides validation functions for drug data, including ATC codes, data quality c
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
@@ -27,6 +28,8 @@ ATC_LEVEL1_CATEGORIES = {
     "V": "Various",
 }
 
+PLACEHOLDER_ATC_PATTERN = re.compile(r"^[A-Z]99XX99$")
+
 
 @dataclass
 class ValidationResult:
@@ -41,7 +44,12 @@ def validate_atc_code(atc_code: str) -> Tuple[bool, str]:
     """
     Validate an ATC code against WHO format
 
-    WHO ATC format: [A-Z]{2}[A-Z]{2}[A-Z]{2}[A-Z]{2}
+    Supported ATC hierarchy levels:
+    - Level 1: A
+    - Level 2: A10
+    - Level 3: A10B
+    - Level 4: A10BA
+    - Level 5: A10BA02
     Example: C10AA05
 
     Args:
@@ -55,7 +63,10 @@ def validate_atc_code(atc_code: str) -> Tuple[bool, str]:
 
     atc_code = atc_code.upper().strip()
 
-    # Check length (1 or 7 characters)
+    # Placeholder ATC codes are tracked, but are not valid classifications.
+    if PLACEHOLDER_ATC_PATTERN.match(atc_code):
+        return False, f"Placeholder ATC code: {atc_code}"
+
     if len(atc_code) < 1 or len(atc_code) > 7:
         return (
             False,
@@ -70,17 +81,17 @@ def validate_atc_code(atc_code: str) -> Tuple[bool, str]:
             f"Invalid Level 1 category: {level1}. Must be one of {list(ATC_LEVEL1_CATEGORIES.keys())}",
         )
 
-        # If full code (7 characters)
-    if len(atc_code) == 7:
-        # Check format: Letter + 2 digits + letter + letter + letter + 2 digits
-        import re
+    hierarchy_patterns = {
+        1: r"^[A-Z]$",
+        3: r"^[A-Z]\d{2}$",
+        4: r"^[A-Z]\d{2}[A-Z]$",
+        5: r"^[A-Z]\d{2}[A-Z]{2}$",
+        7: r"^[A-Z]\d{2}[A-Z]{2}\d{2}$",
+    }
 
-        pattern = r"^[A-Z]\d{2}[A-Z]{2}[A-Z]{2}$"
-        if not re.match(pattern, atc_code):
-            return (
-                False,
-                f"Invalid ATC format. Expected: C10AA05, got: {atc_code}",
-            )
+    pattern = hierarchy_patterns.get(len(atc_code))
+    if not pattern or not re.match(pattern, atc_code):
+        return False, f"Invalid ATC format. Expected ATC hierarchy code, got: {atc_code}"
 
     return True, ""
 

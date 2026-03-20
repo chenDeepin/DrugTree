@@ -13,6 +13,8 @@ class DiseasePanel {
     this.searchQuery = "";
     this.isOpen = false;
     this.cache = new Map();
+    this.highlightedDiseaseIndex = -1;
+    this.blurTimeoutId = null;
   }
 
   /**
@@ -20,6 +22,7 @@ class DiseasePanel {
    */
   async init() {
     await this.loadDiseaseData();
+    this.filterDiseases();
     this.setupEventListeners();
     this.render();
     console.log(`DiseasePanel initialized with ${this.diseases.length} diseases`);
@@ -29,6 +32,12 @@ class DiseasePanel {
    * Load disease data from API or local JSON
    */
   async loadDiseaseData() {
+    if (Array.isArray(this.app.diseases) && this.app.diseases.length > 0) {
+      this.diseases = [...this.app.diseases];
+      this.filteredDiseases = this.getSelectableDiseases();
+      return;
+    }
+
     const container = document.getElementById("disease-list");
     if (container) {
       container.innerHTML = `
@@ -45,7 +54,8 @@ class DiseasePanel {
       if (response.ok) {
         const data = await response.json();
         this.diseases = data.diseases || [];
-        this.filteredDiseases = [...this.diseases];
+        this.filteredDiseases = this.getSelectableDiseases();
+        this.app.diseases = [...this.diseases];
         return;
       }
     } catch (apiError) {
@@ -58,7 +68,8 @@ class DiseasePanel {
       if (response.ok) {
         const data = await response.json();
         this.diseases = data.diseases || [];
-        this.filteredDiseases = [...this.diseases];
+        this.filteredDiseases = this.getSelectableDiseases();
+        this.app.diseases = [...this.diseases];
       }
     } catch (error) {
       console.error("Failed to load disease data:", error);
@@ -73,15 +84,13 @@ class DiseasePanel {
     // Disease search input
     const searchInput = document.getElementById("disease-search-input");
     if (searchInput) {
-      searchInput.addEventListener("input", (e) => {
-        this.searchQuery = e.target.value.toLowerCase();
-        this.filterDiseases();
-        this.render();
-      });
-
-      searchInput.addEventListener("focus", () => {
-        this.openDropdown();
-      });
+      searchInput.setAttribute("role", "combobox");
+      searchInput.setAttribute("aria-expanded", "false");
+      searchInput.setAttribute("aria-autocomplete", "list");
+      searchInput.addEventListener("input", (e) => this.handleSearchInput(e));
+      searchInput.addEventListener("focus", () => this.openDropdown());
+      searchInput.addEventListener("keydown", (e) => this.handleSearchKeydown(e));
+      searchInput.addEventListener("blur", () => this.handleSearchBlur());
     }
 
     // Orphan toggle
@@ -116,7 +125,7 @@ class DiseasePanel {
    * Filter diseases based on search and orphan flag
    */
   filterDiseases() {
-    this.filteredDiseases = this.diseases.filter((disease) => {
+    this.filteredDiseases = this.getSelectableDiseases().filter((disease) => {
       // Orphan filter
       if (this.showOrphanOnly && !disease.orphan_flag) {
         return false;
@@ -135,6 +144,7 @@ class DiseasePanel {
 
       return true;
     });
+    this.highlightedDiseaseIndex = this.filteredDiseases.length > 0 ? 0 : -1;
   }
 
   /**
@@ -149,22 +159,27 @@ class DiseasePanel {
     this.activeDisease = disease;
     this.closeDropdown();
 
-    // Update app state
-    this.app.activeDisease = disease;
-    this.app.activeCategory = "all";
-    this.app.activeBodyRegion = disease.body_region;
+    if (this.app.selectionStore) {
+      this.app.selectionStore.setSelectedDisease(disease.id, disease);
+    } else {
+      this.app.activeDisease = disease;
+      this.app.activeCategory = "all";
+      this.highlightDiseaseRegions(disease);
+      this.app.applyFilters();
+      this.render();
+      this.app.updateATCTagsState();
+      this.app.updateActiveFiltersBar();
+      this.app.updateBodyMapState();
 
-    // Highlight body regions
-    this.highlightDiseaseRegions(disease);
+      if (this.app.viewMode === "disease" && this.app.diseaseView) {
+        this.app.diseaseView.render(disease.body_region || null, disease.id);
+      }
+    }
 
-    // Filter drugs by disease
-    this.app.applyFilters();
-
-    // Update UI
-    this.render();
-    this.app.updateATCTagsState();
-    this.app.updateActiveFiltersBar();
-    this.app.updateBodyMapState();
+    const searchInput = document.getElementById("disease-search-input");
+    if (searchInput) {
+      searchInput.value = disease.canonical_name;
+    }
   }
 
   /**
@@ -196,12 +211,26 @@ class DiseasePanel {
    */
   clearDiseaseFilter() {
     this.activeDisease = null;
-    this.app.activeDisease = null;
-    this.app.clearBodyMapHighlight();
-    this.app.applyFilters();
-    this.render();
-    this.app.updateActiveFiltersBar();
-    this.app.updateBodyMapState();
+
+    if (this.app.selectionStore) {
+      this.app.selectionStore.setSelectedDisease(null, null);
+    } else {
+      this.app.activeDisease = null;
+      this.app.clearBodyMapHighlight();
+      this.app.applyFilters();
+      this.render();
+      this.app.updateActiveFiltersBar();
+      this.app.updateBodyMapState();
+    }
+
+    const searchInput = document.getElementById("disease-search-input");
+    if (searchInput) {
+      searchInput.value = "";
+    }
+
+    if (this.app.viewMode === "disease" && this.app.diseaseView) {
+      this.app.diseaseView.render(this.app.activeBodyRegion || null, null);
+    }
   }
 
   /**
@@ -210,8 +239,12 @@ class DiseasePanel {
   openDropdown() {
     this.isOpen = true;
     const dropdown = document.getElementById("disease-dropdown");
+    const searchInput = document.getElementById("disease-search-input");
     if (dropdown) {
       dropdown.classList.add("open");
+    }
+    if (searchInput) {
+      searchInput.setAttribute("aria-expanded", "true");
     }
   }
 
@@ -221,8 +254,86 @@ class DiseasePanel {
   closeDropdown() {
     this.isOpen = false;
     const dropdown = document.getElementById("disease-dropdown");
+    const searchInput = document.getElementById("disease-search-input");
     if (dropdown) {
       dropdown.classList.remove("open");
+    }
+    if (searchInput) {
+      searchInput.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  getSelectableDiseases() {
+    return this.diseases.filter((disease) => (disease.approved_drug_count || 0) > 0);
+  }
+
+  handleSearchInput(event) {
+    this.searchQuery = event.target.value.toLowerCase();
+    this.filterDiseases();
+    this.render();
+    this.openDropdown();
+  }
+
+  handleSearchKeydown(event) {
+    if (!this.isOpen && ["ArrowDown", "ArrowUp"].includes(event.key)) {
+      this.openDropdown();
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (this.filteredDiseases.length > 0) {
+        this.highlightedDiseaseIndex = (this.highlightedDiseaseIndex + 1) % this.filteredDiseases.length;
+        this.renderDiseaseList();
+      }
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (this.filteredDiseases.length > 0) {
+        this.highlightedDiseaseIndex = this.highlightedDiseaseIndex <= 0
+          ? this.filteredDiseases.length - 1
+          : this.highlightedDiseaseIndex - 1;
+        this.renderDiseaseList();
+      }
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      this.commitHighlightedDisease();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      this.closeDropdown();
+      const searchInput = document.getElementById("disease-search-input");
+      if (searchInput && this.activeDisease) {
+        searchInput.value = this.activeDisease.canonical_name;
+      }
+    }
+  }
+
+  handleSearchBlur() {
+    clearTimeout(this.blurTimeoutId);
+    this.blurTimeoutId = setTimeout(() => {
+      this.closeDropdown();
+      const searchInput = document.getElementById("disease-search-input");
+      if (searchInput && this.activeDisease && searchInput.value.trim() !== this.activeDisease.canonical_name) {
+        searchInput.value = this.activeDisease.canonical_name;
+      }
+    }, 120);
+  }
+
+  commitHighlightedDisease() {
+    const searchInput = document.getElementById("disease-search-input");
+    const exactMatch = this.filteredDiseases.find(
+      (disease) => disease.canonical_name.toLowerCase() === (searchInput?.value || "").trim().toLowerCase()
+    );
+    const disease = exactMatch || this.filteredDiseases[this.highlightedDiseaseIndex] || null;
+    if (disease) {
+      this.selectDisease(disease.id);
     }
   }
 
@@ -244,7 +355,7 @@ class DiseasePanel {
     if (count >= 1000) {
       return `${(count / 1000).toFixed(0)}K`;
     }
-    return count.toString();
+    return String(count || 0);
   }
 
   /**
@@ -286,6 +397,10 @@ class DiseasePanel {
       }
     } else {
       container.innerHTML = "";
+      const searchInput = document.getElementById("disease-search-input");
+      if (searchInput && !this.isOpen && !this.searchQuery) {
+        searchInput.value = "";
+      }
     }
   }
 
@@ -325,8 +440,13 @@ class DiseasePanel {
 
     // Attach click listeners
     container.querySelectorAll(".disease-item").forEach((item) => {
+      item.addEventListener("mouseenter", () => {
+        this.highlightedDiseaseIndex = Number(item.getAttribute("data-index"));
+        this.renderDiseaseList();
+      });
       item.addEventListener("click", () => {
         const diseaseId = item.getAttribute("data-disease-id");
+        clearTimeout(this.blurTimeoutId);
         this.selectDisease(diseaseId);
       });
     });
@@ -339,9 +459,13 @@ class DiseasePanel {
     const prevalenceText = this.getPrevalenceText(disease);
     const orphanClass = disease.orphan_flag ? "is-orphan" : "";
     const activeClass = this.activeDisease?.id === disease.id ? "is-active" : "";
+    const highlightedClass = this.filteredDiseases[this.highlightedDiseaseIndex]?.id === disease.id
+      ? "is-highlighted"
+      : "";
+    const index = this.filteredDiseases.findIndex((candidate) => candidate.id === disease.id);
 
     return `
-      <div class="disease-item ${orphanClass} ${activeClass}" data-disease-id="${disease.id}">
+      <div class="disease-item ${orphanClass} ${activeClass} ${highlightedClass}" data-disease-id="${disease.id}" data-index="${index}" role="option" aria-selected="${this.activeDisease?.id === disease.id}">
         <div class="disease-item-main">
           <span class="disease-name">${disease.canonical_name}</span>
           ${disease.orphan_flag ? '<span class="orphan-tag">ORPHAN</span>' : ""}

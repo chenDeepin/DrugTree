@@ -12,17 +12,15 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from models.drug import Drug, DrugListResponse, DrugFilterParams
-from models.lineage import LineageEdge
-from services.graph_index import get_graph_index, GraphIndex
-from services.tree_builder import TreeBuilder, GenealogyTree
+from ..models.drug import Drug, DrugListResponse, DrugFilterParams
+from ..models.lineage import LineageEdge
+from ..services.graph_index import GraphIndex, get_graph_index
+from ..services.tree_builder import GenealogyTree, TreeBuilder
 
 # Path to drug data
-DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
-FRONTEND_DATA_DIR = Path(__file__).parent.parent.parent / "frontend" / "data"
-DRUGS_FILE = FRONTEND_DATA_DIR / "drugs.json"
-DRUGS_FULL_FILE = FRONTEND_DATA_DIR / "drugs-full.json"
-BODY_ONTOLOGY_FILE = DATA_DIR / "ontology" / "body_ontology.json"
+DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+DRUGS_FILE = DATA_DIR / "drugs.json"
+BODY_ONTOLOGY_FILE = DATA_DIR / "ontology" / "body-ontology.json"
 
 
 class TreeNodeResponse(BaseModel):
@@ -120,11 +118,6 @@ def load_drugs() -> List[Drug]:
             # Handle both formats: array or {"drugs": [...]}
             drugs_list = data if isinstance(data, list) else data.get("drugs", [])
             return [Drug(**drug) for drug in drugs_list]
-    except FileNotFoundError:
-        with open(DRUGS_FULL_FILE, "r") as f:
-            data = json.load(f)
-            drugs_list = data if isinstance(data, list) else data.get("drugs", [])
-            return [Drug(**drug) for drug in drugs_list]
     except Exception as e:
         print(f"Error loading drugs: {e}")
         return []
@@ -132,10 +125,11 @@ def load_drugs() -> List[Drug]:
 
 def load_drugs_full() -> List[Dict[str, Any]]:
     try:
-        with open(DRUGS_FULL_FILE, "r") as f:
-            return json.load(f)
+        with open(DRUGS_FILE, "r") as f:
+            payload = json.load(f)
+            return payload.get("drugs", []) if isinstance(payload, dict) else payload
     except Exception as e:
-        print(f"Error loading drugs-full.json: {e}")
+        print(f"Error loading drugs.json: {e}")
         return []
 
 
@@ -146,6 +140,32 @@ def load_body_ontology() -> Dict[str, Any]:
     except Exception as e:
         print(f"Error loading body ontology: {e}")
         return {}
+
+
+def matches_drug_search(drug: Any, query: str) -> bool:
+    query_lower = query.lower()
+    if isinstance(drug, dict):
+        name = str(drug.get("name") or "")
+        targets = drug.get("targets") or []
+        class_name = drug.get("class") or drug.get("class_name")
+        synonyms = drug.get("synonyms") or []
+        company = drug.get("company")
+        indication = drug.get("indication")
+    else:
+        name = drug.name
+        targets = drug.targets or []
+        class_name = drug.class_name
+        synonyms = drug.synonyms or []
+        company = drug.company
+        indication = drug.indication
+    return (
+        query_lower in name.lower()
+        or any(query_lower in str(target).lower() for target in targets)
+        or (class_name is not None and query_lower in str(class_name).lower())
+        or any(query_lower in str(synonym).lower() for synonym in synonyms)
+        or (company is not None and query_lower in str(company).lower())
+        or (indication is not None and query_lower in str(indication).lower())
+    )
 
 
 def save_drugs(drugs: List[Drug]):
@@ -193,21 +213,20 @@ async def list_drugs(
         filtered_drugs = [d for d in filtered_drugs if d.phase == phase]
 
     if search:
-        search_lower = search.lower()
-        filtered_drugs = [
-            d
-            for d in filtered_drugs
-            if search_lower in d.name.lower()
-            or any(search_lower in str(t).lower() for t in (d.targets or []))
-            or (d.class_name and search_lower in d.class_name.lower())
-            or any(search_lower in str(s).lower() for s in (d.synonyms or []))
-        ]
+        filtered_drugs = [d for d in filtered_drugs if matches_drug_search(d, search)]
 
     # Apply pagination
     total = len(filtered_drugs)
     paginated_drugs = filtered_drugs[offset : offset + limit]
 
     return DrugListResponse(total=total, drugs=paginated_drugs)
+
+
+@router.get("/drugs/search", response_model=DrugListResponse)
+async def search_drugs_query(q: str):
+    drugs = load_drugs()
+    filtered = [d for d in drugs if matches_drug_search(d, q)]
+    return DrugListResponse(total=len(filtered), drugs=filtered)
 
 
 @router.get("/drugs/{drug_id}", response_model=Drug)
@@ -247,17 +266,7 @@ async def search_drugs(query: str):
     - **query**: Search query string
     """
     drugs = load_drugs()
-    query_lower = query.lower()
-
-    filtered = [
-        d
-        for d in drugs
-        if query_lower in d.name.lower()
-        or any(query_lower in str(t).lower() for t in (d.targets or []))
-        or (d.class_name and query_lower in d.class_name.lower())
-        or any(query_lower in str(s).lower() for s in (d.synonyms or []))
-        or (d.indication and query_lower in d.indication.lower())
-    ]
+    filtered = [d for d in drugs if matches_drug_search(d, query)]
 
     return DrugListResponse(total=len(filtered), drugs=filtered)
 

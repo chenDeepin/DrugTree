@@ -34,6 +34,15 @@ class Drug(DrugBase):
 
     atc_code: str = Field(..., description="WHO ATC code (e.g., 'C10AA05')")
     atc_category: str = Field(..., description="ATC Level 1 category code (e.g., 'C')")
+    atc_source: Optional[str] = Field(
+        None, description="Source that supplied or preserved the ATC code"
+    )
+    atc_confidence: Optional[float] = Field(
+        None, description="Confidence score for the current ATC assignment"
+    )
+    atc_resolution_method: Optional[str] = Field(
+        None, description="Method used to resolve or preserve the ATC assignment"
+    )
     molecular_weight: Optional[float] = Field(
         None, description="Molecular weight in Daltons"
     )
@@ -99,6 +108,9 @@ class DrugSummary(DrugBase):
 
     atc_code: str
     atc_category: str
+    atc_source: Optional[str] = None
+    atc_confidence: Optional[float] = None
+    atc_resolution_method: Optional[str] = None
     indication: Optional[str] = None
     class_name: Optional[str] = Field(None, alias="class")
 

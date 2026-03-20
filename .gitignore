@@ -179,6 +179,7 @@ src/backend/data/*.json
 # Backend logs
 src/backend/logs/
 src/backend/*.log
+src/backend/cache/
 
 # PostgreSQL data (for future migration)
 *.sql.gz
@@ -195,6 +196,7 @@ migrations/*.log
 .sisyphus/evidence/**/*.txt
 data/reports/*.json
 data/reports/*.html
+tests/frontend/playwright-report/
 
 # Large generated data files
 data/processed/**/*.json

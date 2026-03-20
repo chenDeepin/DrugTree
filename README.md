@@ -25,7 +25,7 @@
 - **Drug Families** - Group related drugs by mechanism/target
 - **Drug Lineages** - Track evolutionary relationships
 - **Source Provenance** - Track where each drug's data originated
-- **61 Curated Drugs** - Manually verified core drug set with complete data
+- **Canonical Root Data Files** - frontend embeds are generated from repo-root datasets
 
 ## Quick Start
 
@@ -40,6 +40,9 @@ python3 -m http.server 8080
 
 # Open in browser
 open http://localhost:8080
+
+# Optional backend
+uvicorn src.backend.main:app --reload --port 8000
 ```
 
 ## Architecture
@@ -80,9 +83,13 @@ DrugTree/
 │   ├── DATA_SCHEMA.md               # Drug data structure
 │   └── CENTRAL_BODY_ATLAS_IMPLEMENTATION.md
 ├── data/
-│   ├── drugs/                        # Drug data files
+│   ├── drugs.json
+│   ├── diseases.json
+│   ├── disease_drug_edges.json
 │   └── ontology/
-│       └── body_ontology.json        # 14 body regions
+│       └── body-ontology.json
+├── scripts/
+│   └── build_frontend_embeds.py
 ├── src/
 │   ├── frontend/                     # Main web app
 │   │   ├── index.html               # Entry point
@@ -91,12 +98,12 @@ DrugTree/
 │   │   │   ├── app.js               # DrugTreeApp class
 │   │   │   ├── structure.js         # RDKit.js viewer
 │   │   │   └── body-map.js          # Body map handler
-│   │   └── data/drugs-full.json     # 61 drugs with ATC
+│   │   └── data/                    # generated mirrors/embeds
 │   └── backend/                      # FastAPI service
 │       ├── main.py                  # Entry point
 │       ├── routers/drugs.py         # REST endpoints
 │       ├── models/drug.py           # Pydantic schemas
-│       └── etl/drug_etl.py          # ETL pipeline
+│       └── etl/                     # drug / disease / ATC pipelines
 └── tests/
     ├── backend/                      # pytest tests
     └── frontend/                     # Node test harness

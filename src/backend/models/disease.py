@@ -98,7 +98,7 @@ class DiseaseBase(BaseModel):
 class Disease(DiseaseBase):
     """Full disease model with all metadata"""
 
-    # Anatomy mapping (from body_ontology.json)
+    # Anatomy mapping (from body-ontology.json / canonical disease dataset)
     body_region: str = Field(
         ..., description="Primary body region ID (e.g., 'brain_cns')"
     )
@@ -134,8 +134,11 @@ class Disease(DiseaseBase):
     )
 
     # External IDs
+    orphanet_id: Optional[str] = Field(None, description="Orphanet disease identifier")
     mondo_id: Optional[str] = Field(None, description="MONDO ontology ID")
     doid_id: Optional[str] = Field(None, description="Disease Ontology ID")
+    mesh_id: Optional[str] = Field(None, description="MeSH disease identifier")
+    efo_id: Optional[str] = Field(None, description="Experimental Factor Ontology ID")
     icd10_code: Optional[str] = Field(None, description="ICD-10 code")
 
     class Config:

@@ -10,8 +10,10 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from models.disease import (
+from ..models.disease import (
     Disease,
+    DrugDiseaseEdge,
+    DrugDiseaseEdgeListResponse,
     DiseaseListResponse,
     RegionalApproval,
     RegionalApprovalListResponse,
@@ -20,18 +22,16 @@ from models.disease import (
     Region,
     ApprovalStatus,
 )
-from models.drug import Drug, DrugListResponse
+from ..models.drug import Drug, DrugListResponse
 
 router = APIRouter(prefix="/api/v1", tags=["diseases"])
 
-DATA_DIR = Path(__file__).parent.parent.parent / "frontend" / "data"
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DATA_DIR = PROJECT_ROOT / "data"
 DISEASES_FILE = DATA_DIR / "diseases.json"
-BODY_ONTOLOGY_FILE = (
-    Path(__file__).parent.parent.parent.parent
-    / "data"
-    / "ontology"
-    / "body_ontology.json"
-)
+DISEASE_DRUG_EDGES_FILE = DATA_DIR / "disease_drug_edges.json"
+BODY_ONTOLOGY_FILE = DATA_DIR / "ontology" / "body-ontology.json"
+DRUGS_FILE = DATA_DIR / "drugs.json"
 
 
 def load_diseases() -> List[Disease]:
@@ -55,7 +55,13 @@ def load_body_ontology() -> dict:
         return json.load(f)
 
 
-DRUGS_FILE = DATA_DIR / "drugs-full.json"
+def load_disease_drug_edges() -> List[DrugDiseaseEdge]:
+    if not DISEASE_DRUG_EDGES_FILE.exists():
+        return []
+    with open(DISEASE_DRUG_EDGES_FILE, "r") as f:
+        payload = json.load(f)
+        items = payload.get("edges", []) if isinstance(payload, dict) else payload
+        return [DrugDiseaseEdge(**edge) for edge in items]
 
 
 def load_drugs() -> List[dict]:
@@ -63,7 +69,7 @@ def load_drugs() -> List[dict]:
         return []
     with open(DRUGS_FILE, "r") as f:
         data = json.load(f)
-        return data.get("drugs", [])
+        return data.get("drugs", []) if isinstance(data, dict) else data
 
 
 @router.get("/diseases", response_model=DiseaseListResponse)
@@ -162,6 +168,25 @@ async def search_diseases(query: str):
     return DiseaseListResponse(total=len(filtered), diseases=filtered)
 
 
+@router.get("/diseases/edges", response_model=DrugDiseaseEdgeListResponse)
+async def list_disease_drug_edges(
+    disease_id: Optional[str] = Query(None, description="Filter by disease ID"),
+    drug_id: Optional[str] = Query(None, description="Filter by drug ID"),
+    limit: int = Query(1000, ge=1, le=50000),
+    offset: int = Query(0, ge=0),
+):
+    edges = load_disease_drug_edges()
+
+    if disease_id:
+        edges = [edge for edge in edges if edge.disease_id == disease_id]
+    if drug_id:
+        edges = [edge for edge in edges if edge.drug_id == drug_id]
+
+    total = len(edges)
+    paginated = edges[offset : offset + limit]
+    return DrugDiseaseEdgeListResponse(total=total, edges=paginated)
+
+
 @router.get("/diseases/{disease_id}", response_model=Disease)
 async def get_disease(disease_id: str):
     diseases = load_diseases()
@@ -190,20 +215,19 @@ async def get_drugs_for_disease(disease_id: str):
     if not disease:
         raise HTTPException(status_code=404, detail=f"Disease '{disease_id}' not found")
 
-    drugs = load_drugs()
-    disease_name_lower = disease.canonical_name.lower()
-    disease_synonyms_lower = [s.lower() for s in disease.synonyms]
+    edges = load_disease_drug_edges()
+    edge_drug_ids = [
+        edge.drug_id for edge in edges if edge.disease_id == disease_id
+    ]
+    if not edge_drug_ids:
+        return DrugListResponse(total=0, drugs=[])
 
-    matching_drugs = []
-    for drug in drugs:
-        indication = (drug.get("indication") or "").lower()
-        if disease_name_lower in indication:
-            matching_drugs.append(Drug(**drug))
-            continue
-        for syn in disease_synonyms_lower:
-            if syn in indication:
-                matching_drugs.append(Drug(**drug))
-                break
+    drugs_by_id = {drug["id"]: drug for drug in load_drugs()}
+    matching_drugs = [
+        Drug(**drugs_by_id[drug_id])
+        for drug_id in edge_drug_ids
+        if drug_id in drugs_by_id
+    ]
 
     return DrugListResponse(total=len(matching_drugs), drugs=matching_drugs)
 

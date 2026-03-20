@@ -14,7 +14,7 @@ Features:
 - Incorporates results from ChEMBL/KEGG/PubChem lookups
 - Respects confidence thresholds (only moves with >= 0.7 confidence)
 - Generates detailed re-classification report
-- Does NOT modify the 61 curated drugs
+- Does NOT modify drugs that already have valid non-placeholder ATC codes
 """
 
 import argparse
@@ -32,9 +32,9 @@ DRUGS_FILE = DATA_DIR / "drugs.json"
 CHECKPOINT_DIR = DATA_DIR / "checkpoints"
 EVIDENCE_DIR = PROJECT_ROOT / ".sisyphus" / "evidence"
 REPORTS_DIR = DATA_DIR / "reports"
-CURATED_DRUGS_FILE = PROJECT_ROOT / "src" / "frontend" / "data" / "drugs-full.json"
+CURATED_DRUGS_FILE = DATA_DIR / "drugs.json"
 
-# Curated drug IDs (from drugs-full.json) - DO NOT MODIFY THESE
+# Drug IDs with valid non-placeholder ATC codes - DO NOT MODIFY THESE
 CURATED_DRUG_IDS: set = set()
 
 # ATC Category keywords for classification
@@ -373,7 +373,7 @@ ATC_KEYWORDS = {
 
 
 def load_curated_drug_ids() -> set:
-    """Load the 61 curated drug IDs that should not be modified."""
+    """Load drug IDs with valid non-placeholder ATC codes that should not move."""
     global CURATED_DRUG_IDS
 
     if CURATED_DRUG_IDS:
@@ -383,7 +383,14 @@ def load_curated_drug_ids() -> set:
         with open(CURATED_DRUGS_FILE, "r") as f:
             data = json.load(f)
             drugs = data.get("drugs", data) if isinstance(data, dict) else data
-            CURATED_DRUG_IDS = {d.get("id") for d in drugs if d.get("id")}
+            CURATED_DRUG_IDS = {
+                d.get("id")
+                for d in drugs
+                if d.get("id")
+                and d.get("atc_code")
+                and "XX" not in str(d.get("atc_code", "")).upper()
+                and not str(d.get("atc_code", "")).upper().startswith("V99")
+            }
 
     return CURATED_DRUG_IDS
 

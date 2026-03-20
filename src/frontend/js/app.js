@@ -17,6 +17,8 @@ const {
 
 const EMBEDDED_BODY_ONTOLOGY = window.DRUGTREE_BODY_ONTOLOGY || null;
 const EMBEDDED_DRUG_DATA = window.DRUGTREE_DRUGS_DATA || null;
+const EMBEDDED_DISEASE_DATA = window.DRUGTREE_DISEASES_DATA || null;
+const EMBEDDED_DISEASE_DRUG_EDGES = window.DRUGTREE_DISEASE_DRUG_EDGES || null;
 const EMBEDDED_BODY_SVG = window.DRUGTREE_HUMAN_BODY_SVG || "";
 
 const ATC_CATEGORIES = {
@@ -38,12 +40,27 @@ const ATC_CATEGORIES = {
 
 const DEFAULT_RESULT_LIMIT = 120;
 const STARTER_SET_LIMIT = 72;
+const API_FETCH_TIMEOUT_MS = 1200;
+
+async function fetchJsonWithTimeout(url, timeoutMs = API_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    return response;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 class DrugTreeApp {
   API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 
   constructor() {
     this.drugs = [];
+    this.diseases = [];
+    this.diseaseDrugEdges = [];
+    this.diseaseDrugIdsByDiseaseId = new Map();
     this.filteredDrugs = [];
     this.selectedDrug = null;
     this.activeCategory = "all";
@@ -72,10 +89,18 @@ class DrugTreeApp {
 
     this.structureViewer = window.structureViewer;
     if (this.structureViewer) {
-      await this.structureViewer.init();
+      this.structureViewer.init().catch((error) => {
+        console.warn("Structure viewer initialization failed:", error);
+      });
     }
 
-    await Promise.all([this.loadDrugData(), this.loadBodyOntology()]);
+    await Promise.all([
+      this.loadDrugData(),
+      this.loadDiseaseData(),
+      this.loadDiseaseDrugEdges(),
+      this.loadBodyOntology(),
+    ]);
+    this.rebuildDiseaseEdgeIndex();
 
     this.initStores();
     await this.loadGraphData();
@@ -113,6 +138,15 @@ class DrugTreeApp {
       this.selectionStore.addEventListener('drug:selected', (e) => {
         this.handleDrugSelected(e.detail);
       });
+      this.selectionStore.addEventListener('disease:selected', (e) => {
+        this.handleDiseaseSelected(e.detail);
+      });
+      this.selectionStore.addEventListener('region:selected', (e) => {
+        this.handleRegionSelected(e.detail);
+      });
+      this.selectionStore.addEventListener('selection:cleared', () => {
+        this.handleSelectionCleared();
+      });
       this.selectionStore.addEventListener('view:changed', (e) => {
         this.handleViewChanged(e.detail);
       });
@@ -122,7 +156,12 @@ class DrugTreeApp {
   
   async loadGraphData() {
     if (this.graphStore && this.drugs.length > 0 && this.bodyOntology) {
-      await this.graphStore.loadGraph(this.drugs, this.bodyOntology);
+      await this.graphStore.loadGraph({
+        drugs: this.drugs,
+        diseases: this.diseases,
+        bodyOntology: this.bodyOntology,
+        diseaseDrugEdges: this.diseaseDrugEdges,
+      });
     }
   }
   
@@ -171,8 +210,8 @@ class DrugTreeApp {
     if (mode === 'disease') {
       if (diseaseSection) diseaseSection.style.display = 'block';
       if (resultsSection) resultsSection.style.display = 'none';
-      if (this.diseaseView && this.activeBodyRegion) {
-        this.diseaseView.render(this.activeBodyRegion);
+      if (this.diseaseView) {
+        this.diseaseView.render(this.activeDisease?.body_region || this.activeBodyRegion || null, this.activeDisease?.id || null);
       }
     } else {
       if (diseaseSection) diseaseSection.style.display = 'none';
@@ -196,6 +235,78 @@ class DrugTreeApp {
     this.setViewMode(detail.mode);
   }
 
+  handleDiseaseSelected(detail) {
+    const disease = detail.diseaseData || this.diseases.find((candidate) => candidate.id === detail.diseaseId) || null;
+    this.activeDisease = disease;
+    if (this.diseasePanel) {
+      this.diseasePanel.activeDisease = disease;
+      this.diseasePanel.render();
+      if (disease) {
+        this.diseasePanel.highlightDiseaseRegions(disease);
+      } else {
+        this.clearBodyMapHighlight();
+      }
+    }
+
+    if (disease) {
+      this.activeCategory = "all";
+    }
+
+    this.updateATCTagsState();
+    this.updateActiveFiltersBar();
+    this.applyFilters();
+
+    if (this.viewMode === 'disease' && this.diseaseView) {
+      this.diseaseView.render(disease?.body_region || this.activeBodyRegion || null, disease?.id || null);
+    }
+  }
+
+  handleRegionSelected(detail) {
+    const nextRegionId = detail.regionId || null;
+    const previousRegionId = detail.previousRegionId || null;
+
+    this.activeBodyRegion = nextRegionId;
+
+    if (nextRegionId !== previousRegionId && this.activeDisease) {
+      if (this.selectionStore && this.selectionStore.selectedDiseaseId !== null) {
+        this.selectionStore.setSelectedDisease(null, null);
+      } else {
+        this.activeDisease = null;
+        if (this.diseasePanel) {
+          this.diseasePanel.activeDisease = null;
+          this.diseasePanel.render();
+        }
+      }
+    }
+
+    this.hoveredRegion = null;
+    this.removePreview(".body-preview");
+    this.updateBodyMapState();
+    this.updateBodyRegionLabel();
+    this.updateActiveFiltersBar();
+    this.applyFilters();
+
+    if (this.viewMode === 'disease' && this.diseaseView) {
+      this.diseaseView.render(this.activeBodyRegion || null, null);
+    }
+  }
+
+  handleSelectionCleared() {
+    this.activeDisease = null;
+    this.activeBodyRegion = null;
+    this.clearBodyMapHighlight();
+    if (this.diseasePanel) {
+      this.diseasePanel.activeDisease = null;
+      this.diseasePanel.render();
+    }
+    this.updateBodyRegionLabel();
+    this.updateActiveFiltersBar();
+    this.applyFilters();
+    if (this.viewMode === 'disease' && this.diseaseView) {
+      this.diseaseView.render(null, null);
+    }
+  }
+
   async loadDrugData() {
     const container = document.getElementById("drug-grid");
     if (container) {
@@ -211,6 +322,12 @@ class DrugTreeApp {
     const embeddedDrugs = Array.isArray(EMBEDDED_DRUG_DATA) 
       ? EMBEDDED_DRUG_DATA 
       : (EMBEDDED_DRUG_DATA?.drugs || []);
+    const apiOrigin = this.API_BASE_URL.replace(/\/api\/v1$/, "");
+    if (embeddedDrugs.length > 0 && window.location.origin !== apiOrigin) {
+      this.drugs = embeddedDrugs;
+      this.filteredDrugs = [...this.drugs];
+      return;
+    }
     if (window.location.protocol === "file:" && embeddedDrugs.length > 0) {
       this.drugs = embeddedDrugs;
       this.filteredDrugs = [...this.drugs];
@@ -218,10 +335,11 @@ class DrugTreeApp {
     }
 
     try {
-      const response = await fetch(`${this.API_BASE_URL}/drugs?limit=10000`);
+      const response = await fetchJsonWithTimeout(`${this.API_BASE_URL}/drugs?limit=10000`);
       if (response.ok) {
         const data = await response.json();
-        this.drugs = data.drugs || [];
+        const apiDrugs = data.drugs || [];
+        this.drugs = apiDrugs.length === 0 && embeddedDrugs.length > 0 ? embeddedDrugs : apiDrugs;
         this.filteredDrugs = [...this.drugs];
         return;
       }
@@ -239,9 +357,6 @@ class DrugTreeApp {
 
         const fallbackPaths = [
           "data/drugs.json",
-          "data/drugs-expanded.json",
-          "data/drugs-full.json",
-          "data/sample-drugs.json",
         ];
 
         let data = null;
@@ -263,6 +378,111 @@ class DrugTreeApp {
         console.error("Failed to load drug data:", error);
         this.showError("Failed to load drug data. Please check the backend or local datasets.");
       }
+    }
+  }
+
+  async loadDiseaseData() {
+    const embeddedDiseases = Array.isArray(EMBEDDED_DISEASE_DATA)
+      ? EMBEDDED_DISEASE_DATA
+      : (EMBEDDED_DISEASE_DATA?.diseases || []);
+    const apiOrigin = this.API_BASE_URL.replace(/\/api\/v1$/, "");
+    if (embeddedDiseases.length > 0 && window.location.origin !== apiOrigin) {
+      this.diseases = embeddedDiseases;
+      return;
+    }
+    if (window.location.protocol === "file:" && embeddedDiseases.length > 0) {
+      this.diseases = embeddedDiseases;
+      return;
+    }
+
+    try {
+      const response = await fetchJsonWithTimeout(`${this.API_BASE_URL}/diseases?limit=1000`);
+      if (response.ok) {
+        const data = await response.json();
+        const apiDiseases = data.diseases || [];
+        this.diseases = apiDiseases.length === 0 && embeddedDiseases.length > 0 ? embeddedDiseases : apiDiseases;
+        return;
+      }
+      throw new Error("Backend disease API not available");
+    } catch (apiError) {
+      console.warn("Disease API not available, falling back to local data:", apiError);
+    }
+
+    if (embeddedDiseases.length > 0) {
+      this.diseases = embeddedDiseases;
+      return;
+    }
+
+    try {
+      const response = await fetch("data/diseases.json");
+      if (!response.ok) {
+        throw new Error(`Unexpected disease status: ${response.status}`);
+      }
+      const data = await response.json();
+      this.diseases = data.diseases || [];
+    } catch (error) {
+      console.error("Failed to load disease data:", error);
+      this.diseases = [];
+    }
+  }
+
+  async loadDiseaseDrugEdges() {
+    const embeddedEdges = Array.isArray(EMBEDDED_DISEASE_DRUG_EDGES)
+      ? EMBEDDED_DISEASE_DRUG_EDGES
+      : (EMBEDDED_DISEASE_DRUG_EDGES?.edges || []);
+    const apiOrigin = this.API_BASE_URL.replace(/\/api\/v1$/, "");
+    if (embeddedEdges.length > 0 && window.location.origin !== apiOrigin) {
+      this.diseaseDrugEdges = embeddedEdges;
+      return;
+    }
+    if (window.location.protocol === "file:" && embeddedEdges.length > 0) {
+      this.diseaseDrugEdges = embeddedEdges;
+      return;
+    }
+
+    try {
+      const response = await fetchJsonWithTimeout(`${this.API_BASE_URL}/diseases/edges?limit=50000`);
+      if (response.ok) {
+        const data = await response.json();
+        const apiEdges = data.edges || [];
+        this.diseaseDrugEdges = apiEdges.length === 0 && embeddedEdges.length > 0 ? embeddedEdges : apiEdges;
+        return;
+      }
+      throw new Error(`Unexpected disease edge API status: ${response.status}`);
+    } catch (apiError) {
+      console.warn("Disease edge API not available, falling back to local data:", apiError);
+    }
+
+    try {
+      const response = await fetch("data/disease-drug-edges.json");
+      if (!response.ok) {
+        throw new Error(`Unexpected disease edge status: ${response.status}`);
+      }
+      const data = await response.json();
+      this.diseaseDrugEdges = data.edges || [];
+      return;
+    } catch (error) {
+      console.warn("Failed to load local disease-drug edge data:", error);
+    }
+
+    if (embeddedEdges.length > 0) {
+      this.diseaseDrugEdges = embeddedEdges;
+      return;
+    }
+
+    console.error("Failed to load disease-drug edge data from API, local JSON, or embedded snapshot.");
+    this.diseaseDrugEdges = [];
+  }
+
+  rebuildDiseaseEdgeIndex() {
+    this.diseaseDrugIdsByDiseaseId = new Map();
+    for (const edge of this.diseaseDrugEdges) {
+      if (!edge?.disease_id || !edge?.drug_id) {
+        continue;
+      }
+      const drugIds = this.diseaseDrugIdsByDiseaseId.get(edge.disease_id) || new Set();
+      drugIds.add(edge.drug_id);
+      this.diseaseDrugIdsByDiseaseId.set(edge.disease_id, drugIds);
     }
   }
 
@@ -483,12 +703,31 @@ class DrugTreeApp {
   }
 
   handleBodyRegionClick(regionId) {
-    this.activeBodyRegion = toggleBodyRegion(this.activeBodyRegion, regionId);
+    const nextRegionId = toggleBodyRegion(this.activeBodyRegion, regionId);
+
+    if (this.selectionStore) {
+      this.selectionStore.setSelectedRegion(nextRegionId, nextRegionId ? this.getRegionMeta(nextRegionId) : null);
+      return;
+    }
+
+    if (this.activeDisease && this.diseasePanel) {
+      this.activeDisease = null;
+      this.diseasePanel.activeDisease = null;
+      const diseaseSearchInput = document.getElementById("disease-search-input");
+      if (diseaseSearchInput) {
+        diseaseSearchInput.value = "";
+      }
+      this.diseasePanel.render();
+    }
+    this.activeBodyRegion = nextRegionId;
     this.hoveredRegion = null;
     this.removePreview(".body-preview");
     this.updateActiveFiltersBar();
     this.applyFilters();
     this.updateBodyRegionLabel();
+    if (this.viewMode === 'disease' && this.diseaseView) {
+      this.diseaseView.render(this.activeBodyRegion || null, null);
+    }
   }
 
   handleBodyRegionHover(regionId) {
@@ -558,8 +797,6 @@ class DrugTreeApp {
 
   clearFilters() {
     this.activeCategory = "all";
-    this.activeBodyRegion = null;
-    this.activeDisease = null;
     this.hoveredRegion = null;
     this.searchQuery = "";
 
@@ -568,15 +805,24 @@ class DrugTreeApp {
       searchInput.value = "";
     }
 
-    if (this.diseasePanel) {
-      this.diseasePanel.activeDisease = null;
-      this.diseasePanel.render();
+    if (this.selectionStore) {
+      this.selectionStore.clear();
+    } else {
+      this.activeBodyRegion = null;
+      this.activeDisease = null;
+      if (this.diseasePanel) {
+        this.diseasePanel.activeDisease = null;
+        this.diseasePanel.render();
+      }
     }
 
     this.updateATCTagsState();
     this.updateActiveFiltersBar();
     this.applyFilters();
     this.updateBodyRegionLabel();
+    if (this.viewMode === 'disease' && this.diseaseView) {
+      this.diseaseView.render(null, null);
+    }
   }
 
   switchMode(mode) {
@@ -627,15 +873,21 @@ class DrugTreeApp {
       chips.push({
         label: `Disease: ${diseaseName}${orphanBadge}`,
         onRemove: () => {
-          this.activeDisease = null;
-          this.activeBodyRegion = null;
-          if (this.diseasePanel) {
-            this.diseasePanel.activeDisease = null;
-            this.diseasePanel.render();
+          if (this.selectionStore) {
+            this.selectionStore.setSelectedDisease(null, null);
+          } else {
+            this.activeDisease = null;
+            if (this.diseasePanel) {
+              this.diseasePanel.activeDisease = null;
+              this.diseasePanel.render();
+            }
+            this.clearBodyMapHighlight();
+            this.updateActiveFiltersBar();
+            this.applyFilters();
+            if (this.viewMode === 'disease' && this.diseaseView) {
+              this.diseaseView.render(this.activeBodyRegion || null, null);
+            }
           }
-          this.clearBodyMapHighlight();
-          this.updateActiveFiltersBar();
-          this.applyFilters();
         },
       });
     }
@@ -672,10 +924,14 @@ class DrugTreeApp {
       chips.push({
         label: this.getRegionMeta(this.activeBodyRegion).display_name,
         onRemove: () => {
-          this.activeBodyRegion = null;
-          this.updateActiveFiltersBar();
-          this.applyFilters();
-          this.updateBodyRegionLabel();
+          if (this.selectionStore) {
+            this.selectionStore.setSelectedRegion(null, null);
+          } else {
+            this.activeBodyRegion = null;
+            this.updateActiveFiltersBar();
+            this.applyFilters();
+            this.updateBodyRegionLabel();
+          }
         },
       });
     }
@@ -781,10 +1037,12 @@ class DrugTreeApp {
     });
 
     if (this.activeDisease) {
-      const diseaseBodyRegion = this.activeDisease.body_region;
+      const linkedDrugIds = this.diseaseDrugIdsByDiseaseId.get(this.activeDisease.id);
       this.filteredDrugs = this.filteredDrugs.filter((drug) => {
-        const drugRegions = resolveDrugBodyRegions(drug);
-        return drugRegions.includes(diseaseBodyRegion);
+        if (!linkedDrugIds) {
+          return false;
+        }
+        return linkedDrugIds.has(drug.id);
       });
     }
 
@@ -794,7 +1052,7 @@ class DrugTreeApp {
 
   getRenderableDrugs() {
     const hasFilters =
-      this.activeCategory !== "all" || this.activeBodyRegion || this.searchQuery;
+      this.activeCategory !== "all" || this.activeBodyRegion || this.activeDisease || this.searchQuery;
     const limit = hasFilters ? DEFAULT_RESULT_LIMIT : STARTER_SET_LIMIT;
     return this.filteredDrugs.slice(0, limit);
   }
@@ -809,7 +1067,7 @@ class DrugTreeApp {
 
     const visibleDrugs = this.getRenderableDrugs();
     const hasFilters =
-      this.activeCategory !== "all" || this.activeBodyRegion || this.searchQuery;
+      this.activeCategory !== "all" || this.activeBodyRegion || this.activeDisease || this.searchQuery;
 
     if (countElement) {
       countElement.textContent = hasFilters
@@ -840,6 +1098,15 @@ class DrugTreeApp {
   }
 
   buildEmptyState() {
+    if (this.activeDisease) {
+      return `
+        <div class="empty-state">
+          <div class="empty-state-icon">🏥</div>
+          <p>No compounds are explicitly linked to ${this.activeDisease.canonical_name} in the current disease graph.</p>
+        </div>
+      `;
+    }
+
     if (this.searchQuery) {
       return `
         <div class="empty-state">
