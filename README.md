@@ -34,14 +34,14 @@
 git clone https://github.com/chenDeepin/DrugTree.git
 cd DrugTree
 
-# Start local server
+# Start frontend (static server)
 cd src/frontend
 python3 -m http.server 8080
 
 # Open in browser
 open http://localhost:8080
 
-# Optional backend
+# Optional backend (FastAPI + SQLite)
 uvicorn src.backend.main:app --reload --port 8000
 ```
 
@@ -78,35 +78,45 @@ uvicorn src.backend.main:app --reload --port 8000
 
 ```
 DrugTree/
-├── docs/
-│   ├── PROJECT_PLAN.md              # Full specification
-│   ├── DATA_SCHEMA.md               # Drug data structure
-│   └── CENTRAL_BODY_ATLAS_IMPLEMENTATION.md
 ├── data/
-│   ├── drugs.json
-│   ├── diseases.json
-│   ├── disease_drug_edges.json
-│   └── ontology/
-│       └── body-ontology.json
+│   ├── drugs.json                    # canonical drug database (7,359 drugs)
+│   ├── diseases.json                 # disease hierarchy (50 diseases)
+│   ├── disease_drug_edges.json       # disease-drug relationships
+│   ├── ontology/body-ontology.json   # body region definitions
+│   ├── processed/                    # derived data (families, lineages)
+│   ├── curated/                      # manual overrides
+│   ├── seeds/                        # seed data for ETL
+│   └── changes/                      # change-log entries
 ├── scripts/
-│   └── build_frontend_embeds.py
+│   └── build_frontend_embeds.py      # regenerate frontend data embeds
 ├── src/
-│   ├── frontend/                     # Main web app
+│   ├── frontend/                     # Vanilla JS web app
 │   │   ├── index.html               # Entry point
 │   │   ├── css/style.css            # Dark atlas theme
+│   │   ├── assets/                   # SVG body atlas
 │   │   ├── js/
 │   │   │   ├── app.js               # DrugTreeApp class
-│   │   │   ├── structure.js         # RDKit.js viewer
-│   │   │   └── body-map.js          # Body map handler
+│   │   │   ├── app-state.js         # State management
+│   │   │   ├── structure.js         # RDKit.js molecule viewer
+│   │   │   ├── components/          # UI components
+│   │   │   ├── stores/              # State stores
+│   │   │   └── views/               # View renderers
 │   │   └── data/                    # generated mirrors/embeds
-│   └── backend/                      # FastAPI service
+│   └── backend/                      # FastAPI + SQLite service
 │       ├── main.py                  # Entry point
-│       ├── routers/drugs.py         # REST endpoints
-│       ├── models/drug.py           # Pydantic schemas
-│       └── etl/                     # drug / disease / ATC pipelines
+│       ├── run_etl.sh               # ETL pipeline launcher
+│       ├── routers/                 # API route modules
+│       ├── models/                  # Pydantic & DB models
+│       ├── services/                # Business logic & graph engine
+│       ├── etl/                     # drug / disease / ATC pipelines
+│       ├── db/                      # SQLite connection & schema
+│       ├── migrations/              # SQL migrations
+│       ├── cache/                   # API response caching
+│       ├── export/                  # Data exporters
+│       └── validation/              # Migration & data validators
 └── tests/
-    ├── backend/                      # pytest tests
-    └── frontend/                     # Node test harness
+    ├── backend/                      # pytest suites
+    └── frontend/                     # Playwright e2e + Node tests
 ```
 
 ## Tech Stack
@@ -114,8 +124,9 @@ DrugTree/
 | Layer | Technology |
 |-------|------------|
 | Frontend | Vanilla JS + RDKit.js |
-| Backend | FastAPI (Python) |
-| Data | ChEMBL + DrugBank + PubChem |
+| Backend | FastAPI (Python) + SQLite |
+| Data | ChEMBL + DrugBank + PubChem + KEGG + FDA |
+| E2E Tests | Playwright |
 | Hosting | GitHub Pages (MVP) |
 
 ## ATC Categories (14 Total)
@@ -145,82 +156,93 @@ DrugTree/
 ```json
 {
   "id": "atorvastatin",
-  "name": "Atorvastatin",
-  "smiles": "CC(C)C1=...",
-  "inchikey": "XUKUURHRXDUEBC-UHFFFAOYSA-N",
+  "name": "atorvastatin",
+  "smiles": "CC(C)OC(=O)C(C)(C)Oc1ccc(C(=O)c2ccc(Cl)cc2)cc1",
+  "inchikey": "YMTINGFKWWXKFG-UHFFFAOYSA-N",
   "atc_code": "C10AA05",
   "atc_category": "C",
-  "molecular_weight": 558.64,
+  "molecular_weight": 360.84,
   "phase": "IV",
-  "year_approved": 1996,
-  "generation": 2,
-  "indication": "Hypercholesterolemia",
-  "targets": ["HMG-CoA reductase"],
-  "company": "Pfizer",
-  "synonyms": ["Lipitor", "Sortis"],
-  "class": "Statin",
-  "parent_drugs": ["lovastatin"],
-  "derived_drugs": ["rosuvastatin"]
+  "year_approved": null,
+  "generation": 1,
+  "indication": "approved",
+  "targets": [],
+  "company": null,
+  "synonyms": [],
+  "class": null,
+  "body_region": "blood_immune",
+  "secondary_body_regions": ["eye_ear", "heart_vascular", "kidney_urinary", "liver_biliary_pancreas"],
+  "chembl_id": "CHEMBL1487",
+  "kegg_id": "D00565",
+  "clinical_trials": ["NCT00504829", "NCT00362323"]
 }
 ```
 
 ### Drug Family Schema
 ```json
 {
-  "id": "statin-family",
-  "name": "Statin Family",
-  "description": "HMG-CoA reductase inhibitors",
-  "therapeutic_class": "Lipid-lowering",
-  "drugs": ["atorvastatin", "simvastatin", "lovastatin", "pravastatin"],
-  "parent_families": [],
-  "child_families": []
+  "family_id": "target_hmg_coa_reductase_7169b791",
+  "label": "Hmg Coa Reductase Target Family",
+  "family_basis": "target",
+  "prototype_drug_id": "atorvastatin",
+  "member_drug_ids": ["atorvastatin", "simvastatin", "lovastatin", "pravastatin"],
+  "representative_target_ids": ["HMG-CoA reductase"],
+  "description": "Drugs targeting hmg coa reductase",
+  "atc_codes": ["C10AA05", "C10AA01", "C10AA02", "C10AA03"]
 }
 ```
 
-### Lineage Schema
+### Lineage Edge Schema
 ```json
 {
-  "id": "statin-lineage",
-  "name": "Statin Lineage",
-  "description": "Evolution of statin drugs",
-  "root_drugs": ["lovastatin"],
-  "generations": [
-    {
-      "generation": 1,
-      "drugs": ["lovastastin", "pravastatin"]
-    },
-    {
-      "generation": 2,
-      "drugs": ["simvastatin", "atorvastatin"]
-    },
-    {
-      "generation": 3,
-      "drugs": ["rosuvastatin"]
-    }
-  ]
+  "edge_id": "omeprazole_to_lansoprazole",
+  "from_drug_id": "omeprazole",
+  "to_drug_id": "lansoprazole",
+  "edge_type": "follow_on",
+  "confidence": 0.843,
+  "rationale_tags": [],
+  "score_breakdown": {
+    "chronology_score": 1.0,
+    "mechanism_score": 1.0,
+    "scaffold_score": 0.478
+  },
+  "provenance": "auto",
+  "explanation": "Lansoprazole (1995) derived from Omeprazole (1989) | scores: chronology=1.0, mechanism=1.0, scaffold=0.48"
 }
 ```
 
 ## Backend API Endpoints
 
+All endpoints are prefixed with `/api/v1`.
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/drugs` | GET | List all drugs (with pagination) |
-| `/api/drugs/{id}` | GET | Get drug by ID |
-| `/api/drugs/search` | GET | Search drugs by query |
-| `/api/families` | GET | List all drug families |
-| `/api/families/{id}` | GET | Get family by ID |
-| `/api/lineages` | GET | List all lineages |
-| `/api/lineages/{id}` | GET | Get lineage by ID |
-| `/api/diseases` | GET | List disease hierarchy |
-| `/api/diseases/{id}/drugs` | GET | Get drugs for disease |
-
+| `/api/v1/drugs` | GET | List all drugs (with pagination, filters: `category`, `search`, `phase`) |
+| `/api/v1/drugs/{id}` | GET | Get drug by ID |
+| `/api/v1/drugs/search` | GET | Search drugs by name, target, class, or synonyms (`?q=query`) |
+| `/api/v1/drugs/category/{category}` | GET | Filter drugs by ATC category (A-V) |
+| `/api/v1/families` | GET | List all drug families |
+| `/api/v1/families/{family_id}` | GET | Get family by ID |
+| `/api/v1/lineages` | GET | List all lineage edges (filters: `drug_id`, `edge_type`) |
+| `/api/v1/lineage/{drug_id}` | GET | Get genealogy tree for a drug (with `threshold` param) |
+| `/api/v1/regions` | GET | List all body regions from ontology |
+| `/api/v1/tree/disease/{disease_id}` | GET | Get body region and drugs for a disease |
+| `/api/v1/graph/stats` | GET | Get graph index statistics |
+| `/api/v1/graph/node/{node_id}` | GET | Get graph node by namespaced ID |
+| `/api/v1/graph/neighborhood/{node_id}` | GET | N-hop neighborhood (`?max_hops=1-5`) |
+| `/api/v1/graph/evidence/{edge_id}` | GET | Evidence supporting a graph edge |
+| `/api/v1/graph/subgraph` | GET | Subgraph extraction (`?node_ids=a,b,c`) |
+| `/api/v1/diseases` | GET | List disease hierarchy |
+| `/api/v1/diseases/{id}` | GET | Get disease by ID |
+| `/api/v1/diseases/{id}/drugs` | GET | Get drugs for a disease |
+| `/api/v1/admin/health/data-quality` | GET | Data quality health check |
 
 
 ## Documentation
 
-- [Project Plan](docs/PROJECT_PLAN.md) - Full architecture and roadmap
-- [Data Schema](docs/DATA_SCHEMA.md) - Drug data structure
+- [Project Plan](docs/PROJECT_PLAN.md) — Full architecture and roadmap
+- [Central Body Atlas Implementation](docs/CENTRAL_BODY_ATLAS_IMPLEMENTATION.md) — Atlas design
+- [Data Update Workflow](docs/DATA_UPDATE_WORKFLOW.md) — ETL pipeline documentation
 
 
 ## License

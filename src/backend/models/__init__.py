@@ -28,6 +28,15 @@ from .nodes import (
     TargetNode,
     ClusterNode,
 )
+from .graph import (
+    GraphNodeType,
+    GraphEdgeType,
+    Evidence,
+    GraphNodeRef,
+    GraphEdgeRef,
+    NeighborhoodResult,
+    SubgraphResult,
+)
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
@@ -48,4 +57,11 @@ __all__ = [
     "DiseaseNode",
     "TargetNode",
     "ClusterNode",
+    "GraphNodeType",
+    "GraphEdgeType",
+    "Evidence",
+    "GraphNodeRef",
+    "GraphEdgeRef",
+    "NeighborhoodResult",
+    "SubgraphResult",
 ]

@@ -6,7 +6,6 @@ Main FastAPI application entry point.
 
 import json
 from pathlib import Path
-from typing import List
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .models.drug import HealthResponse
 from .routers.drugs import router as drugs_router
 from .routers.diseases import router as diseases_router
+from .routers.admin import router as admin_router
+from .routers.graph import router as graph_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -43,7 +44,7 @@ app.add_middleware(
 DATA_PATH = Path(__file__).parent.parent.parent / "data" / "drugs.json"
 
 
-def load_drugs() -> List[dict]:
+def load_drugs() -> list[dict[str, object]]:
     """Load drugs from JSON file"""
     try:
         with open(DATA_PATH, "r") as f:
@@ -60,6 +61,8 @@ drugs_db = load_drugs()
 # Include routers
 app.include_router(drugs_router)
 app.include_router(diseases_router)
+app.include_router(admin_router)
+app.include_router(graph_router)
 
 
 # Health check endpoint

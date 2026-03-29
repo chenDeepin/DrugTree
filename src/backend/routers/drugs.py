@@ -9,11 +9,12 @@ from typing import Any, Dict, List, Optional
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..models.drug import Drug, DrugListResponse, DrugFilterParams
-from ..models.lineage import LineageEdge
+from ..models.drug_family import DrugFamily, DrugFamilyListResponse
+from ..models.lineage import LineageEdge, LineageEdgeListResponse
 from ..services.graph_index import GraphIndex, get_graph_index
 from ..services.tree_builder import GenealogyTree, TreeBuilder
 
@@ -223,7 +224,12 @@ async def list_drugs(
 
 
 @router.get("/drugs/search", response_model=DrugListResponse)
-async def search_drugs_query(q: str):
+async def search_drugs(q: str = Query(..., description="Search query text")):
+    """
+    Search drugs by name, target, class, or synonyms.
+
+    - **q**: Search query string
+    """
     drugs = load_drugs()
     filtered = [d for d in drugs if matches_drug_search(d, q)]
     return DrugListResponse(total=len(filtered), drugs=filtered)
@@ -256,77 +262,6 @@ async def get_drugs_by_category(category: str):
     filtered = [d for d in drugs if d.atc_category == category.upper()]
 
     return DrugListResponse(total=len(filtered), drugs=filtered)
-
-
-@router.get("/drugs/search/{query}", response_model=DrugListResponse)
-async def search_drugs(query: str):
-    """
-    Search drugs by name, target, class, or synonyms.
-
-    - **query**: Search query string
-    """
-    drugs = load_drugs()
-    filtered = [d for d in drugs if matches_drug_search(d, query)]
-
-    return DrugListResponse(total=len(filtered), drugs=filtered)
-
-
-@router.get("/categories")
-async def list_categories():
-    """
-    List all ATC categories with drug counts.
-    """
-    drugs = load_drugs()
-
-    categories = {}
-    for drug in drugs:
-        cat = drug.atc_category
-        if cat:
-            categories[cat] = categories.get(cat, 0) + 1
-
-    return {
-        "categories": [
-            {"code": code, "count": count} for code, count in sorted(categories.items())
-        ]
-    }
-
-
-@router.get("/stats")
-async def get_statistics():
-    """
-    Get drug database statistics.
-    """
-    drugs = load_drugs()
-
-    categories = {}
-    phases = {}
-    companies = set()
-    targets = set()
-
-    for drug in drugs:
-        # Count by category
-        if drug.atc_category:
-            categories[drug.atc_category] = categories.get(drug.atc_category, 0) + 1
-
-        # Count by phase
-        if drug.phase:
-            phases[drug.phase] = phases.get(drug.phase, 0) + 1
-
-        # Unique companies
-        if drug.company:
-            companies.add(drug.company)
-
-        # Unique targets
-        if drug.targets:
-            targets.update(drug.targets)
-
-    return {
-        "total_drugs": len(drugs),
-        "categories": categories,
-        "phases": phases,
-        "unique_companies": len(companies),
-        "unique_targets": len(targets),
-    }
 
 
 @router.get("/lineage/{drug_id}", response_model=LineageResponse)
@@ -518,6 +453,87 @@ async def list_body_regions():
             for region in visible_regions
         ]
     }
+
+
+@router.get("/families", response_model=DrugFamilyListResponse)
+async def list_families(
+    limit: int = 100,
+    offset: int = 0,
+):
+    """
+    List all drug families from the graph index.
+
+    Families are groups of drugs sharing a common target, mechanism, or scaffold.
+    Computed from processed lineage data in ``data/processed/drug_families.json``.
+
+    - **limit**: Max results (default 100)
+    - **offset**: Pagination offset (default 0)
+    """
+    graph_index = get_graph_index()
+
+    family_ids = graph_index.get_all_families()
+    total = len(family_ids)
+    page = family_ids[offset : offset + limit]
+
+    families = []
+    for fid in page:
+        fam = graph_index.get_family(fid)
+        if fam:
+            families.append(fam)
+
+    return DrugFamilyListResponse(total=total, families=families)
+
+
+@router.get("/families/{family_id}", response_model=DrugFamily)
+async def get_family(family_id: str):
+    """
+    Get a specific drug family by ID.
+
+    - **family_id**: Family identifier (e.g., 'target_h__k__atpase_72250c9c')
+    """
+    graph_index = get_graph_index()
+
+    family = graph_index.get_family(family_id)
+    if not family:
+        raise HTTPException(status_code=404, detail=f"Family '{family_id}' not found")
+
+    return family
+
+
+@router.get("/lineages", response_model=LineageEdgeListResponse)
+async def list_lineages(
+    drug_id: Optional[str] = None,
+    edge_type: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+):
+    """
+    List all lineage edges from the graph index.
+
+    Lineage edges represent evolutionary relationships between drugs
+    (follow-on, generation successor, resistance branch, etc.).
+
+    - **drug_id**: Filter to edges involving a specific drug
+    - **edge_type**: Filter by edge type (follow_on, generation_successor, etc.)
+    - **limit**: Max results (default 100)
+    - **offset**: Pagination offset (default 0)
+    """
+    graph_index = get_graph_index()
+
+    all_edges = graph_index.get_all_edges()
+
+    if drug_id:
+        all_edges = [
+            e for e in all_edges if e.from_drug_id == drug_id or e.to_drug_id == drug_id
+        ]
+
+    if edge_type:
+        all_edges = [e for e in all_edges if e.edge_type == edge_type]
+
+    total = len(all_edges)
+    paginated = all_edges[offset : offset + limit]
+
+    return LineageEdgeListResponse(total=total, edges=paginated)
 
 
 @router.get("/graph/stats")

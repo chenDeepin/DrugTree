@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from models.change import (
+from ..models.change import (
     ChangeDetector,
     ChangeSet,
     ChangeSetSummary,
@@ -20,7 +20,7 @@ from models.change import (
     DrugChange,
     ROLLBACK_DAYS,
 )
-from models.drug import Drug
+from ..models.drug import Drug
 
 logger = logging.getLogger(__name__)
 

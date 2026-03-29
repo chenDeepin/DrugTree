@@ -21,9 +21,21 @@ uvicorn src.backend.main:app --reload --port 8000
 
 ```
 backend/
-├── main.py              # FastAPI entry (89 lines)
-├── routers/drugs.py     # REST endpoints (203 lines)
-├── models/drug.py       # Pydantic schemas (102 lines)
+├── main.py              # FastAPI entry
+├── routers/
+│   ├── drugs.py         # Drug/family/lineage endpoints
+│   ├── diseases.py      # Disease endpoints
+│   ├── admin.py         # Admin endpoints
+│   └── graph.py         # Graph-native endpoints
+├── models/
+│   ├── drug.py          # Drug Pydantic schemas
+│   ├── graph.py         # Unified graph types (GraphNodeType, Evidence, GraphNodeRef, etc.)
+│   ├── nodes.py         # Graph node models (DiseaseNode, TargetNode, ClusterNode)
+│   ├── lineage.py       # Lineage edge model
+│   └── ...
+├── services/
+│   ├── graph_index.py   # In-memory graph index with adjacency
+│   └── graph_queries.py # Graph query service (neighborhood, evidence, subgraph)
 └── etl/                 # drug / disease / ATC pipelines
 ```
 
@@ -40,10 +52,22 @@ backend/
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/drugs` | List all drugs |
-| GET | `/api/drugs/{id}` | Get drug by ID |
-| GET | `/api/drugs/search` | Search drugs |
-| GET | `/api/drugs/atc/{cat}` | Filter by ATC |
+| GET | `/api/v1/drugs` | List all drugs |
+| GET | `/api/v1/drugs/{id}` | Get drug by ID |
+| GET | `/api/v1/drugs/search` | Search drugs (`?q=query`) |
+| GET | `/api/v1/drugs/category/{cat}` | Filter by ATC |
+| GET | `/api/v1/families` | List all drug families |
+| GET | `/api/v1/families/{family_id}` | Get family by ID |
+| GET | `/api/v1/lineages` | List all lineage edges |
+| GET | `/api/v1/lineage/{drug_id}` | Get genealogy tree for a drug |
+| GET | `/api/v1/regions` | List body regions |
+| GET | `/api/v1/tree/disease/{disease_id}` | Get disease tree with drugs |
+| GET | `/api/v1/graph/stats` | Graph index statistics |
+| GET | `/api/v1/graph/node/{node_id}` | Get graph node by namespaced ID |
+| GET | `/api/v1/graph/neighborhood/{node_id}` | N-hop neighborhood (`?max_hops=1-5`) |
+| GET | `/api/v1/graph/evidence/{edge_id}` | Evidence for a graph edge |
+| GET | `/api/v1/graph/subgraph` | Subgraph extraction (`?node_ids=a,b,c`) |
+| GET | `/api/v1/admin/health/data-quality` | Data quality health check |
 
 ---
 

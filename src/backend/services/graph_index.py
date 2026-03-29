@@ -8,8 +8,9 @@ Reference: .sisyphus/plans/drugtree-graph-evolution.md (Task 17)
 """
 
 import json
+from collections import deque
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from ..models.drug_family import DrugFamily
 from ..models.lineage import LineageEdge
@@ -71,9 +72,7 @@ class GraphIndex:
             families_path or base_path / "processed" / "drug_families.json"
         )
         self.edges_path = edges_path or base_path / "processed" / "lineage_edges.json"
-        self.drugs_path = (
-            drugs_path or base_path / "drugs.json"
-        )
+        self.drugs_path = drugs_path or base_path / "drugs.json"
 
         # Index structures
         self._nodes: Dict[str, DrugNode] = {}
@@ -82,6 +81,7 @@ class GraphIndex:
 
         # Edge index by drug ID (for fast lookups)
         self._edges_by_drug: Dict[str, List[str]] = {}
+        self._adjacency: Dict[str, Set[str]] = {}
 
         # Loaded flag
         self._loaded = False
@@ -144,6 +144,14 @@ class GraphIndex:
                 if edge.edge_id not in self._edges_by_drug[drug_id]:
                     self._edges_by_drug[drug_id].append(edge.edge_id)
 
+            if edge.from_drug_id not in self._adjacency:
+                self._adjacency[edge.from_drug_id] = set()
+            if edge.to_drug_id not in self._adjacency:
+                self._adjacency[edge.to_drug_id] = set()
+
+            self._adjacency[edge.from_drug_id].add(edge.to_drug_id)
+            self._adjacency[edge.to_drug_id].add(edge.from_drug_id)
+
     def _load_drug_names(self) -> None:
         """Load drug names from canonical drugs.json for better display."""
         if not self.drugs_path.exists():
@@ -166,8 +174,72 @@ class GraphIndex:
         self._edges.clear()
         self._families.clear()
         self._edges_by_drug.clear()
+        self._adjacency.clear()
         self._loaded = False
         self.load()
+
+    def get_neighbors(self, drug_id: str) -> List[str]:
+        if not self._loaded:
+            self.load()
+        return sorted(self._adjacency.get(drug_id, set()))
+
+    def get_neighborhood(self, drug_id: str, max_hops: int = 1) -> Dict[str, List[str]]:
+        if not self._loaded:
+            self.load()
+
+        if max_hops < 1 or drug_id not in self._nodes:
+            return {}
+
+        visited: Set[str] = {drug_id}
+        queue = deque([(drug_id, 0)])
+
+        while queue:
+            current, depth = queue.popleft()
+            if depth >= max_hops:
+                continue
+
+            for neighbor in self._adjacency.get(current, set()):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, depth + 1))
+
+        return {
+            node_id: sorted(self._adjacency.get(node_id, set())) for node_id in visited
+        }
+
+    def get_edge_evidence(self, edge_id: str) -> List[Dict[str, Any]]:
+        if not self._loaded:
+            self.load()
+
+        edge = self._edges.get(edge_id)
+        if edge is None:
+            return []
+
+        return [
+            {
+                "source": edge.provenance.value,
+                "source_type": "curated"
+                if edge.provenance.value in {"manual", "curated"}
+                else "inferred",
+                "confidence": edge.confidence,
+                "description": edge.explanation,
+                "url": None,
+            }
+        ]
+
+    def get_subgraph(self, node_ids: List[str]) -> Dict[str, List[str]]:
+        if not self._loaded:
+            self.load()
+
+        node_set = {node_id for node_id in node_ids if node_id in self._nodes}
+        return {
+            node_id: sorted(
+                neighbor
+                for neighbor in self._adjacency.get(node_id, set())
+                if neighbor in node_set
+            )
+            for node_id in node_set
+        }
 
     def get_node(self, node_id: str) -> Optional[DrugNode]:
         """

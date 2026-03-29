@@ -1,6 +1,7 @@
-# Python caches
+# ===== Python =====
 __pycache__/
 *.py[cod]
+*.pyo
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -8,21 +9,25 @@ __pycache__/
 .eggs/
 dist/
 build/
+.venv/
+venv/
 
-# Local editor / agent state
-.cursor/
-.opencode/
-.sisyphus/
-.config/
+# ===== Node.js =====
+node_modules/
+package-lock.json
 
-# Logs and runtime artifacts
-artifacts/
-logs/
-*.log
+# ===== Database (runtime artifacts, never commit) =====
+*.db
+*.sqlite
+*.sqlite3
+drugtree.db
+src/backend/drugtree.db
+src/backend/cache/api_cache.db
 
-# Local environments and secrets
+# ===== Environment & secrets =====
 .env
 .env.*
+!.env.example
 auth-profiles.json
 *.pem
 *.key
@@ -44,161 +49,98 @@ id_ed25519*
 known_hosts
 .ssh/
 
-# MotifSAR runtime data
-.motifsar/
-telemetry.json
-*.lmdb
+# ===== Editor / agent state =====
+.cursor/
+.opencode/
+.sisyphus/
+.config/
 
-# User/session/runtime state
+# ===== Logs & runtime =====
+logs/
+*.log
+artifacts/
 *.pid
 *.tmp
 *.swp
 *.swo
 
-# Exclude tests from canonical repo sync
-test/
-scripts/test/
-tests/bootstrap/
+# ===== OS noise =====
+.DS_Store
+Thumbs.db
 
-# Local planning / update docs not meant for canonical repo
+# ===== Jupyter =====
+.ipynb_checkpoints/
+
+# ===== Coverage =====
+.coverage
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+test-results/
+tests/frontend/playwright-report/
+tests/frontend/test-results/
+
+# ===== Local planning docs =====
 PLAN.md
 PLAN_global.md
+nextplan.md
 findings.md
 progress.md
 task_plan.md
 TODO.md
 UPDATES.md
-*_plan*.md
-*_checklist*.md
-*_gap_matrix*.md
-*_repo_truth.md
-*_audit.md
-*_review.md
-*_report.md
-*_next_steps*.md
-*_comparison*.md
+docs/*_global_plan.md
+docs/working_context.md
+docs/plans/
+docs/PROGRESS_SUMMARY.md
+docs/disease-universe_raw.md
 
-# Tests folder (local only)
-tests/
-!tests/backend/
-!tests/backend/**
-!tests/frontend/
-!tests/frontend/**
-!tests/disease_universe/
-!tests/disease_universe/**
+# ===== Local data artifacts =====
+data/curated/
+data/processed/
+data/changes/
+data/checkpoints/
+data/reports/
+data/amr_pub_atc/
+data/amr_pub_atc.csv
+data/kegg_brite_*.keg
 
-# Scripts folder (local only)
-scripts/
-!scripts/build_frontend_embeds.py
+# ===== Backend ETL artifacts =====
+src/backend/etl/*.json
+src/backend/etl/checkpoints/
+src/backend/etl/*.log
+src/backend/data/*.json
+src/backend/logs/
+src/backend/*.log
+src/backend/cache/
+src/backend/.sisyphus/
+src/frontend/drugtree.db
 
-# Documentation folder (local only)
-docs/
+# ===== Frontend enrichment artifacts =====
+src/frontend/atc_enrichment.py
+src/frontend/atc_enrichment_results.json
+src/frontend/drugs_needing_atc.json
+src/frontend/.pytest_cache/
+src/frontend/.ruff_cache/
 
-# Coverage reports
-.coverage
-.coveragerc
-htmlcov/
-.coverage.*
-coverage.xml
-*.cover
-
-# Benchmark artifacts
-benchmarks/micro/
-benchmarks/mini/
-benchmarks/reports/
-benchmarks/research/
-benchmarks/standard/
-
-# Canonical bootstrap CI assets that must be tracked
-!.coveragerc
-!scripts/test/
-scripts/test/*
-!scripts/test/bootstrap/
-!scripts/test/bootstrap/**
-!tests/bootstrap/
-!tests/bootstrap/**
-!benchmarks/micro/
-!benchmarks/micro/**
-!benchmarks/mini/
-!benchmarks/mini/**
-!benchmarks/research/
-!benchmarks/research/**
-!benchmarks/standard/
-!benchmarks/standard/**
-!test/
-test/*
-!test/data/
-test/data/*
-!test/data/bootstrap/
-!test/data/bootstrap/**
-scripts/test/bootstrap/__pycache__/
-tests/bootstrap/__pycache__/
-
-# OS noise
-.DS_Store
-Thumbs.db
-
-# Jupyter notebooks
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# Local development plans (not for remote)
-motifsar_multi_gui_agentic_update_plan.md
-
-# Backup/alternate data files
+# ===== Backup/alternate data files =====
 *-v2.json
 *-backup.json
 *-old.json
 *.bak
 
-# Project-specific generated data
-data/curated/
-data/processed/
-generate_families.py
-update_drug_families.py
-test-results/
+# ===== Script artifacts =====
+scripts/__pycache__/
+scripts/generate_families.py
+scripts/update_drug_families.py
 
-# Node.js
-node_modules/
-package-lock.json
-
-# Backend
-*.db
-*.sqlite
-*.sqlite3
-.venv/
-venv/
-.env.local
-.env.*.local
-
-# Backend state/checkpoint files
-src/backend/etl/*.json
-src/backend/etl/checkpoints/
-src/backend/data/*.json
-
-# Backend logs
-src/backend/logs/
-src/backend/*.log
-src/backend/cache/
-
-# PostgreSQL data (for future migration)
+# ===== PostgreSQL (future) =====
 *.sql.gz
 postgres_data/
 pg_data/
-
-# Database migration artifacts
 *.sql.backup
 *.sql.rollback
-migrations/*.log
 
-# Evidence and reports (generated)
-.sisyphus/evidence/**/*.log
-.sisyphus/evidence/**/*.txt
-data/reports/*.json
-data/reports/*.html
-tests/frontend/playwright-report/
-
-# Large generated data files
-data/processed/**/*.json
-data/curated/**/*.json
-data/changes/*.json
+# ===== Benchmarks =====
+benchmarks/
