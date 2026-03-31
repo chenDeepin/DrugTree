@@ -1,0 +1,143 @@
+{
+  "fixture_version": 1,
+  "generated_at": "2026-03-31T08:57:55+00:00",
+  "selection_rules": {
+    "ordering": "sort by stable identifier when present, otherwise by normalized JSON sha256",
+    "search_match": "same case-insensitive contains logic as backend search helpers for name, targets, class, synonyms, company, and indication",
+    "combined_filter_fixture": "first deterministic disease/category/query tuple with at least one explicit disease-edge-backed match"
+  },
+  "sources": {
+    "drugs": {
+      "path": "data/drugs.json",
+      "sha256": "2203430c5e16196076bc991261ddb595f9ed1767cf8ac413d7b3c441383ab074",
+      "record_count": 7359
+    },
+    "diseases": {
+      "path": "data/diseases.json",
+      "sha256": "5f237e7f8aafbc940a2e48bb224b1f710637339d1f142d5135f207dda575ccdf",
+      "record_count": 50
+    },
+    "disease_drug_edges": {
+      "path": "data/disease_drug_edges.json",
+      "sha256": "109d85fffa491b012365c5fe10ea07c27516fc492e7059f52ececeb98dbdac27",
+      "record_count": 64
+    },
+    "body_ontology": {
+      "path": "data/ontology/body-ontology.json",
+      "sha256": "91f9c69250ee752f6cde72fe2c54ce98ffd450f4403385503aa87b0dde906cb7",
+      "record_count": 14
+    },
+    "drug_families": {
+      "path": "data/processed/drug_families.json",
+      "sha256": "defbf0c7c2ddca0d675d6ba68c9a6eac3166a84903f66cee4345bb83f4228b10",
+      "record_count": 26
+    },
+    "lineage_edges": {
+      "path": "data/processed/lineage_edges.json",
+      "sha256": "881c8ca4eb2bcb8a4e4397ca8bbfd3c680b6e48a71ade8dad44bd1db28211d2f",
+      "record_count": 50
+    }
+  },
+  "frontend": {
+    "cold_boot": {
+      "render_selector": ".drug-card",
+      "expected_minimum_cards": 1,
+      "static_harness_base_url": "http://localhost:8766"
+    },
+    "category_filter": {
+      "category": "C",
+      "tag_selector": ".atc-tag[data-category=\"C\"]",
+      "expected_count": 600,
+      "sample_expected_ids": [
+        "5-nitro-2-propoxyacetanilid",
+        "9-uginhalation-4-inh",
+        "acadesine",
+        "acebutolol-hydrochloride",
+        "acecainide-hydrochloride",
+        "acetyldigitoxin",
+        "acetyldigoxin",
+        "acipimox",
+        "acoramidis",
+        "actodigin"
+      ]
+    },
+    "search_filter": {
+      "query": "statin",
+      "expected_ids": [
+        "alrestatin-sodium",
+        "atorvastatin",
+        "atorvastatin-d07474",
+        "cerivastatin",
+        "cerivastatin-sodium",
+        "cilastatin",
+        "cilastatin-sodium",
+        "cladribine",
+        "crilvastatin",
+        "dalvastatin",
+        "fenofibratesimvastatin",
+        "fluvastatin",
+        "fluvastatin-sodium",
+        "imipenemcilastatinrelebactam",
+        "jtt-705-600-mg-and-simvastatin-40-mg",
+        "lovastatin",
+        "nystatin",
+        "paltusotine",
+        "pepstatin",
+        "pitavastatin",
+        "pitavastatin-calcium",
+        "pravastatin-sodium",
+        "simvastatin-40-mg-combination",
+        "tenivastatin-calcium",
+        "ubenimex",
+        "vedotin",
+        "zinostatin"
+      ],
+      "expected_count": 27
+    },
+    "route_detail": {
+      "drug_id": "atorvastatin",
+      "drug_name": "atorvastatin",
+      "prefilter_query": "atorvastatin",
+      "detail_selector": "#drug-detail-page"
+    },
+    "combined_filter": {
+      "disease_id": "alzheimers_disease",
+      "disease_name": "Alzheimer's Disease",
+      "category": "N",
+      "search_query": "approved",
+      "expected_ids": [
+        "galantamine",
+        "memantine-hydrochloride"
+      ],
+      "expected_count": 2
+    }
+  },
+  "backend": {
+    "drugs_endpoint": {
+      "path": "/api/v1/drugs?limit=50",
+      "limit": 50,
+      "expected_status": 200
+    },
+    "graph_neighborhood": {
+      "path": "/api/v1/graph/neighborhood/drug:atorvastatin?max_hops=1",
+      "node_id": "drug:atorvastatin",
+      "max_hops": 1,
+      "expected_status": 200
+    },
+    "graph_evidence": {
+      "path": "/api/v1/graph/evidence/simvastatin_to_atorvastatin",
+      "edge_id": "simvastatin_to_atorvastatin",
+      "expected_status": 200
+    }
+  },
+  "etl": {
+    "phase_name": "family_build_plus_lineage_build_plus_embed_generation",
+    "canonical_drug_count": 7359,
+    "canonical_disease_count": 50,
+    "canonical_disease_edge_count": 64,
+    "body_region_count": 14,
+    "existing_family_count": 26,
+    "existing_lineage_edge_count": 50,
+    "frontend_embed_script": "scripts/build_frontend_embeds.py"
+  }
+}

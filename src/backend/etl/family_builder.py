@@ -45,6 +45,8 @@ class FamilyBuilder:
     def __init__(self):
         self.families: List[DrugFamily] = []
         self.drug_to_families: Dict[str, List[str]] = defaultdict(list)
+        self._target_cache: Dict[str, Optional[str]] = {}
+        self._atc_level_cache: Dict[str, Optional[str]] = {}
 
     def build_families(self, drugs: List[Drug]) -> List[DrugFamily]:
         self.families = []
@@ -185,7 +187,11 @@ class FamilyBuilder:
 
     def _normalize_target(self, target: str) -> Optional[str]:
         """Normalize target name for grouping"""
+        if target in self._target_cache:
+            return self._target_cache[target]
+
         if not target:
+            self._target_cache[target] = None
             return None
 
         # Lowercase and strip whitespace
@@ -194,14 +200,22 @@ class FamilyBuilder:
         # Remove common variations
         normalized = normalized.replace("-", " ").replace("_", " ")
 
-        return normalized if normalized else None
+        result = normalized if normalized else None
+        self._target_cache[target] = result
+        return result
 
     def _get_atc_3rd_level(self, atc_code: str) -> Optional[str]:
         """Extract ATC 3rd level (e.g., 'C10A' from 'C10AA05')"""
+        if atc_code in self._atc_level_cache:
+            return self._atc_level_cache[atc_code]
+
         if not atc_code or len(atc_code) < 4:
+            self._atc_level_cache[atc_code] = None
             return None
 
-        return atc_code[:4]  # First 4 characters = ATC 3rd level
+        result = atc_code[:4]
+        self._atc_level_cache[atc_code] = result
+        return result  # First 4 characters = ATC 3rd level
 
     def _find_prototype(self, drugs: List[Drug]) -> Optional[Drug]:
         """Find the prototype drug (oldest approved)"""

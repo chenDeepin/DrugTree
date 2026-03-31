@@ -1,0 +1,52 @@
+{
+  "manifest_version": 1,
+  "generated_at": "2026-03-31T08:57:55+00:00",
+  "source_hash_policy": "sha256(raw canonical file bytes)",
+  "fixture_hash_policy": "sha256(pretty-printed generated fixture JSON bytes)",
+  "sources": {
+    "drugs": {
+      "path": "data/drugs.json",
+      "sha256": "2203430c5e16196076bc991261ddb595f9ed1767cf8ac413d7b3c441383ab074",
+      "record_count": 7359
+    },
+    "diseases": {
+      "path": "data/diseases.json",
+      "sha256": "5f237e7f8aafbc940a2e48bb224b1f710637339d1f142d5135f207dda575ccdf",
+      "record_count": 50
+    },
+    "disease_drug_edges": {
+      "path": "data/disease_drug_edges.json",
+      "sha256": "109d85fffa491b012365c5fe10ea07c27516fc492e7059f52ececeb98dbdac27",
+      "record_count": 64
+    },
+    "body_ontology": {
+      "path": "data/ontology/body-ontology.json",
+      "sha256": "91f9c69250ee752f6cde72fe2c54ce98ffd450f4403385503aa87b0dde906cb7",
+      "record_count": 14
+    },
+    "drug_families": {
+      "path": "data/processed/drug_families.json",
+      "sha256": "defbf0c7c2ddca0d675d6ba68c9a6eac3166a84903f66cee4345bb83f4228b10",
+      "record_count": 26
+    },
+    "lineage_edges": {
+      "path": "data/processed/lineage_edges.json",
+      "sha256": "881c8ca4eb2bcb8a4e4397ca8bbfd3c680b6e48a71ade8dad44bd1db28211d2f",
+      "record_count": 50
+    }
+  },
+  "fixtures": {
+    "benchmark-fixtures.json": {
+      "sha256": "108e29b80672618d98917fceddf7034e8ab489d06901e258ded7708255c6d874",
+      "scenario_sections": [
+        "backend",
+        "etl",
+        "frontend"
+      ]
+    },
+    "manifest.json": {
+      "sha256": "9cdd8557a877df588c44d0c0ac7a31731b17bf03256a87effb16d7c24652a8cf",
+      "hash_input": "manifest JSON bytes with fixtures.manifest.json.sha256 blank"
+    }
+  }
+}

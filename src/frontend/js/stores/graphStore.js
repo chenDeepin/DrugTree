@@ -34,6 +34,7 @@ class GraphStore {
     
     this.loading = true;
     this.error = null;
+    this.clear();
     
     try {
       const payload = Array.isArray(graphData)
@@ -84,6 +85,85 @@ class GraphStore {
       this.loading = false;
       this.error = err.message;
       console.error('GraphStore.loadGraph error:', err);
+      throw err;
+    }
+  }
+
+  async loadFromGraph(graphPayload, options = {}) {
+    if (this.loading) return null;
+
+    this.loading = true;
+    this.error = null;
+    this.clear();
+
+    try {
+      const payload = graphPayload || {};
+      const nodes = payload.nodes || [];
+      const edges = payload.edges || [];
+      const bodyOntology = options.bodyOntology || null;
+      const diseases = options.diseases || [];
+      const diseaseDrugEdges = options.diseaseDrugEdges || [];
+      const shellDrugById = new Map((options.drugs || []).filter((drug) => drug?.id).map((drug) => [drug.id, drug]));
+
+      if (bodyOntology?.visible_regions) {
+        for (const region of bodyOntology.visible_regions) {
+          this.bodyRegions.set(region.id, {
+            id: region.id,
+            display_name: region.display_name,
+            icon: region.icon || '',
+            description: region.description || '',
+            internal_nodes: region.internal_nodes || [],
+          });
+        }
+      }
+
+      if (diseases.length > 0) {
+        this._processDiseases(diseases, diseaseDrugEdges);
+      }
+
+      nodes.forEach((node) => {
+        if (!node?.node_id || !node?.node_type) {
+          return;
+        }
+
+        if (node.node_type === 'drug') {
+          const drug = node.extra || {};
+          const drugId = drug.id || String(node.node_id).split(':', 2)[1];
+          if (!drugId) {
+            return;
+          }
+          const shellDrug = shellDrugById.get(drugId) || null;
+          this.nodes.set(drugId, {
+            id: drugId,
+            name: node.label || drug.name || drugId,
+            drug: shellDrug || drug,
+          });
+          return;
+        }
+
+        if (node.node_type === 'cluster') {
+          const family = node.extra || {};
+          if (family.family_id) {
+            this.families.set(family.family_id, family);
+          }
+        }
+      });
+
+      edges.forEach((edge) => {
+        if (!edge?.edge_id) {
+          return;
+        }
+        this.edges.set(edge.edge_id, edge);
+      });
+
+      this.loaded = true;
+      this.loading = false;
+      console.log(`GraphStore loaded from graph artifacts: ${this.bodyRegions.size} regions, ${this.diseaseHierarchy.size} diseases, ${this.nodes.size} drugs, ${this.edges.size} edges`);
+      return true;
+    } catch (err) {
+      this.loading = false;
+      this.error = err.message;
+      console.error('GraphStore.loadFromGraph error:', err);
       throw err;
     }
   }

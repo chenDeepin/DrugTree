@@ -10,7 +10,7 @@ or ensure it protected by route-level authentication.
 
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Mapping, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -28,6 +28,8 @@ from ..models.change import (
 )
 from ..services.audit_logger import get_audit_logger
 from ..services.change_detector import get_change_detector
+from ..services.graph_queries import get_graph_query_service
+from ..services.request_metrics import get_request_metrics_service
 from ..services.update_scheduler import get_scheduler
 from ..services.validation_pipeline import get_validation_pipeline
 
@@ -78,8 +80,8 @@ class ValidationReportResponse(BaseModel):
     report_id: str
     timestamp: datetime
     overall_status: str
-    summary: dict
-    metrics: dict
+    summary: dict[str, object]
+    metrics: dict[str, object]
     alerts: List[str]
 
 
@@ -92,8 +94,16 @@ class DataQualityHealthResponse(BaseModel):
     provenance_coverage: float
     structure_validity: float
     total_drugs: int
-    validation_summary: dict
+    validation_summary: dict[str, object]
     alerts: List[str]
+
+
+class PerformanceMetricsResponse(BaseModel):
+    snapshot_hash: str
+    snapshot_created_at: datetime
+    request_metrics: Mapping[str, object]
+    snapshot_cache: Mapping[str, object]
+    graph_query_cache: Mapping[str, object]
 
 
 # Endpoints
@@ -380,3 +390,20 @@ async def get_data_quality_health() -> DataQualityHealthResponse:
             },
             alerts=[f"Health check failed: {str(e)}"],
         )
+
+
+@router.get("/performance", response_model=PerformanceMetricsResponse)
+async def get_performance_metrics() -> PerformanceMetricsResponse:
+    from ..services.data_snapshot import get_data_snapshot_service
+
+    snapshot = get_data_snapshot_service().get_snapshot()
+    metrics = get_request_metrics_service().summarize()
+    snapshot_cache = get_data_snapshot_service().cache_stats()
+    graph_query_cache = get_graph_query_service().get_cache_stats()
+    return PerformanceMetricsResponse(
+        snapshot_hash=snapshot.source_hash,
+        snapshot_created_at=snapshot.created_at,
+        request_metrics=metrics,
+        snapshot_cache=snapshot_cache,
+        graph_query_cache=graph_query_cache,
+    )

@@ -13,9 +13,10 @@
  *   T6: Tooltip clamping + responsive topbar (viewport-aware positioning)
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './playwright';
+import type { Page } from './playwright';
 
-async function installDrugSelectionCounter(page: import('@playwright/test').Page) {
+async function installDrugSelectionCounter(page: Page) {
   await page.evaluate(() => {
     const pageWindow = window as typeof window & {
       __drugSelectionEventCount?: number;
@@ -43,20 +44,20 @@ async function installDrugSelectionCounter(page: import('@playwright/test').Page
   });
 }
 
-async function readDrugSelectionCount(page: import('@playwright/test').Page) {
+async function readDrugSelectionCount(page: Page) {
   return page.evaluate(() => {
     const pageWindow = window as typeof window & { __drugSelectionEventCount?: number };
     return pageWindow.__drugSelectionEventCount || 0;
   });
 }
 
-async function openDiseaseView(page: import('@playwright/test').Page) {
+async function openDiseaseView(page: Page) {
   await page.click('.view-btn[data-view="disease"]');
   await expect(page.locator('.view-btn[data-view="disease"]')).toHaveClass(/active/);
 }
 
 async function readRenderedNodeIds(
-  page: import('@playwright/test').Page,
+  page: Page,
   selector: string,
 ) {
   return page.evaluate((nodeSelector) => {
@@ -70,7 +71,7 @@ async function readRenderedNodeIds(
 }
 
 async function readFirstNodeTransform(
-  page: import('@playwright/test').Page,
+  page: Page,
   selector: string,
 ) {
   return page.evaluate((nodeSelector) => {
@@ -79,7 +80,7 @@ async function readFirstNodeTransform(
   }, selector);
 }
 
-async function getPrunableRegionTarget(page: import('@playwright/test').Page) {
+async function getPrunableRegionTarget(page: Page) {
   return page.evaluate(() => {
     const pageWindow = window as typeof window & {
       app?: {
@@ -142,7 +143,7 @@ async function getPrunableRegionTarget(page: import('@playwright/test').Page) {
   });
 }
 
-async function getLongLabelDiseaseTarget(page: import('@playwright/test').Page) {
+async function getLongLabelDiseaseTarget(page: Page) {
   return page.evaluate(() => {
     const pageWindow = window as typeof window & {
       app?: {
@@ -184,7 +185,7 @@ async function getLongLabelDiseaseTarget(page: import('@playwright/test').Page) 
   });
 }
 
-async function getDenseDiseaseTarget(page: import('@playwright/test').Page) {
+async function getDenseDiseaseTarget(page: Page) {
   return page.evaluate(() => {
     const pageWindow = window as typeof window & {
       app?: {
@@ -210,7 +211,7 @@ async function getDenseDiseaseTarget(page: import('@playwright/test').Page) {
   });
 }
 
-async function getDiseaseContextTarget(page: import('@playwright/test').Page) {
+async function getDiseaseContextTarget(page: Page) {
   return page.evaluate(() => {
     const pageWindow = window as typeof window & {
       app?: {

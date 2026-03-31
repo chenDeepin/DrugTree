@@ -67,12 +67,17 @@ class GraphIndex:
         """
         # Default paths relative to project root
         base_path = Path(__file__).parent.parent.parent.parent / "data"
+        self.graph_dir = base_path / "graph"
+        self.graph_meta_path = self.graph_dir / "graph-meta.json"
 
         self.families_path = (
             families_path or base_path / "processed" / "drug_families.json"
         )
         self.edges_path = edges_path or base_path / "processed" / "lineage_edges.json"
         self.drugs_path = drugs_path or base_path / "drugs.json"
+        self.use_graph_artifacts = (
+            families_path is None and edges_path is None and drugs_path is None
+        )
 
         # Index structures
         self._nodes: Dict[str, DrugNode] = {}
@@ -88,10 +93,96 @@ class GraphIndex:
 
     def load(self) -> None:
         """Load all data from JSON files into memory."""
+        if self.use_graph_artifacts and self.graph_meta_path.exists():
+            self._load_graph_artifacts()
+            self._loaded = True
+            return
+
         self._load_families()
         self._load_edges()
         self._load_drug_names()
         self._loaded = True
+
+    def _load_graph_artifacts(self) -> None:
+        drugs_path = self.graph_dir / "nodes" / "drugs.json"
+        clusters_path = self.graph_dir / "nodes" / "clusters.json"
+        lineage_path = self.graph_dir / "edges" / "lineage.json"
+
+        if (
+            not drugs_path.exists()
+            or not clusters_path.exists()
+            or not lineage_path.exists()
+        ):
+            self._load_families()
+            self._load_edges()
+            self._load_drug_names()
+            return
+
+        with open(drugs_path, "r") as f:
+            drug_nodes = json.load(f).get("nodes", [])
+        for node in drug_nodes:
+            extra = node.get("extra", {})
+            drug_id = extra.get("id") or node.get("node_id", "").split(":", 1)[-1]
+            if not drug_id:
+                continue
+            self._nodes[str(drug_id)] = DrugNode(
+                str(drug_id), str(node.get("label") or drug_id)
+            )
+
+        with open(clusters_path, "r") as f:
+            cluster_nodes = json.load(f).get("nodes", [])
+        for node in cluster_nodes:
+            extra = node.get("extra", {})
+            if not extra:
+                continue
+            family = DrugFamily(**extra)
+            self._families[family.family_id] = family
+            for drug_id in family.member_drug_ids:
+                if drug_id not in self._nodes:
+                    self._nodes[drug_id] = DrugNode(drug_id)
+                self._nodes[drug_id].families.append(family.family_id)
+
+        with open(lineage_path, "r") as f:
+            lineage_edges = json.load(f).get("edges", [])
+        for artifact in lineage_edges:
+            extra = artifact.get("extra", {})
+            edge_payload: Dict[str, Any] = (
+                dict(extra)
+                if isinstance(extra, dict) and extra
+                else {
+                    "edge_id": artifact["edge_id"],
+                    "from_drug_id": artifact["source_id"].split(":", 1)[1],
+                    "to_drug_id": artifact["target_id"].split(":", 1)[1],
+                    "edge_type": artifact.get("edge_type", "follow_on"),
+                    "confidence": artifact.get("confidence", 1.0),
+                    "generation_rationale": [],
+                    "score_breakdown": {},
+                    "provenance": "auto",
+                }
+            )
+            edge = LineageEdge(**edge_payload)
+            self._edges[edge.edge_id] = edge
+
+            if edge.from_drug_id not in self._nodes:
+                self._nodes[edge.from_drug_id] = DrugNode(edge.from_drug_id)
+            if edge.to_drug_id not in self._nodes:
+                self._nodes[edge.to_drug_id] = DrugNode(edge.to_drug_id)
+
+            self._nodes[edge.from_drug_id].outgoing_edges.append(edge.edge_id)
+            self._nodes[edge.to_drug_id].incoming_edges.append(edge.edge_id)
+
+            for drug_id in [edge.from_drug_id, edge.to_drug_id]:
+                if drug_id not in self._edges_by_drug:
+                    self._edges_by_drug[drug_id] = []
+                if edge.edge_id not in self._edges_by_drug[drug_id]:
+                    self._edges_by_drug[drug_id].append(edge.edge_id)
+
+            if edge.from_drug_id not in self._adjacency:
+                self._adjacency[edge.from_drug_id] = set()
+            if edge.to_drug_id not in self._adjacency:
+                self._adjacency[edge.to_drug_id] = set()
+            self._adjacency[edge.from_drug_id].add(edge.to_drug_id)
+            self._adjacency[edge.to_drug_id].add(edge.from_drug_id)
 
     def _load_families(self) -> None:
         """Load drug families from JSON file."""

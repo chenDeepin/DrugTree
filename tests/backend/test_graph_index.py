@@ -9,9 +9,9 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from backend.services.graph_index import GraphIndex, DrugNode, get_graph_index
-from backend.models.drug_family import DrugFamily
-from backend.models.lineage import LineageEdge, EdgeType, Provenance
+from src.backend.services.graph_index import GraphIndex, DrugNode, get_graph_index
+from src.backend.models.drug_family import DrugFamily
+from src.backend.models.lineage import LineageEdge, EdgeType, Provenance
 
 
 @pytest.fixture
@@ -283,6 +283,92 @@ class TestGraphIndex:
 
         assert index._loaded is True
 
+    def test_prefers_graph_artifacts_when_meta_exists(self, temp_data_files):
+        index = GraphIndex(
+            families_path=temp_data_files["families_path"],
+            edges_path=temp_data_files["edges_path"],
+            drugs_path=temp_data_files["drugs_path"],
+        )
+
+        graph_root = temp_data_files["families_path"].parent / "graph"
+        (graph_root / "nodes").mkdir(parents=True)
+        (graph_root / "edges").mkdir(parents=True)
+
+        with open(graph_root / "graph-meta.json", "w") as f:
+            json.dump({"schema_version": "2.0.0"}, f)
+        with open(graph_root / "nodes" / "drugs.json", "w") as f:
+            json.dump(
+                {
+                    "nodes": [
+                        {
+                            "node_id": "drug:artifact-drug",
+                            "node_type": "drug",
+                            "label": "Artifact Drug",
+                            "extra": {"id": "artifact-drug", "name": "Artifact Drug"},
+                        }
+                    ]
+                },
+                f,
+            )
+        with open(graph_root / "nodes" / "clusters.json", "w") as f:
+            json.dump(
+                {
+                    "nodes": [
+                        {
+                            "node_id": "cluster:artifact-family",
+                            "node_type": "cluster",
+                            "label": "Artifact Family",
+                            "extra": {
+                                "family_id": "artifact-family",
+                                "label": "Artifact Family",
+                                "family_basis": "mechanism",
+                                "prototype_drug_id": "artifact-drug",
+                                "member_drug_ids": ["artifact-drug"],
+                                "representative_target_ids": [],
+                                "schema_version": "1.1.0",
+                                "description": "Artifact family",
+                                "atc_codes": [],
+                            },
+                        }
+                    ]
+                },
+                f,
+            )
+        with open(graph_root / "edges" / "lineage.json", "w") as f:
+            json.dump(
+                {
+                    "edges": [
+                        {
+                            "edge_id": "artifact-drug_to_artifact-drug",
+                            "edge_type": "lineage",
+                            "source_id": "drug:artifact-drug",
+                            "target_id": "drug:artifact-drug",
+                            "confidence": 1.0,
+                            "extra": {
+                                "edge_id": "artifact-drug_to_artifact-drug",
+                                "from_drug_id": "artifact-drug",
+                                "to_drug_id": "artifact-drug",
+                                "edge_type": "follow_on",
+                                "confidence": 1.0,
+                                "generation_rationale": [],
+                                "score_breakdown": {},
+                                "provenance": "auto",
+                                "schema_version": "1.1.0",
+                            },
+                        }
+                    ]
+                },
+                f,
+            )
+
+        index.graph_dir = graph_root
+        index.graph_meta_path = graph_root / "graph-meta.json"
+        index.use_graph_artifacts = True
+        index.load()
+
+        assert index.get_node("artifact-drug") is not None
+        assert index.get_family("artifact-family") is not None
+
 
 class TestDrugNode:
     def test_drug_node_creation(self):
@@ -302,7 +388,7 @@ class TestDrugNode:
 
 class TestGetGraphIndex:
     def test_singleton_returns_same_instance(self):
-        from backend.services import graph_index as gi
+        from src.backend.services import graph_index as gi
 
         gi._index_instance = None
 

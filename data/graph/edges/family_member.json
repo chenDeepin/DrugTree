@@ -1,0 +1,624 @@
+{
+  "edges": [
+    {
+      "edge_id": "cluster:target_h__k__atpase_72250c9c_drug:lansoprazole",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_h__k__atpase_72250c9c",
+      "target_id": "drug:lansoprazole",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_h__k__atpase_72250c9c_drug:omeprazole",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_h__k__atpase_72250c9c",
+      "target_id": "drug:omeprazole",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_hmg_coa_reductase_7169b791_drug:atorvastatin",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_hmg_coa_reductase_7169b791",
+      "target_id": "drug:atorvastatin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_hmg_coa_reductase_7169b791_drug:simvastatin",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_hmg_coa_reductase_7169b791",
+      "target_id": "drug:simvastatin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_retinoic_acid_receptors_b9e2c168_drug:acitretin",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_retinoic_acid_receptors_b9e2c168",
+      "target_id": "drug:acitretin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_retinoic_acid_receptors_b9e2c168_drug:isotretinoin",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_retinoic_acid_receptors_b9e2c168",
+      "target_id": "drug:isotretinoin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_pde5_9c351ebb_drug:sildenafil",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_pde5_9c351ebb",
+      "target_id": "drug:sildenafil",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_pde5_9c351ebb_drug:tadalafil",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_pde5_9c351ebb",
+      "target_id": "drug:tadalafil",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_glucocorticoid_receptor_4b8632a2_drug:dexamethasone",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_glucocorticoid_receptor_4b8632a2",
+      "target_id": "drug:dexamethasone",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_glucocorticoid_receptor_4b8632a2_drug:fluticasone",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_glucocorticoid_receptor_4b8632a2",
+      "target_id": "drug:fluticasone",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_glucocorticoid_receptor_4b8632a2_drug:hydrocortisone",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_glucocorticoid_receptor_4b8632a2",
+      "target_id": "drug:hydrocortisone",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_glucocorticoid_receptor_4b8632a2_drug:prednisone",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_glucocorticoid_receptor_4b8632a2",
+      "target_id": "drug:prednisone",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_c_kit_b0d1f693_drug:imatinib",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_c_kit_b0d1f693",
+      "target_id": "drug:imatinib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_c_kit_b0d1f693_drug:sunitinib",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_c_kit_b0d1f693",
+      "target_id": "drug:sunitinib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_pdgfr_b0d1f693_drug:imatinib",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_pdgfr_b0d1f693",
+      "target_id": "drug:imatinib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_pdgfr_b0d1f693_drug:sunitinib",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_pdgfr_b0d1f693",
+      "target_id": "drug:sunitinib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_tubulin_0663c687_drug:colchicine",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_tubulin_0663c687",
+      "target_id": "drug:colchicine",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_tubulin_0663c687_drug:paclitaxel",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_tubulin_0663c687",
+      "target_id": "drug:paclitaxel",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_cox_1_96ff6e3b_drug:aspirin",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_cox_1_96ff6e3b",
+      "target_id": "drug:aspirin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_cox_1_96ff6e3b_drug:ibuprofen",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_cox_1_96ff6e3b",
+      "target_id": "drug:ibuprofen",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_cox_2_18f26be7_drug:aspirin",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_cox_2_18f26be7",
+      "target_id": "drug:aspirin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_cox_2_18f26be7_drug:celecoxib",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_cox_2_18f26be7",
+      "target_id": "drug:celecoxib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_cox_2_18f26be7_drug:ibuprofen",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_cox_2_18f26be7",
+      "target_id": "drug:ibuprofen",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_prostaglandin_f_receptor_661d4a07_drug:latanoprost",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_prostaglandin_f_receptor_661d4a07",
+      "target_id": "drug:latanoprost",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_prostaglandin_f_receptor_661d4a07_drug:travoprost",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_prostaglandin_f_receptor_661d4a07",
+      "target_id": "drug:travoprost",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_radiographic_imaging_7d4eff6e_drug:iodixanol",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_radiographic_imaging_7d4eff6e",
+      "target_id": "drug:iodixanol",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:target_radiographic_imaging_7d4eff6e_drug:iohexol",
+      "edge_type": "family_member",
+      "source_id": "cluster:target_radiographic_imaging_7d4eff6e",
+      "target_id": "drug:iohexol",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "target"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_a02b_72250c9c_drug:lansoprazole",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_a02b_72250c9c",
+      "target_id": "drug:lansoprazole",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_a02b_72250c9c_drug:omeprazole",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_a02b_72250c9c",
+      "target_id": "drug:omeprazole",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_a10b_f8611758_drug:dapagliflozin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_a10b_f8611758",
+      "target_id": "drug:dapagliflozin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_a10b_f8611758_drug:metformin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_a10b_f8611758",
+      "target_id": "drug:metformin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_a10b_f8611758_drug:sitagliptin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_a10b_f8611758",
+      "target_id": "drug:sitagliptin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_b01a_86c01a55_drug:aspirin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_b01a_86c01a55",
+      "target_id": "drug:aspirin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_b01a_86c01a55_drug:clopidogrel",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_b01a_86c01a55",
+      "target_id": "drug:clopidogrel",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_b01a_86c01a55_drug:dabigatran",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_b01a_86c01a55",
+      "target_id": "drug:dabigatran",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_b01a_86c01a55_drug:rivaroxaban",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_b01a_86c01a55",
+      "target_id": "drug:rivaroxaban",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_b01a_86c01a55_drug:warfarin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_b01a_86c01a55",
+      "target_id": "drug:warfarin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_c10a_7169b791_drug:atorvastatin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_c10a_7169b791",
+      "target_id": "drug:atorvastatin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_c10a_7169b791_drug:simvastatin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_c10a_7169b791",
+      "target_id": "drug:simvastatin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_g04b_9c351ebb_drug:sildenafil",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_g04b_9c351ebb",
+      "target_id": "drug:sildenafil",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_g04b_9c351ebb_drug:tadalafil",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_g04b_9c351ebb",
+      "target_id": "drug:tadalafil",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_g04c_147dee21_drug:finasteride",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_g04c_147dee21",
+      "target_id": "drug:finasteride",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_g04c_147dee21_drug:tamsulosin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_g04c_147dee21",
+      "target_id": "drug:tamsulosin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_h02a_86de824b_drug:dexamethasone",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_h02a_86de824b",
+      "target_id": "drug:dexamethasone",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_h02a_86de824b_drug:hydrocortisone",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_h02a_86de824b",
+      "target_id": "drug:hydrocortisone",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_h02a_86de824b_drug:prednisone",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_h02a_86de824b",
+      "target_id": "drug:prednisone",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_j05a_54cbd377_drug:acyclovir",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_j05a_54cbd377",
+      "target_id": "drug:acyclovir",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_j05a_54cbd377_drug:oseltamivir",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_j05a_54cbd377",
+      "target_id": "drug:oseltamivir",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_l01x_e870ea55_drug:cisplatin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_l01x_e870ea55",
+      "target_id": "drug:cisplatin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_l01x_e870ea55_drug:erlotinib",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_l01x_e870ea55",
+      "target_id": "drug:erlotinib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_l01x_e870ea55_drug:imatinib",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_l01x_e870ea55",
+      "target_id": "drug:imatinib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_l01x_e870ea55_drug:sunitinib",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_l01x_e870ea55",
+      "target_id": "drug:sunitinib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_m01a_375f6e0b_drug:celecoxib",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_m01a_375f6e0b",
+      "target_id": "drug:celecoxib",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_m01a_375f6e0b_drug:ibuprofen",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_m01a_375f6e0b",
+      "target_id": "drug:ibuprofen",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_p02c_13f2280d_drug:albendazole",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_p02c_13f2280d",
+      "target_id": "drug:albendazole",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_p02c_13f2280d_drug:ivermectin",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_p02c_13f2280d",
+      "target_id": "drug:ivermectin",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_r03b_90549179_drug:fluticasone",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_r03b_90549179",
+      "target_id": "drug:fluticasone",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_r03b_90549179_drug:tiotropium",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_r03b_90549179",
+      "target_id": "drug:tiotropium",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_s01e_661d4a07_drug:latanoprost",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_s01e_661d4a07",
+      "target_id": "drug:latanoprost",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_s01e_661d4a07_drug:travoprost",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_s01e_661d4a07",
+      "target_id": "drug:travoprost",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_v08a_7d4eff6e_drug:iodixanol",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_v08a_7d4eff6e",
+      "target_id": "drug:iodixanol",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    },
+    {
+      "edge_id": "cluster:mechanism_v08a_7d4eff6e_drug:iohexol",
+      "edge_type": "family_member",
+      "source_id": "cluster:mechanism_v08a_7d4eff6e",
+      "target_id": "drug:iohexol",
+      "confidence": 1.0,
+      "extra": {
+        "family_basis": "mechanism"
+      }
+    }
+  ]
+}

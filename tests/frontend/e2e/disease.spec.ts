@@ -6,7 +6,8 @@
  * Reference: .sisyphus/plans/drugtree-graph-evolution.md (Task 28)
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from './playwright';
+import type { Page } from './playwright';
 
 async function openFirstDrugDetail(page: Page) {
   const firstDrugCard = page.locator('.drug-card').first();

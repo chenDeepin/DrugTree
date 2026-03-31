@@ -22,6 +22,8 @@ python3 -m http.server 8080
 
 Open `http://localhost:8080`.
 
+The FastAPI backend on port `8000` is API-only. It does not render the atlas UI unless you separately open the static frontend entrypoint above.
+
 ## Refreshing Embedded Data
 
 ```bash

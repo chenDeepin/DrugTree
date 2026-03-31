@@ -74,6 +74,46 @@
     return [...new Set(values.filter(Boolean))];
   }
 
+  function normalizeSearchText(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function buildDrugSearchText(drug) {
+    if (drug?.search_text) {
+      return normalizeSearchText(drug.search_text);
+    }
+
+    return normalizeSearchText([
+      drug?.id,
+      drug?.name,
+      drug?.class,
+      drug?.indication,
+      drug?.atc_code,
+      ...(drug?.targets || []),
+      ...(drug?.synonyms || []),
+    ].filter(Boolean).join(" "));
+  }
+
+  function addIndexEntry(indexMap, key, drugId) {
+    if (!key || !drugId) {
+      return;
+    }
+
+    const ids = indexMap.get(key) || new Set();
+    ids.add(drugId);
+    indexMap.set(key, ids);
+  }
+
+  function normalizeIdSet(candidate) {
+    if (candidate instanceof Set) {
+      return candidate;
+    }
+    if (Array.isArray(candidate)) {
+      return new Set(candidate.filter(Boolean));
+    }
+    return new Set();
+  }
+
   function toggleCategory(activeCategory, clickedCategory) {
     const current = activeCategory || DEFAULT_ACTIVE_CATEGORY;
     return current === clickedCategory ? DEFAULT_ACTIVE_CATEGORY : clickedCategory;
@@ -84,6 +124,10 @@
   }
 
   function resolveDrugBodyRegions(drug) {
+    if (Array.isArray(drug?.body_regions) && drug.body_regions.length > 0) {
+      return unique(drug.body_regions);
+    }
+
     const explicitRegions = unique([
       drug?.body_region,
       ...(drug?.secondary_body_regions || []),
@@ -139,6 +183,122 @@
     });
   }
 
+  function buildDrugIndexes(drugs, options = {}) {
+    const orderedDrugIds = [];
+    const drugsById = new Map();
+    const categoryToDrugIds = new Map();
+    const regionToDrugIds = new Map();
+    const searchTextByDrugId = new Map();
+    const diseaseDrugIdsByDiseaseId = new Map();
+
+    const rawDiseaseIndex = options?.diseaseDrugIdsByDiseaseId || new Map();
+    rawDiseaseIndex.forEach((drugIds, diseaseId) => {
+      diseaseDrugIdsByDiseaseId.set(diseaseId, normalizeIdSet(drugIds));
+    });
+
+    (drugs || []).forEach((drug) => {
+      if (!drug?.id) {
+        return;
+      }
+
+      orderedDrugIds.push(drug.id);
+      drugsById.set(drug.id, drug);
+      searchTextByDrugId.set(drug.id, buildDrugSearchText(drug));
+
+      addIndexEntry(categoryToDrugIds, drug.atc_category || "V", drug.id);
+      resolveDrugBodyRegions(drug).forEach((regionId) => {
+        addIndexEntry(regionToDrugIds, regionId, drug.id);
+      });
+    });
+
+    return {
+      orderedDrugIds,
+      drugsById,
+      categoryToDrugIds,
+      regionToDrugIds,
+      diseaseDrugIdsByDiseaseId,
+      searchTextByDrugId,
+      selectorCache: new Map(),
+    };
+  }
+
+  function buildSelectorCacheKey(activeCategory, activeBodyRegion, activeDiseaseId, searchQuery) {
+    return [activeCategory || DEFAULT_ACTIVE_CATEGORY, activeBodyRegion || "", activeDiseaseId || "", searchQuery || ""].join("|");
+  }
+
+  function extractActiveDiseaseId(state) {
+    return state?.activeDiseaseId || state?.activeDisease?.id || null;
+  }
+
+  function selectDrugIds(indexes, state) {
+    if (!indexes) {
+      return [];
+    }
+
+    const activeCategory = state?.activeCategory || DEFAULT_ACTIVE_CATEGORY;
+    const activeBodyRegion = state?.activeBodyRegion || null;
+    const activeDiseaseId = extractActiveDiseaseId(state);
+    const searchQuery = normalizeSearchText(state?.searchQuery);
+    const cacheKey = buildSelectorCacheKey(activeCategory, activeBodyRegion, activeDiseaseId, searchQuery);
+
+    if (indexes.selectorCache.has(cacheKey)) {
+      return [...indexes.selectorCache.get(cacheKey)];
+    }
+
+    const candidateSets = [];
+
+    if (activeCategory !== DEFAULT_ACTIVE_CATEGORY) {
+      candidateSets.push(indexes.categoryToDrugIds.get(activeCategory) || new Set());
+    }
+
+    if (activeBodyRegion) {
+      candidateSets.push(indexes.regionToDrugIds.get(activeBodyRegion) || new Set());
+    }
+
+    if (activeDiseaseId) {
+      candidateSets.push(indexes.diseaseDrugIdsByDiseaseId.get(activeDiseaseId) || new Set());
+    }
+
+    let candidateIds = [...indexes.orderedDrugIds];
+
+    if (candidateSets.length > 0) {
+      const [smallestSet, ...remainingSets] = [...candidateSets].sort((left, right) => left.size - right.size);
+      const intersection = new Set(
+        [...smallestSet].filter((drugId) => remainingSets.every((set) => set.has(drugId))),
+      );
+      candidateIds = indexes.orderedDrugIds.filter((drugId) => intersection.has(drugId));
+    }
+
+    if (searchQuery) {
+      candidateIds = candidateIds.filter((drugId) => {
+        const searchText = indexes.searchTextByDrugId.get(drugId) || "";
+        return searchText.includes(searchQuery);
+      });
+    }
+
+    indexes.selectorCache.set(cacheKey, [...candidateIds]);
+    return candidateIds;
+  }
+
+  function selectDrugs(indexes, state) {
+    return selectDrugIds(indexes, state)
+      .map((drugId) => indexes?.drugsById?.get(drugId) || null)
+      .filter(Boolean);
+  }
+
+  function countDrugsForRegion(indexes, state, regionId) {
+    if (!regionId) {
+      return 0;
+    }
+
+    return selectDrugIds(indexes, {
+      activeCategory: state?.activeCategory,
+      activeBodyRegion: regionId,
+      activeDiseaseId: extractActiveDiseaseId(state),
+      searchQuery: state?.searchQuery,
+    }).length;
+  }
+
   function getModePresentation(mode) {
     if (mode === "scientist") {
       return {
@@ -185,11 +345,16 @@
     ATC_TO_BODY_REGIONS,
     DEFAULT_ACTIVE_CATEGORY,
     applyDrugFilters,
+    buildDrugIndexes,
     buildBodyRegionLabel,
+    buildDrugSearchText,
     buildPublicSummary,
+    countDrugsForRegion,
     getModePresentation,
     humanizeRegionId,
     resolveDrugBodyRegions,
+    selectDrugIds,
+    selectDrugs,
     toggleBodyRegion,
     toggleCategory,
   };

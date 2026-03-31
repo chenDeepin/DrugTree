@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import re
 from collections import Counter
@@ -34,10 +35,10 @@ try:
         classify_by_name,
     )
 except ImportError:  # pragma: no cover - direct script fallback
-    from atc_batch_chembl import ChEMBLBatchProcessor
-    from atc_batch_pubchem import PubChemBatchProcessor
-    from atc_kegg_brite_lookup import KEGGBRITEATCLookup
-    from classify_remaining_drugs import (
+    from src.backend.etl.atc_batch_chembl import ChEMBLBatchProcessor
+    from src.backend.etl.atc_batch_pubchem import PubChemBatchProcessor
+    from src.backend.etl.atc_kegg_brite_lookup import KEGGBRITEATCLookup
+    from src.backend.etl.classify_remaining_drugs import (
         classify_by_body_region,
         classify_by_indication,
         classify_by_name,
@@ -123,6 +124,35 @@ def merge_external_ids(
     return merged, applied
 
 
+def to_cache_json(value: Any) -> Any:
+    if hasattr(value, "__dataclass_fields__") and not isinstance(value, type):
+        return asdict(value)
+    if isinstance(value, list):
+        return [to_cache_json(item) for item in value]
+    if isinstance(value, dict):
+        return {key: to_cache_json(item) for key, item in value.items()}
+    return value
+
+
+def from_cache_json(value: Any) -> Any:
+    if isinstance(value, dict):
+        atc_keys = {
+            "code",
+            "level1",
+            "level2",
+            "level3",
+            "level4",
+            "level5",
+            "level1_name",
+        }
+        if atc_keys.issubset(value.keys()):
+            return ATCCode(**value)
+        return {key: from_cache_json(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [from_cache_json(item) for item in value]
+    return value
+
+
 class ATCLookupError(Exception):
     pass
 
@@ -158,6 +188,7 @@ class ATCOrchestrator:
     CACHE_TTL_HOURS = 24
     RATE_LIMIT = 5
     RATE_WINDOW = 1.0
+    _level1_categories: Dict[str, str] = {}
 
     def __init__(self, cache_dir: Optional[str] = None, request_timeout: float = 30.0):
         self.session: Optional[aiohttp.ClientSession] = None
@@ -166,6 +197,16 @@ class ATCOrchestrator:
         self._cache_dir = cache_dir
         self._request_times: List[float] = []
         self._rate_limit_lock = asyncio.Lock()
+        self._cache_hits = 0
+        self._cache_misses = 0
+
+    def _cache_path(self, cache_key: str) -> Optional[Path]:
+        if not self._cache_dir:
+            return None
+        cache_root = Path(self._cache_dir)
+        cache_root.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256(cache_key.encode("utf-8")).hexdigest()
+        return cache_root / f"{digest}.json"
 
         self._level1_categories: Dict[str, str] = {
             "A": "Alimentary tract and metabolism",
@@ -215,12 +256,39 @@ class ATCOrchestrator:
         if cache_key in self._cache:
             data, timestamp = self._cache[cache_key]
             if datetime.now() - timestamp < timedelta(hours=self.CACHE_TTL_HOURS):
+                self._cache_hits += 1
                 return data
             del self._cache[cache_key]
+
+        cache_path = self._cache_path(cache_key)
+        if cache_path and cache_path.exists():
+            try:
+                payload = json.loads(cache_path.read_text(encoding="utf-8"))
+                created_at = datetime.fromisoformat(payload["created_at"])
+                if datetime.now(timezone.utc) - created_at < timedelta(
+                    hours=self.CACHE_TTL_HOURS
+                ):
+                    self._cache_hits += 1
+                    return from_cache_json(payload.get("value"))
+            except (KeyError, ValueError, json.JSONDecodeError):
+                pass
+        self._cache_misses += 1
         return None
 
     async def _set_cache(self, cache_key: str, data: Any):
         self._cache[cache_key] = (data, datetime.now())
+        cache_path = self._cache_path(cache_key)
+        if cache_path:
+            cache_path.write_text(
+                json.dumps(
+                    {
+                        "created_at": utcnow_iso(),
+                        "value": to_cache_json(data),
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
 
     def _parse_atc_code(self, code: str) -> ATCCode:
         if not code or len(code) < 1:
@@ -360,9 +428,7 @@ class ATCOrchestrator:
                         if atc_code_str:
                             atc_code = self._parse_atc_code(atc_code_str)
                             atc_code.name = drug_name
-                            atc_code.who_url = (
-                                f"https://www.whocc.no/atc_ddd_index/?code={atc_code_str}"
-                            )
+                            atc_code.who_url = f"https://www.whocc.no/atc_ddd_index/?code={atc_code_str}"
                             return atc_code
 
                     return None
@@ -424,9 +490,7 @@ class ATCOrchestrator:
                             if atc_code_str:
                                 atc_code = self._parse_atc_code(atc_code_str)
                                 atc_code.name = record.get("name", "")
-                                atc_code.who_url = (
-                                    f"https://www.whocc.no/atc_ddd_index/?code={atc_code_str}"
-                                )
+                                atc_code.who_url = f"https://www.whocc.no/atc_ddd_index/?code={atc_code_str}"
                                 results.append(atc_code)
 
                     return results
@@ -495,6 +559,7 @@ class ATCEnrichmentPipeline:
         self,
         drugs_file: Path = DEFAULT_DRUGS_FILE,
         reports_dir: Path = DEFAULT_REPORTS_DIR,
+        cache_dir: Path = DATA_DIR / "checkpoints" / "atc-cache",
         enable_network: bool = True,
         enable_kegg_brite: bool = True,
         enable_fallback: bool = True,
@@ -503,15 +568,29 @@ class ATCEnrichmentPipeline:
     ):
         self.drugs_file = Path(drugs_file)
         self.reports_dir = Path(reports_dir)
+        self.cache_dir = Path(cache_dir)
         self.enable_network = enable_network
         self.enable_kegg_brite = enable_kegg_brite
         self.enable_fallback = enable_fallback
         self.enable_who = enable_who
         self.request_timeout = request_timeout
+        self.max_network_concurrency = 5
+        self.network_cache_hits = 0
+        self.network_cache_misses = 0
 
         self._kegg_entry_cache: Dict[str, Optional[str]] = {}
         self._brite_lookup: Optional[KEGGBRITEATCLookup] = None
         self._brite_lookup_ready = False
+        self._network_semaphores: Dict[int, asyncio.Semaphore] = {}
+
+    def _get_network_semaphore(self) -> asyncio.Semaphore:
+        loop = asyncio.get_running_loop()
+        loop_id = id(loop)
+        semaphore = self._network_semaphores.get(loop_id)
+        if semaphore is None:
+            semaphore = asyncio.Semaphore(self.max_network_concurrency)
+            self._network_semaphores[loop_id] = semaphore
+        return semaphore
 
     def run(
         self,
@@ -620,8 +699,8 @@ class ATCEnrichmentPipeline:
                 continue
 
             updated["atc_code"] = resolution.atc_code
-            updated["atc_category"] = (
-                resolution.atc_category or resolution.atc_code[0]
+            updated["atc_category"] = resolution.atc_category or (
+                resolution.atc_code[0] if resolution.atc_code else None
             )
             updated["atc_source"] = resolution.source
             updated["atc_confidence"] = resolution.confidence
@@ -642,17 +721,12 @@ class ATCEnrichmentPipeline:
             all_recovered_ids = {**recovered_ids, **merged_ids}
             original_atc_code = str(updated.get("atc_code", "")).upper()
 
-            if (
-                fallback.atc_code
-                and (
-                    not updated.get("atc_code")
-                    or original_atc_code.startswith("V99")
-                )
+            if fallback.atc_code and (
+                not updated.get("atc_code") or original_atc_code.startswith("V99")
             ):
                 updated["atc_code"] = fallback.atc_code
             if fallback.atc_category and (
-                not updated.get("atc_category")
-                or original_atc_code.startswith("V99")
+                not updated.get("atc_category") or original_atc_code.startswith("V99")
             ):
                 updated["atc_category"] = fallback.atc_category
 
@@ -734,7 +808,9 @@ class ATCEnrichmentPipeline:
             if not field_name:
                 continue
 
-            entries = [entry.strip().rstrip(";") for entry in raw_values.split() if entry]
+            entries = [
+                entry.strip().rstrip(";") for entry in raw_values.split() if entry
+            ]
             if not entries:
                 continue
 
@@ -778,13 +854,14 @@ class ATCEnrichmentPipeline:
         )
 
     async def _lookup_pubchem_async(self, drug: Dict[str, Any]) -> Dict[str, Any]:
-        processor = PubChemBatchProcessor()
-        try:
-            return await processor.lookup_atc_for_drug(drug)
-        finally:
-            client = getattr(processor, "_client", None)
-            if client is not None:
-                await client.aclose()
+        async with self._get_network_semaphore():
+            processor = PubChemBatchProcessor()
+            try:
+                return await processor.lookup_atc_for_drug(drug)
+            finally:
+                client = getattr(processor, "_client", None)
+                if client is not None:
+                    await client.aclose()
 
     def _resolve_from_pubchem(self, drug: Dict[str, Any]) -> Optional[ATCResolution]:
         if not self.enable_network:
@@ -805,13 +882,14 @@ class ATCEnrichmentPipeline:
         )
 
     async def _lookup_chembl_async(self, drug: Dict[str, Any]) -> Dict[str, Any]:
-        processor = ChEMBLBatchProcessor()
-        try:
-            return await processor.lookup_atc_for_drug(drug)
-        finally:
-            client = getattr(processor, "_client", None)
-            if client is not None:
-                await client.aclose()
+        async with self._get_network_semaphore():
+            processor = ChEMBLBatchProcessor()
+            try:
+                return await processor.lookup_atc_for_drug(drug)
+            finally:
+                client = getattr(processor, "_client", None)
+                if client is not None:
+                    await client.aclose()
 
     def _resolve_from_chembl(self, drug: Dict[str, Any]) -> Optional[ATCResolution]:
         if not self.enable_network:
@@ -832,8 +910,14 @@ class ATCEnrichmentPipeline:
         )
 
     async def _lookup_who_async(self, drug_name: str) -> Optional[ATCCode]:
-        async with ATCOrchestrator(request_timeout=self.request_timeout) as orchestrator:
-            return await orchestrator._lookup_who(drug_name)
+        async with self._get_network_semaphore():
+            async with ATCOrchestrator(
+                cache_dir=str(self.cache_dir), request_timeout=self.request_timeout
+            ) as orchestrator:
+                result = await orchestrator._lookup_who(drug_name)
+                self.network_cache_hits += orchestrator._cache_hits
+                self.network_cache_misses += orchestrator._cache_misses
+                return result
 
     def _resolve_from_who_lookup(self, drug: Dict[str, Any]) -> Optional[ATCResolution]:
         if not self.enable_network or not self.enable_who or not drug.get("name"):
@@ -869,9 +953,7 @@ class ATCEnrichmentPipeline:
 
         return self._brite_lookup
 
-    def _resolve_from_kegg_brite(
-        self, drug: Dict[str, Any]
-    ) -> Optional[ATCResolution]:
+    def _resolve_from_kegg_brite(self, drug: Dict[str, Any]) -> Optional[ATCResolution]:
         lookup = self._ensure_brite_lookup()
         if not lookup:
             return None
@@ -882,7 +964,7 @@ class ATCEnrichmentPipeline:
             if is_specific_atc_code(code):
                 return ATCResolution(
                     atc_code=code,
-                    atc_category=code[0],
+                    atc_category=code[0] if code else None,
                     source="kegg_brite",
                     confidence=0.85,
                     method="kegg_brite_kegg_id",
@@ -894,7 +976,7 @@ class ATCEnrichmentPipeline:
             if is_specific_atc_code(code):
                 return ATCResolution(
                     atc_code=code,
-                    atc_category=code[0],
+                    atc_category=code[0] if code else None,
                     source="kegg_brite",
                     confidence=0.75,
                     method="kegg_brite_name",
@@ -902,9 +984,7 @@ class ATCEnrichmentPipeline:
 
         return None
 
-    def _resolve_from_fallback(
-        self, drug: Dict[str, Any]
-    ) -> Optional[ATCResolution]:
+    def _resolve_from_fallback(self, drug: Dict[str, Any]) -> Optional[ATCResolution]:
         if not self.enable_fallback:
             return None
 
@@ -957,7 +1037,9 @@ class ATCEnrichmentPipeline:
             if is_placeholder_atc_code(drug.get("atc_code"))
         )
         total_input_placeholder_count = sum(
-            1 for drug in original_drugs if is_placeholder_atc_code(drug.get("atc_code"))
+            1
+            for drug in original_drugs
+            if is_placeholder_atc_code(drug.get("atc_code"))
         )
         output_valid_count = sum(
             1 for drug in updated_drugs if is_specific_atc_code(drug.get("atc_code"))
@@ -970,7 +1052,8 @@ class ATCEnrichmentPipeline:
         approved_drugs = [
             drug
             for drug in updated_drugs
-            if drug.get("year_approved") is not None or str(drug.get("phase", "")).upper() == "IV"
+            if drug.get("year_approved") is not None
+            or str(drug.get("phase", "")).upper() == "IV"
         ]
         approved_with_specific_atc = sum(
             1 for drug in approved_drugs if is_specific_atc_code(drug.get("atc_code"))
@@ -982,7 +1065,9 @@ class ATCEnrichmentPipeline:
             "processed_count": processed_count,
             "total_drugs": len(updated_drugs),
             "dry_run": dry_run,
-            "selection_mode": "placeholder_only" if placeholder_only else "full_dataset",
+            "selection_mode": "placeholder_only"
+            if placeholder_only
+            else "full_dataset",
             "processed_input_placeholder_count": input_placeholder_count,
             "total_input_placeholder_count": total_input_placeholder_count,
             "resolved_specific_atc_count": sum(
@@ -993,7 +1078,9 @@ class ATCEnrichmentPipeline:
             ),
             "output_valid_specific_atc_count": output_valid_count,
             "output_placeholder_count": sum(
-                1 for drug in updated_drugs if is_placeholder_atc_code(drug.get("atc_code"))
+                1
+                for drug in updated_drugs
+                if is_placeholder_atc_code(drug.get("atc_code"))
             ),
             "processed_unresolved_placeholder_count": len(unresolved),
             "approved_drug_count": len(approved_drugs),
@@ -1007,6 +1094,15 @@ class ATCEnrichmentPipeline:
             "source_counts": dict(source_counts),
             "method_counts": dict(method_counts),
             "external_id_recoveries": external_id_recoveries,
+            "network_guardrails": {
+                "rate_limit": ATCOrchestrator.RATE_LIMIT,
+                "cache_ttl_hours": ATCOrchestrator.CACHE_TTL_HOURS,
+                "cache_dir": str(self.cache_dir),
+                "max_concurrency": self.max_network_concurrency,
+                "cache_hits": self.network_cache_hits,
+                "cache_misses": self.network_cache_misses,
+                "partial_failure_reports": True,
+            },
         }
 
     def _write_reports(

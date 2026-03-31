@@ -1,0 +1,900 @@
+{
+  "edges": [
+    {
+      "edge_id": "disease:epilepsy_drug:carbamazepine",
+      "edge_type": "disease_drug",
+      "source_id": "disease:epilepsy",
+      "target_id": "drug:carbamazepine",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "epilepsy",
+        "drug_id": "carbamazepine",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:epilepsy_drug:diazepam",
+      "edge_type": "disease_drug",
+      "source_id": "disease:epilepsy",
+      "target_id": "drug:diazepam",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "epilepsy",
+        "drug_id": "diazepam",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:glaucoma_drug:025-ar-12286-0004-travoprost",
+      "edge_type": "disease_drug",
+      "source_id": "disease:glaucoma",
+      "target_id": "drug:025-ar-12286-0004-travoprost",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "glaucoma",
+        "drug_id": "025-ar-12286-0004-travoprost",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:asthma_drug:fluticasone",
+      "edge_type": "disease_drug",
+      "source_id": "disease:asthma",
+      "target_id": "drug:fluticasone",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "asthma",
+        "drug_id": "fluticasone",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:asthma_drug:montelukast-sodium",
+      "edge_type": "disease_drug",
+      "source_id": "disease:asthma",
+      "target_id": "drug:montelukast-sodium",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "asthma",
+        "drug_id": "montelukast-sodium",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:copd_drug:fluticasone",
+      "edge_type": "disease_drug",
+      "source_id": "disease:copd",
+      "target_id": "drug:fluticasone",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "copd",
+        "drug_id": "fluticasone",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:copd_drug:tiotropium-bromide-hydrate",
+      "edge_type": "disease_drug",
+      "source_id": "disease:copd",
+      "target_id": "drug:tiotropium-bromide-hydrate",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "copd",
+        "drug_id": "tiotropium-bromide-hydrate",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:nsclc_drug:erlotinib",
+      "edge_type": "disease_drug",
+      "source_id": "disease:nsclc",
+      "target_id": "drug:erlotinib",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "nsclc",
+        "drug_id": "erlotinib",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:hypertension_drug:lisinopril",
+      "edge_type": "disease_drug",
+      "source_id": "disease:hypertension",
+      "target_id": "drug:lisinopril",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "hypertension",
+        "drug_id": "lisinopril",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:hypertension_drug:losartan-potassium",
+      "edge_type": "disease_drug",
+      "source_id": "disease:hypertension",
+      "target_id": "drug:losartan-potassium",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "hypertension",
+        "drug_id": "losartan-potassium",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:hypertension_drug:metoprolol-succinate",
+      "edge_type": "disease_drug",
+      "source_id": "disease:hypertension",
+      "target_id": "drug:metoprolol-succinate",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "hypertension",
+        "drug_id": "metoprolol-succinate",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:cml_drug:imatinib-mesylate",
+      "edge_type": "disease_drug",
+      "source_id": "disease:cml",
+      "target_id": "drug:imatinib-mesylate",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "cml",
+        "drug_id": "imatinib-mesylate",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:lymphoma_drug:methotrexate-sodium",
+      "edge_type": "disease_drug",
+      "source_id": "disease:lymphoma",
+      "target_id": "drug:methotrexate-sodium",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "lymphoma",
+        "drug_id": "methotrexate-sodium",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:gerd_drug:tak-438",
+      "edge_type": "disease_drug",
+      "source_id": "disease:gerd",
+      "target_id": "drug:tak-438",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "gerd",
+        "drug_id": "tak-438",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:peptic_ulcer_disease_drug:tak-438",
+      "edge_type": "disease_drug",
+      "source_id": "disease:peptic_ulcer_disease",
+      "target_id": "drug:tak-438",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "peptic_ulcer_disease",
+        "drug_id": "tak-438",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:crohns_disease_drug:methotrexate-sodium",
+      "edge_type": "disease_drug",
+      "source_id": "disease:crohns_disease",
+      "target_id": "drug:methotrexate-sodium",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "crohns_disease",
+        "drug_id": "methotrexate-sodium",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:ulcerative_colitis_drug:methotrexate-sodium",
+      "edge_type": "disease_drug",
+      "source_id": "disease:ulcerative_colitis",
+      "target_id": "drug:methotrexate-sodium",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "ulcerative_colitis",
+        "drug_id": "methotrexate-sodium",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:type_2_diabetes_drug:metformin-hydrochloride",
+      "edge_type": "disease_drug",
+      "source_id": "disease:type_2_diabetes",
+      "target_id": "drug:metformin-hydrochloride",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "type_2_diabetes",
+        "drug_id": "metformin-hydrochloride",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:type_2_diabetes_drug:exenatide-once-weekly",
+      "edge_type": "disease_drug",
+      "source_id": "disease:type_2_diabetes",
+      "target_id": "drug:exenatide-once-weekly",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "type_2_diabetes",
+        "drug_id": "exenatide-once-weekly",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:type_2_diabetes_drug:dapagliflozin",
+      "edge_type": "disease_drug",
+      "source_id": "disease:type_2_diabetes",
+      "target_id": "drug:dapagliflozin",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "type_2_diabetes",
+        "drug_id": "dapagliflozin",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:ckd_drug:lisinopril",
+      "edge_type": "disease_drug",
+      "source_id": "disease:ckd",
+      "target_id": "drug:lisinopril",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "ckd",
+        "drug_id": "lisinopril",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:ckd_drug:losartan-potassium",
+      "edge_type": "disease_drug",
+      "source_id": "disease:ckd",
+      "target_id": "drug:losartan-potassium",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "ckd",
+        "drug_id": "losartan-potassium",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:bph_drug:tamsulosin-hydrochloride",
+      "edge_type": "disease_drug",
+      "source_id": "disease:bph",
+      "target_id": "drug:tamsulosin-hydrochloride",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "bph",
+        "drug_id": "tamsulosin-hydrochloride",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:bph_drug:finasteride",
+      "edge_type": "disease_drug",
+      "source_id": "disease:bph",
+      "target_id": "drug:finasteride",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "bph",
+        "drug_id": "finasteride",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:breast_cancer_drug:methotrexate-sodium",
+      "edge_type": "disease_drug",
+      "source_id": "disease:breast_cancer",
+      "target_id": "drug:methotrexate-sodium",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "breast_cancer",
+        "drug_id": "methotrexate-sodium",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:osteoarthritis_drug:pregabalin-d00567",
+      "edge_type": "disease_drug",
+      "source_id": "disease:osteoarthritis",
+      "target_id": "drug:pregabalin-d00567",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "osteoarthritis",
+        "drug_id": "pregabalin-d00567",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:psoriasis_drug:acitretin",
+      "edge_type": "disease_drug",
+      "source_id": "disease:psoriasis",
+      "target_id": "drug:acitretin",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "psoriasis",
+        "drug_id": "acitretin",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:psoriasis_drug:methotrexate-sodium",
+      "edge_type": "disease_drug",
+      "source_id": "disease:psoriasis",
+      "target_id": "drug:methotrexate-sodium",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "psoriasis",
+        "drug_id": "methotrexate-sodium",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:uveal_melanoma_drug:imatinib-mesylate",
+      "edge_type": "disease_drug",
+      "source_id": "disease:uveal_melanoma",
+      "target_id": "drug:imatinib-mesylate",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "uveal_melanoma",
+        "drug_id": "imatinib-mesylate",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:ocular_conjunctivitis_drug:azithromycin",
+      "edge_type": "disease_drug",
+      "source_id": "disease:ocular_conjunctivitis",
+      "target_id": "drug:azithromycin",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "ocular_conjunctivitis",
+        "drug_id": "azithromycin",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:ocular_conjunctivitis_drug:ofloxacin",
+      "edge_type": "disease_drug",
+      "source_id": "disease:ocular_conjunctivitis",
+      "target_id": "drug:ofloxacin",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "ocular_conjunctivitis",
+        "drug_id": "ofloxacin",
+        "indication_type": "primary",
+        "evidence_source": "curated_seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:parkinson_disease_drug:benzetimide-hydrochloride",
+      "edge_type": "disease_drug",
+      "source_id": "disease:parkinson_disease",
+      "target_id": "drug:benzetimide-hydrochloride",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "parkinson_disease",
+        "drug_id": "benzetimide-hydrochloride",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_ii"
+      }
+    },
+    {
+      "edge_id": "disease:obesity_disorder_drug:norpseudoephedrine",
+      "edge_type": "disease_drug",
+      "source_id": "disease:obesity_disorder",
+      "target_id": "drug:norpseudoephedrine",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "obesity_disorder",
+        "drug_id": "norpseudoephedrine",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_ii"
+      }
+    },
+    {
+      "edge_id": "disease:hypertension_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:hypertension",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "hypertension",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:myocardial_infarction_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:myocardial_infarction",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "myocardial_infarction",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:hemangioma_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:hemangioma",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "hemangioma",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_iii"
+      }
+    },
+    {
+      "edge_id": "disease:atrial_fibrillation_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:atrial_fibrillation",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "atrial_fibrillation",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_iii"
+      }
+    },
+    {
+      "edge_id": "disease:heart_failure_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:heart_failure",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "heart_failure",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_iii"
+      }
+    },
+    {
+      "edge_id": "disease:osteoporosis_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:osteoporosis",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "osteoporosis",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "unknown"
+      }
+    },
+    {
+      "edge_id": "disease:mitral_valve_stenosis_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:mitral_valve_stenosis",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "mitral_valve_stenosis",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_iii"
+      }
+    },
+    {
+      "edge_id": "disease:myocardial_ischemia_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:myocardial_ischemia",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "myocardial_ischemia",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_iii"
+      }
+    },
+    {
+      "edge_id": "disease:diabetes_mellitus_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:diabetes_mellitus",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "diabetes_mellitus",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:stroke_disorder_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:stroke_disorder",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "stroke_disorder",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:coronary_artery_disorder_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:coronary_artery_disorder",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "coronary_artery_disorder",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:essential_hypertension_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:essential_hypertension",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "essential_hypertension",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_iii"
+      }
+    },
+    {
+      "edge_id": "disease:marfan_syndrome_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:marfan_syndrome",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "marfan_syndrome",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_iii"
+      }
+    },
+    {
+      "edge_id": "disease:postural_orthostatic_tachycardia_syndrome_drug:atenolol",
+      "edge_type": "disease_drug",
+      "source_id": "disease:postural_orthostatic_tachycardia_syndrome",
+      "target_id": "drug:atenolol",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "postural_orthostatic_tachycardia_syndrome",
+        "drug_id": "atenolol",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_i"
+      }
+    },
+    {
+      "edge_id": "disease:osteoporosis_drug:copper-gluconate",
+      "edge_type": "disease_drug",
+      "source_id": "disease:osteoporosis",
+      "target_id": "drug:copper-gluconate",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "osteoporosis",
+        "drug_id": "copper-gluconate",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_iii"
+      }
+    },
+    {
+      "edge_id": "disease:autosomal_dominant_hypocalcemia_drug:copper-gluconate",
+      "edge_type": "disease_drug",
+      "source_id": "disease:autosomal_dominant_hypocalcemia",
+      "target_id": "drug:copper-gluconate",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "autosomal_dominant_hypocalcemia",
+        "drug_id": "copper-gluconate",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:ovarian_hyperstimulation_syndrome_drug:copper-gluconate",
+      "edge_type": "disease_drug",
+      "source_id": "disease:ovarian_hyperstimulation_syndrome",
+      "target_id": "drug:copper-gluconate",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "ovarian_hyperstimulation_syndrome",
+        "drug_id": "copper-gluconate",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_ii"
+      }
+    },
+    {
+      "edge_id": "disease:adenocarcinoma_drug:trv130-15-mg",
+      "edge_type": "disease_drug",
+      "source_id": "disease:adenocarcinoma",
+      "target_id": "drug:trv130-15-mg",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "adenocarcinoma",
+        "drug_id": "trv130-15-mg",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_ii"
+      }
+    },
+    {
+      "edge_id": "disease:liposarcoma_drug:trv130-15-mg",
+      "edge_type": "disease_drug",
+      "source_id": "disease:liposarcoma",
+      "target_id": "drug:trv130-15-mg",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "liposarcoma",
+        "drug_id": "trv130-15-mg",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_ii"
+      }
+    },
+    {
+      "edge_id": "disease:squamous_cell_carcinoma_of_head_and_neck_drug:trv130-15-mg",
+      "edge_type": "disease_drug",
+      "source_id": "disease:squamous_cell_carcinoma_of_head_and_neck",
+      "target_id": "drug:trv130-15-mg",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "squamous_cell_carcinoma_of_head_and_neck",
+        "drug_id": "trv130-15-mg",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "unknown"
+      }
+    },
+    {
+      "edge_id": "disease:small_cell_lung_carcinoma_drug:trv130-15-mg",
+      "edge_type": "disease_drug",
+      "source_id": "disease:small_cell_lung_carcinoma",
+      "target_id": "drug:trv130-15-mg",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "small_cell_lung_carcinoma",
+        "drug_id": "trv130-15-mg",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_ii"
+      }
+    },
+    {
+      "edge_id": "disease:melanoma_drug:trv130-15-mg",
+      "edge_type": "disease_drug",
+      "source_id": "disease:melanoma",
+      "target_id": "drug:trv130-15-mg",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "melanoma",
+        "drug_id": "trv130-15-mg",
+        "indication_type": "secondary",
+        "evidence_source": "chembl",
+        "evidence_level": "phase_ii"
+      }
+    },
+    {
+      "edge_id": "disease:glioma_drug:temozolomide",
+      "edge_type": "disease_drug",
+      "source_id": "disease:glioma",
+      "target_id": "drug:temozolomide",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "glioma",
+        "drug_id": "temozolomide",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:alzheimers_disease_drug:galantamine",
+      "edge_type": "disease_drug",
+      "source_id": "disease:alzheimers_disease",
+      "target_id": "drug:galantamine",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "alzheimers_disease",
+        "drug_id": "galantamine",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:alzheimers_disease_drug:memantine-hydrochloride",
+      "edge_type": "disease_drug",
+      "source_id": "disease:alzheimers_disease",
+      "target_id": "drug:memantine-hydrochloride",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "alzheimers_disease",
+        "drug_id": "memantine-hydrochloride",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:hyperlipidemia_drug:atorvastatin",
+      "edge_type": "disease_drug",
+      "source_id": "disease:hyperlipidemia",
+      "target_id": "drug:atorvastatin",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "hyperlipidemia",
+        "drug_id": "atorvastatin",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:hepatocellular_carcinoma_drug:sorafenib-tosylate",
+      "edge_type": "disease_drug",
+      "source_id": "disease:hepatocellular_carcinoma",
+      "target_id": "drug:sorafenib-tosylate",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "hepatocellular_carcinoma",
+        "drug_id": "sorafenib-tosylate",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:hypothyroidism_drug:levothyroxine",
+      "edge_type": "disease_drug",
+      "source_id": "disease:hypothyroidism",
+      "target_id": "drug:levothyroxine",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "hypothyroidism",
+        "drug_id": "levothyroxine",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:systemic_lupus_erythematosus_drug:prednisone",
+      "edge_type": "disease_drug",
+      "source_id": "disease:systemic_lupus_erythematosus",
+      "target_id": "drug:prednisone",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "systemic_lupus_erythematosus",
+        "drug_id": "prednisone",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:retinoblastoma_drug:carboplatin",
+      "edge_type": "disease_drug",
+      "source_id": "disease:retinoblastoma",
+      "target_id": "drug:carboplatin",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "retinoblastoma",
+        "drug_id": "carboplatin",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    },
+    {
+      "edge_id": "disease:diabetic_retinopathy_drug:fluocinolone-acetonide",
+      "edge_type": "disease_drug",
+      "source_id": "disease:diabetic_retinopathy",
+      "target_id": "drug:fluocinolone-acetonide",
+      "confidence": 1.0,
+      "extra": {
+        "disease_id": "diabetic_retinopathy",
+        "drug_id": "fluocinolone-acetonide",
+        "indication_type": "primary",
+        "evidence_source": "seed",
+        "evidence_level": "approved"
+      }
+    }
+  ]
+}

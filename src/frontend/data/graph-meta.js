@@ -1,0 +1,1 @@
+window.DRUGTREE_GRAPH_META = {"schema_version": "2.0.0", "generated_at": "2026-03-31T07:41:48+00:00", "node_counts": {"drugs": 7359, "diseases": 50, "clusters": 26}, "edge_counts": {"lineage": 50, "disease_drug": 64, "family_member": 62}, "target_layer_enabled": false};

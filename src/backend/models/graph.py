@@ -57,3 +57,4 @@ class SubgraphResult(BaseModel):
     edges: list[GraphEdgeRef]
     total_nodes: int
     total_edges: int
+    truncation: dict[str, int] = Field(default_factory=dict)

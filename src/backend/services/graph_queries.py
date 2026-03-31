@@ -1,6 +1,5 @@
-import json
-from pathlib import Path
-from typing import Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Optional, Tuple, TypeVar, cast
 
 from ..models.graph import (
     Evidence,
@@ -11,19 +10,78 @@ from ..models.graph import (
     NeighborhoodResult,
     SubgraphResult,
 )
+from ..services.data_snapshot import DataSnapshotService, get_data_snapshot_service
 from ..services.graph_index import GraphIndex, get_graph_index
 
 
+CachedValue = TypeVar("CachedValue")
+
+
 class GraphQueryService:
+    MAX_NEIGHBOR_NODES = 96
+    MAX_NEIGHBOR_EDGES = 192
+    MAX_SUBGRAPH_NODES = 128
+    MAX_SUBGRAPH_EDGES = 256
+    CACHE_TTL = timedelta(hours=24)
+
     def __init__(
         self,
         graph_index: Optional[GraphIndex] = None,
-        data_dir: Optional[Path] = None,
+        snapshot_service: Optional[DataSnapshotService] = None,
     ):
         self.graph_index = graph_index or get_graph_index()
-        self.data_dir = data_dir or Path(__file__).resolve().parents[3] / "data"
-        self._diseases_by_id: Optional[dict[str, dict[str, object]]] = None
-        self._disease_drug_edges: Optional[list[dict[str, object]]] = None
+        self.snapshot_service = snapshot_service or get_data_snapshot_service()
+        self._cache: dict[str, tuple[str, datetime, object]] = {}
+        self._cache_hits = {"evidence": 0, "neighborhood": 0, "subgraph": 0}
+        self._cache_misses = {"evidence": 0, "neighborhood": 0, "subgraph": 0}
+
+    def _cache_key(self, prefix: str, value: str) -> str:
+        return f"{prefix}:{value}"
+
+    def _cache_bucket(self, key: str) -> str:
+        return key.split(":", 1)[0]
+
+    def _cache_get(
+        self, key: str, default: Optional[CachedValue] = None
+    ) -> Optional[CachedValue]:
+        cached = self._cache.get(key)
+        if cached is None:
+            bucket = self._cache_bucket(key)
+            if bucket in self._cache_misses:
+                self._cache_misses[bucket] += 1
+            return default
+        source_hash, created_at, value = cached
+        snapshot = self.snapshot_service.get_snapshot()
+        if snapshot.source_hash != source_hash:
+            self._cache.pop(key, None)
+            bucket = self._cache_bucket(key)
+            if bucket in self._cache_misses:
+                self._cache_misses[bucket] += 1
+            return default
+        if datetime.now(timezone.utc) - created_at > self.CACHE_TTL:
+            self._cache.pop(key, None)
+            bucket = self._cache_bucket(key)
+            if bucket in self._cache_misses:
+                self._cache_misses[bucket] += 1
+            return default
+        bucket = self._cache_bucket(key)
+        if bucket in self._cache_hits:
+            self._cache_hits[bucket] += 1
+        return cast(CachedValue, value)
+
+    def _cache_set(self, key: str, value: CachedValue) -> CachedValue:
+        snapshot = self.snapshot_service.get_snapshot()
+        self._cache[key] = (snapshot.source_hash, datetime.now(timezone.utc), value)
+        return value
+
+    def get_cache_stats(self) -> dict[str, dict[str, int]]:
+        return {
+            bucket: {
+                "hits": self._cache_hits.get(bucket, 0),
+                "misses": self._cache_misses.get(bucket, 0),
+            }
+            for bucket in sorted(set(self._cache_hits) | set(self._cache_misses))
+        }
 
     def _parse_node_id(self, node_id: str) -> Optional[Tuple[str, str]]:
         if ":" not in node_id:
@@ -34,35 +92,11 @@ class GraphQueryService:
         return node_type, raw_id
 
     def _load_diseases_by_id(self) -> dict[str, dict[str, object]]:
-        if self._diseases_by_id is not None:
-            return self._diseases_by_id
-
-        path = self.data_dir / "diseases.json"
-        if not path.exists():
-            self._diseases_by_id = {}
-            return self._diseases_by_id
-
-        with open(path, "r") as f:
-            payload = json.load(f)
-        diseases = payload.get("diseases", []) if isinstance(payload, dict) else []
-        self._diseases_by_id = {str(d.get("id")): d for d in diseases if d.get("id")}
-        return self._diseases_by_id
+        diseases = self.snapshot_service.get_snapshot().diseases
+        return {str(d.get("id")): d for d in diseases if d.get("id")}
 
     def _load_disease_drug_edges(self) -> list[dict[str, object]]:
-        if self._disease_drug_edges is not None:
-            return self._disease_drug_edges
-
-        path = self.data_dir / "disease_drug_edges.json"
-        if not path.exists():
-            self._disease_drug_edges = []
-            return self._disease_drug_edges
-
-        with open(path, "r") as f:
-            payload = json.load(f)
-        self._disease_drug_edges = (
-            payload.get("edges", []) if isinstance(payload, dict) else []
-        )
-        return self._disease_drug_edges
+        return self.snapshot_service.get_snapshot().disease_drug_edges
 
     def _resolve_drug_node(self, drug_id: str) -> Optional[GraphNodeRef]:
         self.graph_index.get_node(drug_id)
@@ -167,6 +201,26 @@ class GraphQueryService:
 
         return evidence
 
+    def _lineage_edge_ref(self, edge_id: str):
+        edge = self.graph_index._edges.get(edge_id)
+        if edge is None:
+            return None
+
+        evidence = self._lineage_evidence(edge.edge_id)
+        return GraphEdgeRef(
+            edge_id=edge.edge_id,
+            edge_type=GraphEdgeType.lineage,
+            source_id=f"drug:{edge.from_drug_id}",
+            target_id=f"drug:{edge.to_drug_id}",
+            confidence=edge.confidence,
+            evidence=[],
+            extra={
+                "edge_type": edge.edge_type.value,
+                "evidence_available": bool(evidence),
+                "evidence_count": len(evidence),
+            },
+        )
+
     def _disease_edge_id(self, edge: dict[str, object]) -> str:
         return f"disease:{edge.get('disease_id')}_drug:{edge.get('drug_id')}"
 
@@ -182,29 +236,87 @@ class GraphQueryService:
             )
         ]
 
+    def _disease_edge_ref(self, edge: dict[str, object]):
+        evidence = self._disease_edge_evidence(edge)
+        disease_id = edge.get("disease_id")
+        drug_id = edge.get("drug_id")
+        return GraphEdgeRef(
+            edge_id=self._disease_edge_id(edge),
+            edge_type=GraphEdgeType.disease_drug,
+            source_id=f"disease:{disease_id}",
+            target_id=f"drug:{drug_id}",
+            confidence=1.0,
+            evidence=[],
+            extra={
+                "indication_type": edge.get("indication_type"),
+                "evidence_level": edge.get("evidence_level"),
+                "evidence_available": bool(evidence),
+                "evidence_count": len(evidence),
+            },
+        )
+
+    def _sort_node_refs(self, nodes: list[GraphNodeRef]) -> list[GraphNodeRef]:
+        return sorted(nodes, key=lambda node: (node.node_type.value, node.node_id))
+
+    def _sort_edge_refs(self, edges: list[GraphEdgeRef]) -> list[GraphEdgeRef]:
+        return sorted(edges, key=lambda edge: (edge.edge_type.value, edge.edge_id))
+
+    def _with_truncation_extra(
+        self,
+        node: GraphNodeRef,
+        *,
+        omitted_neighbor_nodes: int = 0,
+        omitted_edges: int = 0,
+    ) -> GraphNodeRef:
+        extra = dict(node.extra or {})
+        if omitted_neighbor_nodes or omitted_edges:
+            extra["truncation"] = {
+                "omitted_neighbor_nodes": omitted_neighbor_nodes,
+                "omitted_edges": omitted_edges,
+            }
+        return GraphNodeRef(
+            node_id=node.node_id,
+            node_type=node.node_type,
+            label=node.label,
+            extra=extra,
+        )
+
     def get_evidence(self, edge_id: str) -> list[Evidence]:
+        cache_key = self._cache_key("evidence", edge_id)
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cast(list[Evidence], cached)
+
         lineage_evidence = self._lineage_evidence(edge_id)
         if lineage_evidence:
-            return lineage_evidence
+            return self._cache_set(cache_key, lineage_evidence)
 
         for edge in self._load_disease_drug_edges():
             if self._disease_edge_id(edge) == edge_id:
-                return self._disease_edge_evidence(edge)
+                return self._cache_set(cache_key, self._disease_edge_evidence(edge))
         return []
 
     def get_neighborhood(
         self, node_id: str, max_hops: int = 1
     ) -> Optional[NeighborhoodResult]:
+        cache_key = self._cache_key("neighborhood", f"{node_id}:{max_hops}")
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cast(NeighborhoodResult, cached)
+
         center = self.get_node(node_id)
         if center is None:
             return None
 
         if center.node_type != GraphNodeType.drug:
-            return NeighborhoodResult(
-                center_node=center,
-                edges=[],
-                neighbor_nodes=[],
-                max_hops_reached=0,
+            return self._cache_set(
+                cache_key,
+                NeighborhoodResult(
+                    center_node=center,
+                    edges=[],
+                    neighbor_nodes=[],
+                    max_hops_reached=0,
+                ),
             )
 
         center_drug_id = node_id.split(":", 1)[1]
@@ -212,11 +324,14 @@ class GraphQueryService:
             center_drug_id, max_hops=max_hops
         )
         if not neighborhood:
-            return NeighborhoodResult(
-                center_node=center,
-                edges=[],
-                neighbor_nodes=[],
-                max_hops_reached=0,
+            return self._cache_set(
+                cache_key,
+                NeighborhoodResult(
+                    center_node=center,
+                    edges=[],
+                    neighbor_nodes=[],
+                    max_hops_reached=0,
+                ),
             )
 
         drug_ids: set[str] = set(neighborhood.keys())
@@ -226,17 +341,9 @@ class GraphQueryService:
         edge_refs: list[GraphEdgeRef] = []
         for edge in self.graph_index.get_all_edges():
             if edge.from_drug_id in drug_ids and edge.to_drug_id in drug_ids:
-                edge_refs.append(
-                    GraphEdgeRef(
-                        edge_id=edge.edge_id,
-                        edge_type=GraphEdgeType.lineage,
-                        source_id=f"drug:{edge.from_drug_id}",
-                        target_id=f"drug:{edge.to_drug_id}",
-                        confidence=edge.confidence,
-                        evidence=self._lineage_evidence(edge.edge_id),
-                        extra={"edge_type": edge.edge_type.value},
-                    )
-                )
+                edge_ref = self._lineage_edge_ref(edge.edge_id)
+                if edge_ref is not None:
+                    edge_refs.append(edge_ref)
 
         disease_nodes: dict[str, GraphNodeRef] = {}
         for edge in self._load_disease_drug_edges():
@@ -246,20 +353,7 @@ class GraphQueryService:
                 disease_node = self._resolve_disease_node(str(disease_id))
                 if disease_node is not None:
                     disease_nodes[disease_node.node_id] = disease_node
-                    edge_refs.append(
-                        GraphEdgeRef(
-                            edge_id=self._disease_edge_id(edge),
-                            edge_type=GraphEdgeType.disease_drug,
-                            source_id=f"disease:{disease_id}",
-                            target_id=f"drug:{drug_id}",
-                            confidence=1.0,
-                            evidence=self._disease_edge_evidence(edge),
-                            extra={
-                                "indication_type": edge.get("indication_type"),
-                                "evidence_level": edge.get("evidence_level"),
-                            },
-                        )
-                    )
+                    edge_refs.append(self._disease_edge_ref(edge))
 
         neighbor_nodes: list[GraphNodeRef] = []
         for drug_id in sorted(drug_ids):
@@ -270,14 +364,40 @@ class GraphQueryService:
                 neighbor_nodes.append(node_ref)
         neighbor_nodes.extend(disease_nodes.values())
 
-        return NeighborhoodResult(
-            center_node=center,
-            edges=edge_refs,
-            neighbor_nodes=neighbor_nodes,
-            max_hops_reached=max_hops,
+        sorted_neighbors = self._sort_node_refs(neighbor_nodes)
+        kept_neighbors = sorted_neighbors[: self.MAX_NEIGHBOR_NODES]
+        kept_node_ids = {center.node_id, *(node.node_id for node in kept_neighbors)}
+
+        bounded_edges = [
+            edge
+            for edge in self._sort_edge_refs(edge_refs)
+            if edge.source_id in kept_node_ids and edge.target_id in kept_node_ids
+        ]
+        kept_edges = bounded_edges[: self.MAX_NEIGHBOR_EDGES]
+
+        center = self._with_truncation_extra(
+            center,
+            omitted_neighbor_nodes=max(0, len(sorted_neighbors) - len(kept_neighbors)),
+            omitted_edges=max(0, len(bounded_edges) - len(kept_edges)),
+        )
+
+        return self._cache_set(
+            cache_key,
+            NeighborhoodResult(
+                center_node=center,
+                edges=kept_edges,
+                neighbor_nodes=kept_neighbors,
+                max_hops_reached=max_hops,
+            ),
         )
 
     def get_subgraph(self, node_ids: list[str]) -> SubgraphResult:
+        ordered_node_ids = ",".join(sorted(node_ids))
+        cache_key = self._cache_key("subgraph", ordered_node_ids)
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cast(SubgraphResult, cached)
+
         resolved_nodes: dict[str, GraphNodeRef] = {}
         for node_id in node_ids:
             node = self.get_node(node_id)
@@ -299,43 +419,39 @@ class GraphQueryService:
 
         for edge in self.graph_index.get_all_edges():
             if edge.from_drug_id in drug_ids and edge.to_drug_id in drug_ids:
-                edge_refs.append(
-                    GraphEdgeRef(
-                        edge_id=edge.edge_id,
-                        edge_type=GraphEdgeType.lineage,
-                        source_id=f"drug:{edge.from_drug_id}",
-                        target_id=f"drug:{edge.to_drug_id}",
-                        confidence=edge.confidence,
-                        evidence=self._lineage_evidence(edge.edge_id),
-                        extra={"edge_type": edge.edge_type.value},
-                    )
-                )
+                edge_ref = self._lineage_edge_ref(edge.edge_id)
+                if edge_ref is not None:
+                    edge_refs.append(edge_ref)
 
         for edge in self._load_disease_drug_edges():
             disease_id = str(edge.get("disease_id"))
             drug_id = str(edge.get("drug_id"))
             if disease_id in disease_ids and drug_id in drug_ids:
-                edge_refs.append(
-                    GraphEdgeRef(
-                        edge_id=self._disease_edge_id(edge),
-                        edge_type=GraphEdgeType.disease_drug,
-                        source_id=f"disease:{disease_id}",
-                        target_id=f"drug:{drug_id}",
-                        confidence=1.0,
-                        evidence=self._disease_edge_evidence(edge),
-                        extra={
-                            "indication_type": edge.get("indication_type"),
-                            "evidence_level": edge.get("evidence_level"),
-                        },
-                    )
-                )
+                edge_refs.append(self._disease_edge_ref(edge))
 
-        nodes = list(resolved_nodes.values())
-        return SubgraphResult(
-            nodes=nodes,
-            edges=edge_refs,
-            total_nodes=len(nodes),
-            total_edges=len(edge_refs),
+        all_nodes = self._sort_node_refs(list(resolved_nodes.values()))
+        nodes = all_nodes[: self.MAX_SUBGRAPH_NODES]
+        kept_node_ids = {node.node_id for node in nodes}
+        bounded_edges = [
+            edge
+            for edge in self._sort_edge_refs(edge_refs)
+            if edge.source_id in kept_node_ids and edge.target_id in kept_node_ids
+        ]
+        edges = bounded_edges[: self.MAX_SUBGRAPH_EDGES]
+        truncation = {}
+        if len(all_nodes) > len(nodes):
+            truncation["omitted_nodes"] = len(all_nodes) - len(nodes)
+        if len(bounded_edges) > len(edges):
+            truncation["omitted_edges"] = len(bounded_edges) - len(edges)
+        return self._cache_set(
+            cache_key,
+            SubgraphResult(
+                nodes=nodes,
+                edges=edges,
+                total_nodes=len(nodes),
+                total_edges=len(edges),
+                truncation=truncation,
+            ),
         )
 
 

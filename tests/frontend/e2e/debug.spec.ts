@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './playwright';
 
 test.describe('Debug Tests', () => {
   test('should capture console errors', async ({ page }) => {

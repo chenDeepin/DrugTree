@@ -1,0 +1,675 @@
+{
+  "nodes": [
+    {
+      "node_id": "cluster:target_h__k__atpase_72250c9c",
+      "node_type": "cluster",
+      "label": "H+/K+ Atpase Target Family",
+      "extra": {
+        "family_id": "target_h__k__atpase_72250c9c",
+        "label": "H+/K+ Atpase Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "omeprazole",
+        "member_drug_ids": [
+          "lansoprazole",
+          "omeprazole"
+        ],
+        "representative_target_ids": [
+          "H+/K+ ATPase"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting h+/k+ atpase",
+        "atc_codes": [
+          "A02BC01",
+          "A02BC03"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_hmg_coa_reductase_7169b791",
+      "node_type": "cluster",
+      "label": "Hmg Coa Reductase Target Family",
+      "extra": {
+        "family_id": "target_hmg_coa_reductase_7169b791",
+        "label": "Hmg Coa Reductase Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "simvastatin",
+        "member_drug_ids": [
+          "atorvastatin",
+          "simvastatin"
+        ],
+        "representative_target_ids": [
+          "HMG-CoA reductase"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting hmg coa reductase",
+        "atc_codes": [
+          "C10AA01",
+          "C10AA05"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_retinoic_acid_receptors_b9e2c168",
+      "node_type": "cluster",
+      "label": "Retinoic Acid Receptors Target Family",
+      "extra": {
+        "family_id": "target_retinoic_acid_receptors_b9e2c168",
+        "label": "Retinoic Acid Receptors Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "isotretinoin",
+        "member_drug_ids": [
+          "acitretin",
+          "isotretinoin"
+        ],
+        "representative_target_ids": [
+          "Retinoic acid receptors"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting retinoic acid receptors",
+        "atc_codes": [
+          "D05BB02",
+          "D10BA01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_pde5_9c351ebb",
+      "node_type": "cluster",
+      "label": "Pde5 Target Family",
+      "extra": {
+        "family_id": "target_pde5_9c351ebb",
+        "label": "Pde5 Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "sildenafil",
+        "member_drug_ids": [
+          "sildenafil",
+          "tadalafil"
+        ],
+        "representative_target_ids": [
+          "PDE5"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting pde5",
+        "atc_codes": [
+          "G04BE03"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_glucocorticoid_receptor_4b8632a2",
+      "node_type": "cluster",
+      "label": "Glucocorticoid Receptor Target Family",
+      "extra": {
+        "family_id": "target_glucocorticoid_receptor_4b8632a2",
+        "label": "Glucocorticoid Receptor Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "hydrocortisone",
+        "member_drug_ids": [
+          "dexamethasone",
+          "fluticasone",
+          "hydrocortisone",
+          "prednisone"
+        ],
+        "representative_target_ids": [
+          "Glucocorticoid receptor"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting glucocorticoid receptor",
+        "atc_codes": [
+          "H02AB02",
+          "H02AB07",
+          "H02AB09",
+          "R03BA05"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_c_kit_b0d1f693",
+      "node_type": "cluster",
+      "label": "C Kit Target Family",
+      "extra": {
+        "family_id": "target_c_kit_b0d1f693",
+        "label": "C Kit Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "imatinib",
+        "member_drug_ids": [
+          "imatinib",
+          "sunitinib"
+        ],
+        "representative_target_ids": [
+          "BCR-ABL",
+          "PDGFR",
+          "RET",
+          "VEGFR",
+          "c-KIT"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting c kit",
+        "atc_codes": [
+          "L01XE01",
+          "L01XE04"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_pdgfr_b0d1f693",
+      "node_type": "cluster",
+      "label": "Pdgfr Target Family",
+      "extra": {
+        "family_id": "target_pdgfr_b0d1f693",
+        "label": "Pdgfr Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "imatinib",
+        "member_drug_ids": [
+          "imatinib",
+          "sunitinib"
+        ],
+        "representative_target_ids": [
+          "BCR-ABL",
+          "PDGFR",
+          "RET",
+          "VEGFR",
+          "c-KIT"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting pdgfr",
+        "atc_codes": [
+          "L01XE01",
+          "L01XE04"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_tubulin_0663c687",
+      "node_type": "cluster",
+      "label": "Tubulin Target Family",
+      "extra": {
+        "family_id": "target_tubulin_0663c687",
+        "label": "Tubulin Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "paclitaxel",
+        "member_drug_ids": [
+          "colchicine",
+          "paclitaxel"
+        ],
+        "representative_target_ids": [
+          "Tubulin"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting tubulin",
+        "atc_codes": [
+          "L01CD01",
+          "M04AC01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_cox_1_96ff6e3b",
+      "node_type": "cluster",
+      "label": "Cox 1 Target Family",
+      "extra": {
+        "family_id": "target_cox_1_96ff6e3b",
+        "label": "Cox 1 Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "aspirin",
+        "member_drug_ids": [
+          "aspirin",
+          "ibuprofen"
+        ],
+        "representative_target_ids": [
+          "COX-1",
+          "COX-2"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting cox 1",
+        "atc_codes": [
+          "B01AC06",
+          "M01AE01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_cox_2_18f26be7",
+      "node_type": "cluster",
+      "label": "Cox 2 Target Family",
+      "extra": {
+        "family_id": "target_cox_2_18f26be7",
+        "label": "Cox 2 Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "aspirin",
+        "member_drug_ids": [
+          "aspirin",
+          "celecoxib",
+          "ibuprofen"
+        ],
+        "representative_target_ids": [
+          "COX-1",
+          "COX-2"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting cox 2",
+        "atc_codes": [
+          "B01AC06",
+          "M01AE01",
+          "M01AH01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_prostaglandin_f_receptor_661d4a07",
+      "node_type": "cluster",
+      "label": "Prostaglandin F Receptor Target Family",
+      "extra": {
+        "family_id": "target_prostaglandin_f_receptor_661d4a07",
+        "label": "Prostaglandin F Receptor Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "latanoprost",
+        "member_drug_ids": [
+          "latanoprost",
+          "travoprost"
+        ],
+        "representative_target_ids": [
+          "Prostaglandin F receptor"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting prostaglandin f receptor",
+        "atc_codes": [
+          "S01EE01",
+          "S01EE04"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:target_radiographic_imaging_7d4eff6e",
+      "node_type": "cluster",
+      "label": "Radiographic Imaging Target Family",
+      "extra": {
+        "family_id": "target_radiographic_imaging_7d4eff6e",
+        "label": "Radiographic Imaging Target Family",
+        "family_basis": "target",
+        "prototype_drug_id": "iohexol",
+        "member_drug_ids": [
+          "iodixanol",
+          "iohexol"
+        ],
+        "representative_target_ids": [
+          "Radiographic imaging"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs targeting radiographic imaging",
+        "atc_codes": [
+          "V08AB02",
+          "V08AB09"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_a02b_72250c9c",
+      "node_type": "cluster",
+      "label": "Proton pump inhibitor Family",
+      "extra": {
+        "family_id": "mechanism_a02b_72250c9c",
+        "label": "Proton pump inhibitor Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "omeprazole",
+        "member_drug_ids": [
+          "lansoprazole",
+          "omeprazole"
+        ],
+        "representative_target_ids": [
+          "H+/K+ ATPase"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Proton pump inhibitor class (ATC A02B)",
+        "atc_codes": [
+          "A02BC01",
+          "A02BC03"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_a10b_f8611758",
+      "node_type": "cluster",
+      "label": "Biguanide Family",
+      "extra": {
+        "family_id": "mechanism_a10b_f8611758",
+        "label": "Biguanide Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "metformin",
+        "member_drug_ids": [
+          "dapagliflozin",
+          "metformin",
+          "sitagliptin"
+        ],
+        "representative_target_ids": [
+          "AMPK",
+          "Complex I",
+          "DPP-4",
+          "SGLT2"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Biguanide class (ATC A10B)",
+        "atc_codes": [
+          "A10BA02",
+          "A10BH01",
+          "A10BK01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_b01a_86c01a55",
+      "node_type": "cluster",
+      "label": "NSAID, antiplatelet Family",
+      "extra": {
+        "family_id": "mechanism_b01a_86c01a55",
+        "label": "NSAID, antiplatelet Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "aspirin",
+        "member_drug_ids": [
+          "aspirin",
+          "clopidogrel",
+          "dabigatran",
+          "rivaroxaban",
+          "warfarin"
+        ],
+        "representative_target_ids": [
+          "COX-1",
+          "COX-2",
+          "Factor Xa",
+          "P2Y12 receptor",
+          "Thrombin",
+          "Vitamin K epoxide reductase"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the NSAID, antiplatelet class (ATC B01A)",
+        "atc_codes": [
+          "B01AA03",
+          "B01AC04",
+          "B01AC06",
+          "B01AE07",
+          "B01AF01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_c10a_7169b791",
+      "node_type": "cluster",
+      "label": "Statin Family",
+      "extra": {
+        "family_id": "mechanism_c10a_7169b791",
+        "label": "Statin Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "simvastatin",
+        "member_drug_ids": [
+          "atorvastatin",
+          "simvastatin"
+        ],
+        "representative_target_ids": [
+          "HMG-CoA reductase"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Statin class (ATC C10A)",
+        "atc_codes": [
+          "C10AA01",
+          "C10AA05"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_g04b_9c351ebb",
+      "node_type": "cluster",
+      "label": "PDE5 inhibitor Family",
+      "extra": {
+        "family_id": "mechanism_g04b_9c351ebb",
+        "label": "PDE5 inhibitor Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "sildenafil",
+        "member_drug_ids": [
+          "sildenafil",
+          "tadalafil"
+        ],
+        "representative_target_ids": [
+          "PDE5"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the PDE5 inhibitor class (ATC G04B)",
+        "atc_codes": [
+          "G04BE03"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_g04c_147dee21",
+      "node_type": "cluster",
+      "label": "5-alpha reductase inhibitor Family",
+      "extra": {
+        "family_id": "mechanism_g04c_147dee21",
+        "label": "5-alpha reductase inhibitor Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "finasteride",
+        "member_drug_ids": [
+          "finasteride",
+          "tamsulosin"
+        ],
+        "representative_target_ids": [
+          "5-alpha reductase",
+          "Alpha-1A adrenergic receptor"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the 5-alpha reductase inhibitor class (ATC G04C)",
+        "atc_codes": [
+          "G04CA02",
+          "G04CB01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_h02a_86de824b",
+      "node_type": "cluster",
+      "label": "Corticosteroid Family",
+      "extra": {
+        "family_id": "mechanism_h02a_86de824b",
+        "label": "Corticosteroid Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "hydrocortisone",
+        "member_drug_ids": [
+          "dexamethasone",
+          "hydrocortisone",
+          "prednisone"
+        ],
+        "representative_target_ids": [
+          "Glucocorticoid receptor"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Corticosteroid class (ATC H02A)",
+        "atc_codes": [
+          "H02AB02",
+          "H02AB07",
+          "H02AB09"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_j05a_54cbd377",
+      "node_type": "cluster",
+      "label": "Antiviral Family",
+      "extra": {
+        "family_id": "mechanism_j05a_54cbd377",
+        "label": "Antiviral Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "acyclovir",
+        "member_drug_ids": [
+          "acyclovir",
+          "oseltamivir"
+        ],
+        "representative_target_ids": [
+          "Neuraminidase",
+          "Viral DNA polymerase"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Antiviral class (ATC J05A)",
+        "atc_codes": [
+          "J05AB01",
+          "J05AH02"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_l01x_e870ea55",
+      "node_type": "cluster",
+      "label": "Platinum compound Family",
+      "extra": {
+        "family_id": "mechanism_l01x_e870ea55",
+        "label": "Platinum compound Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "cisplatin",
+        "member_drug_ids": [
+          "cisplatin",
+          "erlotinib",
+          "imatinib",
+          "sunitinib"
+        ],
+        "representative_target_ids": [
+          "BCR-ABL",
+          "DNA",
+          "EGFR",
+          "PDGFR",
+          "RET",
+          "VEGFR",
+          "c-KIT"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Platinum compound class (ATC L01X)",
+        "atc_codes": [
+          "L01XA01",
+          "L01XE01",
+          "L01XE03",
+          "L01XE04"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_m01a_375f6e0b",
+      "node_type": "cluster",
+      "label": "NSAID Family",
+      "extra": {
+        "family_id": "mechanism_m01a_375f6e0b",
+        "label": "NSAID Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "ibuprofen",
+        "member_drug_ids": [
+          "celecoxib",
+          "ibuprofen"
+        ],
+        "representative_target_ids": [
+          "COX-1",
+          "COX-2"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the NSAID class (ATC M01A)",
+        "atc_codes": [
+          "M01AE01",
+          "M01AH01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_p02c_13f2280d",
+      "node_type": "cluster",
+      "label": "Benzimidazole anthelmintic Family",
+      "extra": {
+        "family_id": "mechanism_p02c_13f2280d",
+        "label": "Benzimidazole anthelmintic Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "albendazole",
+        "member_drug_ids": [
+          "albendazole",
+          "ivermectin"
+        ],
+        "representative_target_ids": [
+          "Beta-tubulin",
+          "Glutamate-gated chloride channels"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Benzimidazole anthelmintic class (ATC P02C)",
+        "atc_codes": [
+          "P02CA03",
+          "P02CF01"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_r03b_90549179",
+      "node_type": "cluster",
+      "label": "Inhaled corticosteroid Family",
+      "extra": {
+        "family_id": "mechanism_r03b_90549179",
+        "label": "Inhaled corticosteroid Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "fluticasone",
+        "member_drug_ids": [
+          "fluticasone",
+          "tiotropium"
+        ],
+        "representative_target_ids": [
+          "Glucocorticoid receptor",
+          "Muscarinic receptors"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Inhaled corticosteroid class (ATC R03B)",
+        "atc_codes": [
+          "R03BA05",
+          "R03BB04"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_s01e_661d4a07",
+      "node_type": "cluster",
+      "label": "Prostaglandin analog Family",
+      "extra": {
+        "family_id": "mechanism_s01e_661d4a07",
+        "label": "Prostaglandin analog Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "latanoprost",
+        "member_drug_ids": [
+          "latanoprost",
+          "travoprost"
+        ],
+        "representative_target_ids": [
+          "Prostaglandin F receptor"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Prostaglandin analog class (ATC S01E)",
+        "atc_codes": [
+          "S01EE01",
+          "S01EE04"
+        ]
+      }
+    },
+    {
+      "node_id": "cluster:mechanism_v08a_7d4eff6e",
+      "node_type": "cluster",
+      "label": "Non-ionic contrast medium Family",
+      "extra": {
+        "family_id": "mechanism_v08a_7d4eff6e",
+        "label": "Non-ionic contrast medium Family",
+        "family_basis": "mechanism",
+        "prototype_drug_id": "iohexol",
+        "member_drug_ids": [
+          "iodixanol",
+          "iohexol"
+        ],
+        "representative_target_ids": [
+          "Radiographic imaging"
+        ],
+        "schema_version": "1.0.0",
+        "description": "Drugs in the Non-ionic contrast medium class (ATC V08A)",
+        "atc_codes": [
+          "V08AB02",
+          "V08AB09"
+        ]
+      }
+    }
+  ]
+}

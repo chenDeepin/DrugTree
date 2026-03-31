@@ -4,7 +4,13 @@
  * Reference: .sisyphus/plans/drugtree-graph-evolution.md (Task 23)
  */
 
-import { defineConfig, devices } from '@playwright/test';
+declare const process: {
+  env: Record<string, string | undefined>;
+};
+
+import { defineConfig, devices } from './e2e/playwright';
+
+const benchmarkMode = process.env.DRUGTREE_BENCHMARK_MODE === '1';
 
 export default defineConfig({
   testDir: './e2e',
@@ -12,12 +18,16 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: benchmarkMode
+    ? [['html', { outputFolder: '../../.sisyphus/evidence/playwright-report', open: 'never' }]]
+    : 'html',
+  outputDir: benchmarkMode ? '../../.sisyphus/evidence/playwright-artifacts' : undefined,
 
   use: {
     baseURL: 'http://localhost:8766',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    video: benchmarkMode ? 'retain-on-failure' : 'off',
   },
 
   projects: [

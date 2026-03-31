@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: DrugTree
+message: A visual drug exploration tool with interactive body atlas, molecular structures, and genealogy tracking
+type: software
+authors:
+  - family-names: []
+    given-names: chenDeepin
+    orcid: https://orcid.org/0000-0000-0000-0000
+repository-code: https://github.com/chenDeepin/DrugTree
+url: https://github.com/chenDeepin/DrugTree
+abstract: DrugTree is an interactive platform exploring 7,359 approved small-molecule drugs through a human body atlas. Features include molecular structure visualization via RDKit.js, drug genealogy tracking across generations, disease navigation, and a graph knowledge engine. Data sourced from ChEMBL, DrugBank, PubChem, KEGG, and FDA.
+keywords:
+  - drug discovery
+  - molecular visualization
+  - cheminformatics
+  - drug genealogy
+  - therapeutic classification
+  - knowledge graph
+license: MIT
+date-released: 2024-01-01
+contact:
+  - type: developer
+    name: DrugTree Contributors
+    email: https://github.com/chenDeepin/DrugTree/issues

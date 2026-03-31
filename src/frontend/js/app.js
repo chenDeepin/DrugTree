@@ -5,20 +5,25 @@ if (!DrugTreeState) {
 }
 
 const {
-  applyDrugFilters,
+  buildDrugIndexes,
   buildBodyRegionLabel,
   buildPublicSummary,
+  countDrugsForRegion,
   getModePresentation,
   humanizeRegionId,
   resolveDrugBodyRegions,
+  selectDrugIds,
   toggleBodyRegion,
   toggleCategory,
 } = DrugTreeState;
 
 const EMBEDDED_BODY_ONTOLOGY = window.DRUGTREE_BODY_ONTOLOGY || null;
-const EMBEDDED_DRUG_DATA = window.DRUGTREE_DRUGS_DATA || null;
+const EMBEDDED_DRUG_SHELL_DATA = window.DRUGTREE_DRUGS_SHELL_DATA || window.DRUGTREE_DRUGS_DATA || null;
 const EMBEDDED_DISEASE_DATA = window.DRUGTREE_DISEASES_DATA || null;
 const EMBEDDED_DISEASE_DRUG_EDGES = window.DRUGTREE_DISEASE_DRUG_EDGES || null;
+const EMBEDDED_GRAPH_NODES = window.DRUGTREE_GRAPH_NODES || null;
+const EMBEDDED_GRAPH_EDGES = window.DRUGTREE_GRAPH_EDGES || null;
+const EMBEDDED_GRAPH_META = window.DRUGTREE_GRAPH_META || null;
 const EMBEDDED_BODY_SVG = window.DRUGTREE_HUMAN_BODY_SVG || "";
 
 const ATC_CATEGORIES = {
@@ -41,6 +46,28 @@ const ATC_CATEGORIES = {
 const DEFAULT_RESULT_LIMIT = 120;
 const STARTER_SET_LIMIT = 72;
 const API_FETCH_TIMEOUT_MS = 1200;
+const DETAIL_PENDING_TEXT = "Loading…";
+
+function normalizeDrugDataset(payload) {
+  return Array.isArray(payload) ? payload : (payload?.drugs || []);
+}
+
+function getEmbeddedFullDrugData() {
+  return window.DRUGTREE_DRUGS_DATA || null;
+}
+
+function mergeDrugRecords(shellDrug, fullDrug) {
+  return {
+    ...(shellDrug || {}),
+    ...(fullDrug || {}),
+  };
+}
+
+function waitForNextPaint() {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+}
 
 async function fetchJsonWithTimeout(url, timeoutMs = API_FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -58,6 +85,15 @@ class DrugTreeApp {
 
   constructor() {
     this.drugs = [];
+    this.drugShellsById = new Map();
+    this.fullDrugRecordsById = new Map();
+    this.pendingDrugHydrations = new Map();
+    this.lineageByDrugId = new Map();
+    this.pendingLineageHydrations = new Map();
+    this.fullDrugDatasetPromise = null;
+    this.fullDrugEmbedPromise = null;
+    this.drugIndexes = null;
+    this.filteredDrugIds = [];
     this.diseases = [];
     this.diseaseDrugEdges = [];
     this.diseaseDrugIdsByDiseaseId = new Map();
@@ -80,10 +116,12 @@ class DrugTreeApp {
     
     this.graphStore = null;
     this.selectionStore = null;
+    this.graphLoadPromise = null;
     this.diseaseView = null;
     this.genealogyView = null;
     this.isApplyingDrugRoute = false;
     this.lastNonDetailHash = "";
+    this.detailRenderToken = 0;
   }
 
   async init() {
@@ -103,31 +141,41 @@ class DrugTreeApp {
       this.loadBodyOntology(),
     ]);
     this.rebuildDiseaseEdgeIndex();
+    this.rebuildDrugIndexes();
 
-    this.initStores();
-    await this.loadGraphData();
-    
-    this.updateAtlasSummary();
-    this.setupEventListeners();
-    this.setupATCTags();
-    this.setupViewToggle();
-    await this.initBodyMap();
+    try {
+      this.initStores();
+      
+      this.updateAtlasSummary();
+      this.setupEventListeners();
+      this.setupATCTags();
+      this.setupViewToggle();
+      await this.initBodyMap();
 
-    if (window.DiseasePanel) {
-      this.diseasePanel = new window.DiseasePanel(this);
-      await this.diseasePanel.init();
+      if (window.DiseasePanel) {
+        this.diseasePanel = new window.DiseasePanel(this);
+        await this.diseasePanel.init();
+      }
+
+      this.initDiseaseView();
+      this.initGenealogyView();
+
+      document.body.classList.add("mode-public");
+      this.updateATCTagsState();
+      this.updateActiveFiltersBar();
+      this.applyFilters();
+      this.handleHashChange();
+      this.scheduleGraphLoad();
+
+      console.log("DrugTree initialized with", this.drugs.length, "drugs");
+    } catch (initError) {
+      console.error("DrugTree init() failed after data load:", initError);
+      const banner = document.createElement("div");
+      banner.id = "drugtree-init-error";
+      banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#7f1d1d;color:#fecaca;padding:12px 16px;font-family:monospace;font-size:14px;white-space:pre-wrap;word-break:break-all;max-height:50vh;overflow:auto;";
+      banner.textContent = `DrugTree init error: ${initError.message}\n\nStack:\n${initError.stack}`;
+      document.body.prepend(banner);
     }
-
-    this.initDiseaseView();
-    this.initGenealogyView();
-
-    document.body.classList.add("mode-public");
-    this.updateATCTagsState();
-    this.updateActiveFiltersBar();
-    this.applyFilters();
-    this.handleHashChange();
-
-    console.log("DrugTree initialized with", this.drugs.length, "drugs");
   }
   
   initStores() {
@@ -159,6 +207,30 @@ class DrugTreeApp {
   
   async loadGraphData() {
     if (this.graphStore && this.drugs.length > 0 && this.bodyOntology) {
+      const graphNodes = Array.isArray(EMBEDDED_GRAPH_NODES?.nodes)
+        ? EMBEDDED_GRAPH_NODES.nodes
+        : [];
+      const graphEdges = Array.isArray(EMBEDDED_GRAPH_EDGES?.edges)
+        ? EMBEDDED_GRAPH_EDGES.edges
+        : [];
+
+      if (EMBEDDED_GRAPH_META && graphNodes.length > 0) {
+        await this.graphStore.loadFromGraph(
+          {
+            meta: EMBEDDED_GRAPH_META,
+            nodes: graphNodes,
+            edges: graphEdges,
+          },
+          {
+            drugs: this.drugs,
+            diseases: this.diseases,
+            bodyOntology: this.bodyOntology,
+            diseaseDrugEdges: this.diseaseDrugEdges,
+          },
+        );
+        return;
+      }
+
       await this.graphStore.loadGraph({
         drugs: this.drugs,
         diseases: this.diseases,
@@ -166,6 +238,30 @@ class DrugTreeApp {
         diseaseDrugEdges: this.diseaseDrugEdges,
       });
     }
+  }
+
+  scheduleGraphLoad() {
+    if (this.graphLoadPromise || !this.graphStore || !this.drugs.length || !this.bodyOntology) {
+      return this.graphLoadPromise;
+    }
+
+    this.graphLoadPromise = waitForNextPaint()
+      .then(() => this.loadGraphData())
+      .finally(() => this.graphLoadPromise = null);
+    return this.graphLoadPromise;
+  }
+
+  async ensureGraphDataLoaded() {
+    if (this.graphStore?.loaded) {
+      return true;
+    }
+
+    const pendingGraphLoad = this.scheduleGraphLoad();
+    if (pendingGraphLoad) {
+      await pendingGraphLoad;
+    }
+
+    return Boolean(this.graphStore?.loaded);
   }
   
   initDiseaseView() {
@@ -197,12 +293,12 @@ class DrugTreeApp {
         : this.activeCategory,
       visibleDrugIds: Object.prototype.hasOwnProperty.call(overrides, 'visibleDrugIds')
         ? overrides.visibleDrugIds
-        : this.filteredDrugs.map((drug) => drug.id),
+        : [...this.filteredDrugIds],
     };
   }
 
   renderActiveDiseaseView(overrides = {}) {
-    if (this.viewMode !== 'disease' || !this.diseaseView) {
+    if (this.viewMode !== 'disease' || !this.diseaseView || !this.graphStore?.loaded) {
       return;
     }
 
@@ -238,7 +334,7 @@ class DrugTreeApp {
     if (mode === 'disease') {
       if (diseaseSection) diseaseSection.style.display = 'block';
       if (resultsSection) resultsSection.style.display = 'none';
-      this.renderActiveDiseaseView();
+      void this.ensureGraphDataLoaded().then(() => this.renderActiveDiseaseView());
     } else {
       if (diseaseSection) diseaseSection.style.display = 'none';
       if (resultsSection) resultsSection.style.display = 'block';
@@ -269,7 +365,230 @@ class DrugTreeApp {
   }
 
   findDrugById(drugId) {
-    return this.drugs.find((drug) => drug.id === drugId) || null;
+    return this.fullDrugRecordsById.get(drugId) || this.drugShellsById.get(drugId) || null;
+  }
+
+  findShellDrugById(drugId) {
+    return this.drugShellsById.get(drugId) || null;
+  }
+
+  setDrugShells(drugs) {
+    const normalizedDrugs = (drugs || []).filter((drug) => drug?.id);
+    this.drugs = normalizedDrugs;
+    this.drugShellsById = new Map(normalizedDrugs.map((drug) => [drug.id, drug]));
+    this.syncFilteredDrugsFromIds(normalizedDrugs.map((drug) => drug.id));
+  }
+
+  syncFilteredDrugsFromIds(drugIds) {
+    this.filteredDrugIds = [...drugIds];
+    this.filteredDrugs = this.filteredDrugIds
+      .map((drugId) => this.findShellDrugById(drugId) || this.findDrugById(drugId))
+      .filter(Boolean);
+  }
+
+  rebuildDrugIndexes() {
+    this.drugIndexes = buildDrugIndexes(this.drugs, {
+      diseaseDrugIdsByDiseaseId: this.diseaseDrugIdsByDiseaseId,
+    });
+  }
+
+  cacheFullDrugRecords(drugs) {
+    (drugs || []).forEach((drug) => {
+      if (!drug?.id) {
+        return;
+      }
+
+      const shellDrug = this.findShellDrugById(drug.id);
+      this.fullDrugRecordsById.set(drug.id, mergeDrugRecords(shellDrug, drug));
+    });
+  }
+
+  async ensureFullDrugEmbedLoaded() {
+    const embeddedFullDrugs = normalizeDrugDataset(getEmbeddedFullDrugData());
+    if (embeddedFullDrugs.length > 0) {
+      return embeddedFullDrugs;
+    }
+
+    if (window.location.protocol !== "file:") {
+      return [];
+    }
+
+    if (this.fullDrugEmbedPromise) {
+      return this.fullDrugEmbedPromise;
+    }
+
+    this.fullDrugEmbedPromise = new Promise((resolve, reject) => {
+      const onResolve = () => {
+        const hydratedDrugs = normalizeDrugDataset(getEmbeddedFullDrugData());
+        if (hydratedDrugs.length > 0) {
+          resolve(hydratedDrugs);
+          return;
+        }
+
+        reject(new Error("Full embedded drug dataset loaded without DRUGTREE_DRUGS_DATA payload."));
+      };
+
+      const existingScript = document.querySelector('script[data-drugtree-full-dataset="true"]');
+      if (existingScript) {
+        if (existingScript.dataset.loaded === "true") {
+          onResolve();
+          return;
+        }
+
+        existingScript.addEventListener("load", onResolve, { once: true });
+        existingScript.addEventListener("error", () => {
+          reject(new Error("Failed to load embedded full drug dataset script."));
+        }, { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = "data/drugs.js";
+      script.async = false;
+      script.dataset.drugtreeFullDataset = "true";
+      script.addEventListener("load", () => {
+        script.dataset.loaded = "true";
+        onResolve();
+      }, { once: true });
+      script.addEventListener("error", () => {
+        reject(new Error("Failed to load embedded full drug dataset script."));
+      }, { once: true });
+      document.head.appendChild(script);
+    }).catch((error) => {
+      this.fullDrugEmbedPromise = null;
+      throw error;
+    });
+
+    return this.fullDrugEmbedPromise;
+  }
+
+  async loadFullDrugDataset() {
+    if (this.fullDrugDatasetPromise) {
+      return this.fullDrugDatasetPromise;
+    }
+
+    this.fullDrugDatasetPromise = (async () => {
+      const embeddedFullPayload = getEmbeddedFullDrugData();
+      const embeddedFullDrugs = normalizeDrugDataset(embeddedFullPayload);
+      if (embeddedFullDrugs.length > 0 && embeddedFullPayload !== EMBEDDED_DRUG_SHELL_DATA) {
+        this.cacheFullDrugRecords(embeddedFullDrugs);
+        return embeddedFullDrugs;
+      }
+
+      const fileEmbeddedDrugs = await this.ensureFullDrugEmbedLoaded();
+      if (fileEmbeddedDrugs.length > 0) {
+        this.cacheFullDrugRecords(fileEmbeddedDrugs);
+        return fileEmbeddedDrugs;
+      }
+
+      const response = await fetch("data/drugs.json");
+      if (!response.ok) {
+        throw new Error(`Unexpected full drug dataset status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const fullDrugs = normalizeDrugDataset(data);
+      this.cacheFullDrugRecords(fullDrugs);
+      return fullDrugs;
+    })().catch((error) => {
+      this.fullDrugDatasetPromise = null;
+      throw error;
+    });
+
+    return this.fullDrugDatasetPromise;
+  }
+
+  async hydrateDrugRecord(drugId) {
+    if (!drugId) {
+      return null;
+    }
+
+    const cachedDrug = this.fullDrugRecordsById.get(drugId);
+    if (cachedDrug) {
+      return cachedDrug;
+    }
+
+    if (this.pendingDrugHydrations.has(drugId)) {
+      return this.pendingDrugHydrations.get(drugId);
+    }
+
+    const hydrationPromise = (async () => {
+      const shellDrug = this.findShellDrugById(drugId);
+
+      if (window.location.protocol !== "file:") {
+        try {
+          const response = await fetchJsonWithTimeout(`${this.API_BASE_URL}/drugs/${encodeURIComponent(drugId)}`);
+          if (response.ok) {
+            const hydratedDrug = await response.json();
+            const mergedDrug = mergeDrugRecords(shellDrug, hydratedDrug);
+            this.fullDrugRecordsById.set(drugId, mergedDrug);
+            return mergedDrug;
+          }
+        } catch (error) {
+          console.warn(`Falling back to local full drug dataset for ${drugId}:`, error);
+        }
+      }
+
+      try {
+        await this.loadFullDrugDataset();
+      } catch (error) {
+        console.warn(`Failed to hydrate ${drugId} from local dataset:`, error);
+      }
+
+      return this.findDrugById(drugId) || shellDrug;
+    })().finally(() => {
+      this.pendingDrugHydrations.delete(drugId);
+    });
+
+    this.pendingDrugHydrations.set(drugId, hydrationPromise);
+    return hydrationPromise;
+  }
+
+  async hydrateLineageData(drugId) {
+    if (!drugId) {
+      return null;
+    }
+
+    if (this.lineageByDrugId.has(drugId)) {
+      return this.lineageByDrugId.get(drugId);
+    }
+
+    if (this.pendingLineageHydrations.has(drugId)) {
+      return this.pendingLineageHydrations.get(drugId);
+    }
+
+    const lineagePromise = (async () => {
+      if (window.location.protocol !== "file:") {
+        try {
+          const response = await fetchJsonWithTimeout(`${this.API_BASE_URL}/lineage/${encodeURIComponent(drugId)}`);
+          if (response.ok) {
+            const lineage = await response.json();
+            this.lineageByDrugId.set(drugId, lineage);
+            return lineage;
+          }
+        } catch (error) {
+          console.warn(`Falling back to local lineage data for ${drugId}:`, error);
+        }
+      }
+
+      try {
+        await this.loadFullDrugDataset();
+      } catch (error) {
+        console.warn(`Failed to load local lineage dataset for ${drugId}:`, error);
+      }
+
+      const hydratedDrug = this.findDrugById(drugId);
+      const lineage = this._buildGenealogyTreeData(hydratedDrug);
+      if (lineage) {
+        this.lineageByDrugId.set(drugId, lineage);
+      }
+      return lineage;
+    })().finally(() => {
+      this.pendingLineageHydrations.delete(drugId);
+    });
+
+    this.pendingLineageHydrations.set(drugId, lineagePromise);
+    return lineagePromise;
   }
 
   updateSelectedDrugState(drug, cardElement = null) {
@@ -371,6 +690,8 @@ class DrugTreeApp {
     const detailPage = document.getElementById("drug-detail-page");
     const pageMain = document.querySelector(".page-main");
 
+    this.detailRenderToken += 1;
+
     if (detailPage) {
       detailPage.hidden = true;
     }
@@ -437,6 +758,7 @@ class DrugTreeApp {
     this.updateATCTagsState();
     this.updateActiveFiltersBar();
     this.applyFilters();
+    void this.ensureGraphDataLoaded().then(() => this.renderActiveDiseaseView());
   }
 
   handleRegionSelected(detail) {
@@ -494,64 +816,49 @@ class DrugTreeApp {
       `;
     }
 
-    // Handle both array and object format
-    const embeddedDrugs = Array.isArray(EMBEDDED_DRUG_DATA) 
-      ? EMBEDDED_DRUG_DATA 
-      : (EMBEDDED_DRUG_DATA?.drugs || []);
-    const apiOrigin = this.API_BASE_URL.replace(/\/api\/v1$/, "");
-    if (embeddedDrugs.length > 0 && window.location.origin !== apiOrigin) {
-      this.drugs = embeddedDrugs;
-      this.filteredDrugs = [...this.drugs];
+    const embeddedShellDrugs = normalizeDrugDataset(EMBEDDED_DRUG_SHELL_DATA);
+    if (embeddedShellDrugs.length > 0) {
+      this.setDrugShells(embeddedShellDrugs);
       return;
     }
-    if (window.location.protocol === "file:" && embeddedDrugs.length > 0) {
-      this.drugs = embeddedDrugs;
-      this.filteredDrugs = [...this.drugs];
-      return;
+
+    try {
+      const response = await fetch("data/drugs-shell.json");
+      if (response.ok) {
+        const data = await response.json();
+        this.setDrugShells(normalizeDrugDataset(data));
+        return;
+      }
+      throw new Error("Shell bootstrap dataset not available");
+    } catch (shellError) {
+      console.warn("Shell bootstrap dataset not available, falling back to full dataset:", shellError);
     }
 
     try {
       const response = await fetchJsonWithTimeout(`${this.API_BASE_URL}/drugs?limit=10000`);
       if (response.ok) {
         const data = await response.json();
-        const apiDrugs = data.drugs || [];
-        this.drugs = apiDrugs.length === 0 && embeddedDrugs.length > 0 ? embeddedDrugs : apiDrugs;
-        this.filteredDrugs = [...this.drugs];
+        const apiDrugs = normalizeDrugDataset(data);
+        this.setDrugShells(apiDrugs);
         return;
       }
       throw new Error("Backend API not available");
     } catch (apiError) {
-      console.warn("Backend API not available, falling back to local JSON:", apiError);
+      console.warn("Backend API not available, falling back to full local JSON:", apiError);
+    }
 
-      try {
-        if (embeddedDrugs.length > 0) {
-          this.drugs = embeddedDrugs;
-          this.filteredDrugs = [...this.drugs];
-          console.log(`Loaded ${this.drugs.length} drugs from embedded data`);
-          return;
-        }
+    try {
+      const response = await fetch("data/drugs.json");
+      if (!response.ok) {
+        throw new Error(`Unexpected local drug dataset status: ${response.status}`);
+      }
 
-        const fallbackPaths = [
-          "data/drugs.json",
-        ];
-
-        let data = null;
-        for (const path of fallbackPaths) {
-          const response = await fetch(path);
-          if (response.ok) {
-            data = await response.json();
-            break;
-          }
-        }
-
-        if (!data) {
-          throw new Error("No local drug dataset found");
-        }
-
-        this.drugs = data.drugs || [];
-        this.filteredDrugs = [...this.drugs];
-      } catch (error) {
-        console.error("Failed to load drug data:", error);
+      const data = await response.json();
+      this.setDrugShells(normalizeDrugDataset(data));
+    } catch (error) {
+      console.error("Failed to load drug data:", error);
+      this.setDrugShells([]);
+      if (!this.drugs.length) {
         this.showError("Failed to load drug data. Please check the backend or local datasets.");
       }
     }
@@ -659,6 +966,10 @@ class DrugTreeApp {
       const drugIds = this.diseaseDrugIdsByDiseaseId.get(edge.disease_id) || new Set();
       drugIds.add(edge.drug_id);
       this.diseaseDrugIdsByDiseaseId.set(edge.disease_id, drugIds);
+    }
+
+    if (this.drugs.length > 0) {
+      this.rebuildDrugIndexes();
     }
   }
 
@@ -861,9 +1172,10 @@ class DrugTreeApp {
   showATCTagPreview(category, element) {
     this.removePreview(".atc-preview");
 
-    const count = applyDrugFilters(this.drugs, {
+    const count = selectDrugIds(this.drugIndexes, {
       activeCategory: category,
       activeBodyRegion: this.activeBodyRegion,
+      activeDiseaseId: null,
       searchQuery: this.searchQuery,
     }).length;
 
@@ -946,9 +1258,10 @@ class DrugTreeApp {
   showBodyPreview(regionId, element) {
     this.removePreview(".body-preview");
 
-    const count = applyDrugFilters(this.drugs, {
+    const count = selectDrugIds(this.drugIndexes, {
       activeCategory: this.activeCategory,
       activeBodyRegion: regionId,
+      activeDiseaseId: null,
       searchQuery: this.searchQuery,
     }).length;
 
@@ -1126,11 +1439,11 @@ class DrugTreeApp {
 
   updateBodyMapState() {
     this.regionElementsById.forEach((elements, regionId) => {
-      const regionDrugCount = applyDrugFilters(this.drugs, {
+      const regionDrugCount = countDrugsForRegion(this.drugIndexes, {
         activeCategory: this.activeCategory,
-        activeBodyRegion: regionId,
-        searchQuery: "",
-      }).length;
+        activeDiseaseId: this.activeDisease?.id || null,
+        searchQuery: this.searchQuery,
+      }, regionId);
 
       elements.forEach((element) => {
         element.classList.remove("is-active", "is-hovered", "is-muted", "highlighted");
@@ -1176,11 +1489,11 @@ class DrugTreeApp {
     }
 
     const regionMeta = this.getRegionMeta(regionId);
-    const count = applyDrugFilters(this.drugs, {
+    const count = countDrugsForRegion(this.drugIndexes, {
       activeCategory: this.activeCategory,
-      activeBodyRegion: regionId,
+      activeDiseaseId: this.activeDisease?.id || null,
       searchQuery: this.searchQuery,
-    }).length;
+    }, regionId);
 
     const locked = isLocked !== null ? isLocked : regionId === this.activeBodyRegion;
     label.textContent = locked
@@ -1204,21 +1517,14 @@ class DrugTreeApp {
   }
 
   applyFilters() {
-    this.filteredDrugs = applyDrugFilters(this.drugs, {
+    const filteredDrugIds = selectDrugIds(this.drugIndexes, {
       activeCategory: this.activeCategory,
       activeBodyRegion: this.activeBodyRegion,
+      activeDiseaseId: this.activeDisease?.id || null,
       searchQuery: this.searchQuery,
     });
 
-    if (this.activeDisease) {
-      const linkedDrugIds = this.diseaseDrugIdsByDiseaseId.get(this.activeDisease.id);
-      this.filteredDrugs = this.filteredDrugs.filter((drug) => {
-        if (!linkedDrugIds) {
-          return false;
-        }
-        return linkedDrugIds.has(drug.id);
-      });
-    }
+    this.syncFilteredDrugsFromIds(filteredDrugIds);
 
     this.updateBodyMapState();
     this.renderDrugList();
@@ -1323,7 +1629,7 @@ class DrugTreeApp {
     const modePresentation = getModePresentation(this.mode);
     const bodyRegionLabel = buildBodyRegionLabel(drug, this.regionMetaById);
     const publicSummary = buildPublicSummary(drug, this.regionMetaById);
-    const targets = (drug.targets || []).slice(0, 2).join(", ");
+    const targets = (drug.targets_preview || drug.targets || []).slice(0, 2).join(", ");
 
     card.className = "drug-card";
     card.dataset.drugId = drug.id;
@@ -1378,7 +1684,11 @@ class DrugTreeApp {
 
     const structureContainer = card.querySelector(".drug-structure");
     if (this.structureViewer) {
-      this.structureViewer.renderStructure(drug.smiles, structureContainer);
+      this.structureViewer.observeCardStructure({
+        drugId: drug.id,
+        smiles: drug.smiles,
+        container: structureContainer,
+      });
     }
 
     return card;
@@ -1388,26 +1698,40 @@ class DrugTreeApp {
     this.updateSelectedDrugState(drug, cardElement);
   }
 
-  renderDrugDetail(drug) {
-    const detailPage = document.getElementById("drug-detail-page");
-    const pageMain = document.querySelector(".page-main");
+  formatDetailValue(value, { pendingHydration = false, fallback = "N/A" } = {}) {
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value.join(", ") : (pendingHydration ? DETAIL_PENDING_TEXT : fallback);
+    }
 
-    if (!detailPage || !pageMain) {
+    if (value === null || value === undefined || value === "") {
+      return pendingHydration ? DETAIL_PENDING_TEXT : fallback;
+    }
+
+    return String(value);
+  }
+
+  updateDetailModePresentation(detailPage) {
+    const modePresentation = getModePresentation(this.mode);
+    detailPage.querySelectorAll(".scientist-only").forEach((element) => {
+      if (element.classList.contains("info-item")) {
+        element.style.display = modePresentation.showTechnicalChemistry ? "flex" : "none";
+      } else {
+        element.style.display = modePresentation.showTechnicalChemistry ? "block" : "none";
+      }
+    });
+
+    return modePresentation;
+  }
+
+  populateDrugDetailFields(drug, { pendingHydration = false } = {}) {
+    if (!drug) {
       return;
     }
 
     const category = drug.atc_category || "V";
-    const modePresentation = getModePresentation(this.mode);
-
     document.getElementById("modal-title").textContent = drug.name;
-    document.getElementById("modal-summary").textContent = buildPublicSummary(
-      drug,
-      this.regionMetaById,
-    );
-    document.getElementById("modal-region").textContent = buildBodyRegionLabel(
-      drug,
-      this.regionMetaById,
-    );
+    document.getElementById("modal-summary").textContent = buildPublicSummary(drug, this.regionMetaById);
+    document.getElementById("modal-region").textContent = buildBodyRegionLabel(drug, this.regionMetaById);
 
     const atcCodeElement = document.getElementById("modal-atc-code");
     if (atcCodeElement) {
@@ -1418,67 +1742,169 @@ class DrugTreeApp {
       };
     }
 
-    document.getElementById("modal-class").textContent = drug.class || "N/A";
+    document.getElementById("modal-class").textContent = this.formatDetailValue(drug.class, { pendingHydration });
     document.getElementById("modal-mw").textContent = drug.molecular_weight
       ? `${drug.molecular_weight.toFixed(2)} Da`
-      : "N/A";
+      : this.formatDetailValue(null, { pendingHydration });
     document.getElementById("modal-phase").textContent = drug.phase
       ? `Phase ${drug.phase}`
-      : "N/A";
-    document.getElementById("modal-year").textContent = drug.year_approved || "Unknown";
-    document.getElementById("modal-company").textContent = drug.company || "N/A";
-    document.getElementById("modal-indication").textContent = drug.indication || "N/A";
-    document.getElementById("modal-targets").textContent =
-      drug.targets && drug.targets.length > 0 ? drug.targets.join(", ") : "N/A";
-    document.getElementById("modal-synonyms").textContent =
-      drug.synonyms && drug.synonyms.length > 0 ? drug.synonyms.join(", ") : "N/A";
-    document.getElementById("modal-inchikey").textContent = drug.inchikey || "N/A";
-    document.getElementById("modal-smiles").textContent = drug.smiles || "N/A";
+      : this.formatDetailValue(null, { pendingHydration });
+    document.getElementById("modal-year").textContent = this.formatDetailValue(
+      drug.year_approved || "Unknown",
+      { pendingHydration: false, fallback: "Unknown" },
+    );
+    document.getElementById("modal-company").textContent = this.formatDetailValue(drug.company, { pendingHydration });
+    document.getElementById("modal-indication").textContent = this.formatDetailValue(drug.indication, { pendingHydration });
+    document.getElementById("modal-targets").textContent = this.formatDetailValue(drug.targets, { pendingHydration });
+    document.getElementById("modal-synonyms").textContent = this.formatDetailValue(drug.synonyms, { pendingHydration });
+    document.getElementById("modal-inchikey").textContent = this.formatDetailValue(drug.inchikey, { pendingHydration });
+    document.getElementById("modal-smiles").textContent = this.formatDetailValue(drug.smiles, { pendingHydration });
+  }
 
-    this.updateGenealogy(drug);
+  setGenealogyPlaceholder(message) {
+    const parentsElement = document.getElementById("modal-parents");
+    const successorsElement = document.getElementById("modal-successors");
+    const container = document.getElementById("genealogy-tree-container");
+
+    if (parentsElement) {
+      parentsElement.textContent = message;
+    }
+    if (successorsElement) {
+      successorsElement.textContent = message;
+    }
+    if (container) {
+      container.innerHTML = `<div class="genealogy-tree-empty">${message}</div>`;
+    }
+  }
+
+  renderDrugDetail(drug) {
+    const detailPage = document.getElementById("drug-detail-page");
+    const pageMain = document.querySelector(".page-main");
+
+    if (!detailPage || !pageMain || !drug) {
+      return;
+    }
+
+    const shellDrug = this.findShellDrugById(drug.id) || drug;
+    const hydratedDrug = this.fullDrugRecordsById.get(drug.id);
+    const detailDrug = hydratedDrug || mergeDrugRecords(shellDrug, drug);
+    const modePresentation = this.updateDetailModePresentation(detailPage);
+
+    this.selectedDrug = detailDrug;
+    this.populateDrugDetailFields(detailDrug, { pendingHydration: !hydratedDrug });
 
     const structureContainer = document.getElementById("modal-structure");
-    if (structureContainer && this.structureViewer) {
-      this.structureViewer.renderModalStructure(drug.smiles, structureContainer);
+    if (structureContainer) {
+      structureContainer.innerHTML = '<div class="placeholder">Loading structure…</div>';
     }
-    
-    this.renderGenealogyTree(drug);
 
-    detailPage.querySelectorAll(".scientist-only").forEach((element) => {
-      if (element.classList.contains("info-item")) {
-        element.style.display = modePresentation.showTechnicalChemistry ? "flex" : "none";
-      } else {
-        element.style.display = modePresentation.showTechnicalChemistry ? "block" : "none";
-      }
-    });
+    const generationElement = document.getElementById("modal-generation");
+    if (generationElement) {
+      generationElement.textContent = `Generation ${detailDrug.generation || 1}`;
+    }
+
+    if (modePresentation.showGenealogy) {
+      this.setGenealogyPlaceholder(DETAIL_PENDING_TEXT);
+    } else {
+      this.setGenealogyPlaceholder("Genealogy available in scientist mode");
+    }
 
     detailPage.hidden = false;
     pageMain.classList.add("detail-active");
     document.body.style.overflow = "";
+
+    this.scheduleDeferredDetailRender(detailDrug, { renderGenealogy: modePresentation.showGenealogy });
   }
 
   showDrugModal(drug) {
     this.renderDrugDetail(drug);
   }
 
-  updateGenealogy(drug) {
+  scheduleDeferredDetailRender(drug, { renderGenealogy = false } = {}) {
+    const renderToken = ++this.detailRenderToken;
+
+    void waitForNextPaint().then(async () => {
+      if (!drug?.id || this.parseDrugDetailHash() !== drug.id || renderToken !== this.detailRenderToken) {
+        return;
+      }
+
+      const structureContainer = document.getElementById("modal-structure");
+      if (structureContainer && this.structureViewer) {
+        void this.structureViewer.renderModalStructure(drug.smiles, structureContainer, 700, 350, {
+          drugId: drug.id,
+          cacheKey: `detail:${drug.id}`,
+        });
+      }
+
+      const hydratedDrug = await this.hydrateDrugRecord(drug.id);
+      if (!hydratedDrug || this.parseDrugDetailHash() !== drug.id || renderToken !== this.detailRenderToken) {
+        return;
+      }
+
+      this.selectedDrug = hydratedDrug;
+      this.populateDrugDetailFields(hydratedDrug, { pendingHydration: false });
+
+      if (structureContainer && this.structureViewer && hydratedDrug.smiles && hydratedDrug.smiles !== drug.smiles) {
+        void this.structureViewer.renderModalStructure(hydratedDrug.smiles, structureContainer, 700, 350, {
+          drugId: hydratedDrug.id,
+          cacheKey: `detail:${hydratedDrug.id}`,
+        });
+      }
+
+      if (!renderGenealogy) {
+        return;
+      }
+
+      const lineageData = await this.hydrateLineageData(drug.id);
+      if (this.parseDrugDetailHash() !== drug.id || renderToken !== this.detailRenderToken) {
+        return;
+      }
+
+      this.updateGenealogy(hydratedDrug, lineageData);
+      this.renderGenealogyTree(hydratedDrug, lineageData);
+    });
+  }
+
+  resolveLineageNodeName(drugId, lineageData) {
+    const lineageNode = (lineageData?.tree?.nodes || []).find((candidate) => candidate?.id === drugId);
+    return lineageNode?.name || this.findDrugById(drugId)?.name || drugId;
+  }
+
+  resolveGenealogyLinks(drugId, lineageData) {
+    const links = lineageData?.tree?.links || [];
+    return {
+      parentIds: links.filter((link) => link?.target === drugId).map((link) => link.source),
+      successorIds: links.filter((link) => link?.source === drugId).map((link) => link.target),
+    };
+  }
+
+  getGenealogySourceDrugs() {
+    return this.fullDrugRecordsById.size > 0
+      ? Array.from(this.fullDrugRecordsById.values())
+      : this.drugs;
+  }
+
+  updateGenealogy(drug, lineageData = null) {
     const parentsElement = document.getElementById("modal-parents");
     const successorsElement = document.getElementById("modal-successors");
     const generationElement = document.getElementById("modal-generation");
+    const sourceDrugs = this.getGenealogySourceDrugs();
+    const lineageLinks = this.resolveGenealogyLinks(drug.id, lineageData);
 
     if (generationElement) {
       generationElement.textContent = `Generation ${drug.generation || 1}`;
     }
 
     if (parentsElement) {
-      if (drug.parent_drugs && drug.parent_drugs.length > 0) {
-        parentsElement.innerHTML = drug.parent_drugs
+      const parentIds = drug.parent_drugs?.length ? [...drug.parent_drugs] : lineageLinks.parentIds;
+
+      if (parentIds.length > 0) {
+        parentsElement.innerHTML = parentIds
           .map((parentId) => {
-            const parentDrug = this.drugs.find((candidate) => candidate.id === parentId || candidate.name === parentId);
-            if (parentDrug) {
-              return `<span class="genealogy-drug-link" data-drug-id="${parentDrug.id}">${parentDrug.name}</span>`;
-            }
-            return `<span>${parentId}</span>`;
+            const parentDrug = sourceDrugs.find((candidate) => candidate.id === parentId || candidate.name === parentId);
+            const resolvedId = parentDrug?.id || parentId;
+            const resolvedName = parentDrug?.name || this.resolveLineageNodeName(parentId, lineageData);
+            return `<span class="genealogy-drug-link" data-drug-id="${resolvedId}">${resolvedName}</span>`;
           })
           .join(", ");
 
@@ -1497,11 +1923,22 @@ class DrugTreeApp {
     }
 
     if (successorsElement) {
-      const successors = this.drugs.filter(
-        (candidate) =>
-          candidate.parent_drugs &&
-          (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name)),
-      );
+      const successorIds = lineageLinks.successorIds.length > 0
+        ? lineageLinks.successorIds
+        : sourceDrugs
+          .filter(
+            (candidate) =>
+              candidate.parent_drugs &&
+              (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name)),
+          )
+          .map((candidate) => candidate.id);
+
+      const successors = successorIds
+        .map((successorId) => sourceDrugs.find((candidate) => candidate.id === successorId) || {
+          id: successorId,
+          name: this.resolveLineageNodeName(successorId, lineageData),
+        })
+        .filter(Boolean);
 
       if (successors.length > 0) {
         successorsElement.innerHTML = successors
@@ -1526,9 +1963,11 @@ class DrugTreeApp {
     }
   }
 
-  renderGenealogyTree(drug) {
+  renderGenealogyTree(drug, lineageData = null) {
     const container = document.getElementById('genealogy-tree-container');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     
     container.innerHTML = '';
     
@@ -1539,7 +1978,7 @@ class DrugTreeApp {
         this.genealogyView = new window.GenealogyView({ app: this });
       }
       
-      const treeData = this._buildGenealogyTreeData(drug);
+      const treeData = lineageData || this._buildGenealogyTreeData(drug);
       if (treeData) {
         this.genealogyView.render(container, treeData, isScientistMode);
       } else {
@@ -1551,7 +1990,11 @@ class DrugTreeApp {
   }
   
   _buildGenealogyTreeData(drug) {
-    if (!drug) return null;
+    if (!drug) {
+      return null;
+    }
+
+    const sourceDrugs = this.getGenealogySourceDrugs();
     
     const nodes = [];
     const links = [];
@@ -1566,11 +2009,11 @@ class DrugTreeApp {
     nodes.push({ id: drug.id, name: drug.name, depth: drug.generation || 1 });
     
     const parentDrugs = (drug.parent_drugs || []).map(parentId => {
-      const parentDrug = this.drugs.find(d => d.id === parentId || d.name === parentId);
+      const parentDrug = sourceDrugs.find(d => d.id === parentId || d.name === parentId);
       return parentDrug ? { id: parentDrug.id, name: parentDrug.name, depth: (parentDrug.generation || 1) } : null;
     }).filter(Boolean);
     
-    const successorDrugs = this.drugs.filter(candidate => 
+    const successorDrugs = sourceDrugs.filter(candidate => 
       candidate.parent_drugs && 
       (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name))
     );
@@ -1687,8 +2130,16 @@ class DrugTreeApp {
 
 let app;
 document.addEventListener("DOMContentLoaded", async () => {
-  app = new DrugTreeApp();
-  window.app = app;
-  window.DrugTreeApp = DrugTreeApp;
-  await app.init();
+  try {
+    app = new DrugTreeApp();
+    window.app = app;
+    window.DrugTreeApp = DrugTreeApp;
+    await app.init();
+  } catch (bootError) {
+    console.error("DrugTree boot failed:", bootError);
+    const banner = document.createElement("div");
+    banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#7f1d1d;color:#fecaca;padding:12px 16px;font-family:monospace;font-size:14px;white-space:pre-wrap;word-break:break-all;max-height:50vh;overflow:auto;";
+    banner.textContent = `DrugTree boot error: ${bootError.message}\n\nStack:\n${bootError.stack}`;
+    document.body.prepend(banner);
+  }
 });

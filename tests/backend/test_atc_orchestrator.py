@@ -1,7 +1,10 @@
 import json
+import asyncio
 from pathlib import Path
 
 from src.backend.etl.atc_orchestrator import (
+    ATCCode,
+    ATCOrchestrator,
     ATCEnrichmentPipeline,
     ATCResolution,
     is_placeholder_atc_code,
@@ -269,3 +272,62 @@ def test_pipeline_run_can_target_placeholder_entries_only(tmp_path):
     assert drugs[0]["atc_code"] == "N06AB10"
     assert drugs[1]["atc_code"] == "A01AA01"
     assert drugs[2]["atc_code"] == "V99XX99"
+
+
+def test_pipeline_report_includes_network_guardrails(tmp_path):
+    drugs_path = tmp_path / "drugs.json"
+    reports_dir = tmp_path / "reports"
+    cache_dir = tmp_path / "cache"
+    drugs_path.write_text(
+        json.dumps(
+            {
+                "drugs": [
+                    {
+                        "id": "placeholder-one",
+                        "name": "Placeholder One",
+                        "atc_code": "V99XX99",
+                        "atc_category": "V",
+                    }
+                ]
+            }
+        )
+    )
+
+    pipeline = StubPipeline(enable_network=False)
+    pipeline.drugs_file = drugs_path
+    pipeline.reports_dir = reports_dir
+    pipeline.cache_dir = cache_dir
+
+    report = pipeline.run(dry_run=True)
+
+    assert report["network_guardrails"]["rate_limit"] == 5
+    assert report["network_guardrails"]["cache_ttl_hours"] == 24
+    assert report["network_guardrails"]["cache_dir"] == str(cache_dir)
+    assert report["network_guardrails"]["partial_failure_reports"] is True
+
+
+def test_atc_orchestrator_persists_cache_entries(tmp_path):
+    cache_dir = tmp_path / "cache"
+
+    async def exercise_cache():
+        async with ATCOrchestrator(cache_dir=str(cache_dir)) as orchestrator:
+            await orchestrator._set_cache(
+                "atc:name:drug-a",
+                ATCCode(
+                    code="C10AA05",
+                    name="Drug A",
+                    level1="C",
+                    level2="10",
+                    level3="10A",
+                    level4="10AA",
+                    level5="10AA05",
+                    level1_name="Cardiovascular system",
+                ),
+            )
+            return await orchestrator._get_cached("atc:name:drug-a")
+
+    cached = asyncio.run(exercise_cache())
+
+    assert cached is not None
+    assert cache_dir.exists()
+    assert any(cache_dir.iterdir())

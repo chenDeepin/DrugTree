@@ -6,7 +6,8 @@
  * Reference: .sisyphus/plans/drugtree-graph-evolution.md (Task 23)
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from './playwright';
+import type { Page } from './playwright';
 
 async function openFirstDrugDetail(page: Page) {
   const firstDrugCard = page.locator('.drug-card').first();
@@ -14,6 +15,19 @@ async function openFirstDrugDetail(page: Page) {
   await firstDrugCard.click();
   await expect(page.locator('#drug-detail-page')).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`#drug/${drugId}$`));
+}
+
+async function waitForGenealogyContent(page: Page) {
+  await page.waitForFunction(() => {
+    const container = document.getElementById('genealogy-tree-container');
+    if (!container) {
+      return false;
+    }
+
+    const text = container.textContent || '';
+    const hasRenderableContent = Boolean(container.querySelector('.tree-node, svg, .genealogy-tree-empty'));
+    return hasRenderableContent && !text.includes('Loading');
+  }, undefined, { timeout: 15000 });
 }
 
 test.describe('Genealogy View', () => {
@@ -99,7 +113,7 @@ test.describe('Genealogy View', () => {
     await page.waitForTimeout(300);
 
     await openFirstDrugDetail(page);
-    await page.waitForTimeout(1000);
+    await waitForGenealogyContent(page);
     
     const treeContainer = page.locator('#genealogy-tree-container');
     const content = await treeContainer.innerHTML();

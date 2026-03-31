@@ -1,0 +1,60 @@
+name: perf-smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  perf-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: true
+      DRUGTREE_BENCHMARK_MODE: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
+        run: pip install -r src/backend/requirements.txt pytest
+
+      - name: Install Node dependencies
+        run: npm install
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate perf fixtures
+        run: python3 scripts/perf/generate_fixtures.py --output tests/fixtures/perf
+
+      - name: Run backend perf smoke
+        run: pytest tests/backend/perf -q
+
+      - name: Run frontend perf smoke
+        run: npx playwright test tests/frontend/e2e/perf --config tests/frontend/playwright.config.ts --project=chromium
+
+      - name: Run P0 regression smoke
+        run: npx playwright test tests/frontend/e2e/p0-regression.spec.ts --config tests/frontend/playwright.config.ts --project=chromium
+
+      - name: Build local perf summary
+        run: python3 scripts/perf/run_local_bench.py --output .sisyphus/evidence/final-performance-summary.json
+
+      - name: Upload performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-smoke-evidence
+          path: .sisyphus/evidence/

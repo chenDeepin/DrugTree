@@ -55,6 +55,8 @@ node tests/frontend/e2e/disease-universe.mjs
 
 > **Test harness note**: `tests/frontend/playwright.config.ts` serves the frontend on `http://localhost:8766` to avoid collisions with a backend/API service on `8765`.
 
+> **Important**: `http://127.0.0.1:8000/` is the API service, not the atlas UI. Open the static frontend URL (`http://127.0.0.1:8080/`) to review the body map and drug data in a browser.
+
 ## Architecture
 
 ### UI Layout: Central Body Atlas

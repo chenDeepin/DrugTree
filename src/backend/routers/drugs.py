@@ -4,9 +4,9 @@ DrugTree - Drugs Router
 REST API endpoints for drug data, lineage, and disease hierarchy.
 """
 
+import json
 from typing import Any, Dict, List, Optional
 
-import json
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
@@ -16,12 +16,12 @@ from ..models.drug import Drug, DrugListResponse, DrugFilterParams
 from ..models.drug_family import DrugFamily, DrugFamilyListResponse
 from ..models.lineage import LineageEdge, LineageEdgeListResponse
 from ..services.graph_index import GraphIndex, get_graph_index
+from ..services.data_snapshot import get_data_snapshot_service
 from ..services.tree_builder import GenealogyTree, TreeBuilder
 
-# Path to drug data
 DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+snapshot_service = get_data_snapshot_service()
 DRUGS_FILE = DATA_DIR / "drugs.json"
-BODY_ONTOLOGY_FILE = DATA_DIR / "ontology" / "body-ontology.json"
 
 
 class TreeNodeResponse(BaseModel):
@@ -112,35 +112,18 @@ class DiseaseTreeResponse(BaseModel):
 
 
 def load_drugs() -> List[Drug]:
-    """Load drugs from JSON file"""
-    try:
-        with open(DRUGS_FILE, "r") as f:
-            data = json.load(f)
-            # Handle both formats: array or {"drugs": [...]}
-            drugs_list = data if isinstance(data, list) else data.get("drugs", [])
-            return [Drug(**drug) for drug in drugs_list]
-    except Exception as e:
-        print(f"Error loading drugs: {e}")
-        return []
+    snapshot = snapshot_service.get_snapshot()
+    return [Drug(**drug) for drug in snapshot.drugs]
 
 
 def load_drugs_full() -> List[Dict[str, Any]]:
-    try:
-        with open(DRUGS_FILE, "r") as f:
-            payload = json.load(f)
-            return payload.get("drugs", []) if isinstance(payload, dict) else payload
-    except Exception as e:
-        print(f"Error loading drugs.json: {e}")
-        return []
+    snapshot = snapshot_service.get_snapshot()
+    return snapshot.drugs
 
 
 def load_body_ontology() -> Dict[str, Any]:
-    try:
-        with open(BODY_ONTOLOGY_FILE, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading body ontology: {e}")
-        return {}
+    snapshot = snapshot_service.get_snapshot()
+    return snapshot.body_ontology
 
 
 def matches_drug_search(drug: Any, query: str) -> bool:
@@ -233,6 +216,10 @@ async def search_drugs(q: str = Query(..., description="Search query text")):
     drugs = load_drugs()
     filtered = [d for d in drugs if matches_drug_search(d, q)]
     return DrugListResponse(total=len(filtered), drugs=filtered)
+
+
+async def search_drugs_query(q: str):
+    return await search_drugs(q=q)
 
 
 @router.get("/drugs/{drug_id}", response_model=Drug)

@@ -5,7 +5,6 @@ REST API endpoints for disease universe data.
 """
 
 import json
-from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -23,53 +22,40 @@ from ..models.disease import (
     ApprovalStatus,
 )
 from ..models.drug import Drug, DrugListResponse
+from ..services.data_snapshot import get_data_snapshot_service
 
 router = APIRouter(prefix="/api/v1", tags=["diseases"])
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DATA_DIR = PROJECT_ROOT / "data"
-DISEASES_FILE = DATA_DIR / "diseases.json"
-DISEASE_DRUG_EDGES_FILE = DATA_DIR / "disease_drug_edges.json"
-BODY_ONTOLOGY_FILE = DATA_DIR / "ontology" / "body-ontology.json"
-DRUGS_FILE = DATA_DIR / "drugs.json"
+snapshot_service = get_data_snapshot_service()
 
 
 def load_diseases() -> List[Disease]:
-    if not DISEASES_FILE.exists():
-        return []
-    with open(DISEASES_FILE, "r") as f:
-        data = json.load(f)
-        return [Disease(**d) for d in data.get("diseases", [])]
+    snapshot = snapshot_service.get_snapshot()
+    return [Disease(**disease) for disease in snapshot.diseases]
 
 
 def save_diseases(diseases: List[Disease]) -> None:
-    DISEASES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(DISEASES_FILE, "w") as f:
-        json.dump({"diseases": [d.model_dump() for d in diseases]}, f, indent=2)
+    diseases_path = snapshot_service.data_dir / "diseases.json"
+    diseases_path.parent.mkdir(parents=True, exist_ok=True)
+    diseases_path.write_text(
+        json.dumps({"diseases": [d.model_dump() for d in diseases]}, indent=2),
+        encoding="utf-8",
+    )
+    snapshot_service.refresh()
 
 
 def load_body_ontology() -> dict:
-    if not BODY_ONTOLOGY_FILE.exists():
-        return {}
-    with open(BODY_ONTOLOGY_FILE, "r") as f:
-        return json.load(f)
+    snapshot = snapshot_service.get_snapshot()
+    return snapshot.body_ontology
 
 
 def load_disease_drug_edges() -> List[DrugDiseaseEdge]:
-    if not DISEASE_DRUG_EDGES_FILE.exists():
-        return []
-    with open(DISEASE_DRUG_EDGES_FILE, "r") as f:
-        payload = json.load(f)
-        items = payload.get("edges", []) if isinstance(payload, dict) else payload
-        return [DrugDiseaseEdge(**edge) for edge in items]
+    snapshot = snapshot_service.get_snapshot()
+    return [DrugDiseaseEdge(**edge) for edge in snapshot.disease_drug_edges]
 
 
 def load_drugs() -> List[dict]:
-    if not DRUGS_FILE.exists():
-        return []
-    with open(DRUGS_FILE, "r") as f:
-        data = json.load(f)
-        return data.get("drugs", []) if isinstance(data, dict) else data
+    snapshot = snapshot_service.get_snapshot()
+    return snapshot.drugs
 
 
 @router.get("/diseases", response_model=DiseaseListResponse)
@@ -216,9 +202,7 @@ async def get_drugs_for_disease(disease_id: str):
         raise HTTPException(status_code=404, detail=f"Disease '{disease_id}' not found")
 
     edges = load_disease_drug_edges()
-    edge_drug_ids = [
-        edge.drug_id for edge in edges if edge.disease_id == disease_id
-    ]
+    edge_drug_ids = [edge.drug_id for edge in edges if edge.disease_id == disease_id]
     if not edge_drug_ids:
         return DrugListResponse(total=0, drugs=[])
 

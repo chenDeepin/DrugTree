@@ -37,6 +37,8 @@ class LineageBuilder:
     def __init__(self):
         self.edges: List[LineageEdge] = []
         self._parent_counts: Dict[str, int] = {}
+        self._fingerprint_cache: Dict[str, object] = {}
+        self._smiles_similarity_cache: Dict[Tuple[str, str], float] = {}
 
     def build_edges(
         self, drugs: List[Drug], families: List[DrugFamily]
@@ -249,20 +251,35 @@ class LineageBuilder:
 
     def _compute_fingerprint_similarity(self, smiles1: str, smiles2: str) -> float:
         try:
-            mol1 = Chem.MolFromSmiles(smiles1)
-            mol2 = Chem.MolFromSmiles(smiles2)
+            if smiles1 not in self._fingerprint_cache:
+                mol1 = Chem.MolFromSmiles(smiles1)
+                self._fingerprint_cache[smiles1] = (
+                    AllChem.GetMorganFingerprintAsBitVect(mol1, 2, nBits=2048)
+                    if mol1 is not None
+                    else None
+                )
+            if smiles2 not in self._fingerprint_cache:
+                mol2 = Chem.MolFromSmiles(smiles2)
+                self._fingerprint_cache[smiles2] = (
+                    AllChem.GetMorganFingerprintAsBitVect(mol2, 2, nBits=2048)
+                    if mol2 is not None
+                    else None
+                )
 
-            if mol1 is None or mol2 is None:
+            fp1 = self._fingerprint_cache.get(smiles1)
+            fp2 = self._fingerprint_cache.get(smiles2)
+            if fp1 is None or fp2 is None:
                 return 0.0
 
-            fp1 = AllChem.GetMorganFingerprintAsBitVect(mol1, 2, nBits=2048)
-            fp2 = AllChem.GetMorganFingerprintAsBitVect(mol2, 2, nBits=2048)
-
-            return DataStructs.TanimotoSimilarity(fp1, fp2)
+            return float(DataStructs.TanimotoSimilarity(fp1, fp2))
         except Exception:
             return 0.0
 
     def _compute_smiles_similarity(self, smiles1: str, smiles2: str) -> float:
+        cache_key = tuple(sorted((smiles1, smiles2)))
+        if cache_key in self._smiles_similarity_cache:
+            return self._smiles_similarity_cache[cache_key]
+
         s1 = set(smiles1.upper())
         s2 = set(smiles2.upper())
 
@@ -275,7 +292,9 @@ class LineageBuilder:
         if union == 0:
             return 0.0
 
-        return intersection / union
+        similarity = intersection / union
+        self._smiles_similarity_cache[cache_key] = similarity
+        return similarity
 
     def _generate_edge_id(self, from_id: str, to_id: str) -> str:
         return f"{from_id}_to_{to_id}"

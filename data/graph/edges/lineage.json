@@ -1,0 +1,1154 @@
+{
+  "edges": [
+    {
+      "edge_id": "omeprazole_to_lansoprazole",
+      "edge_type": "lineage",
+      "source_id": "drug:omeprazole",
+      "target_id": "drug:lansoprazole",
+      "confidence": 0.843,
+      "extra": {
+        "edge_id": "omeprazole_to_lansoprazole",
+        "from_drug_id": "omeprazole",
+        "to_drug_id": "lansoprazole",
+        "edge_type": "follow_on",
+        "confidence": 0.843,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.478
+        },
+        "provenance": "auto",
+        "explanation": "Lansoprazole (1995) derived from Omeprazole (1989) | in H+/K+ Atpase Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.48 | confidence=0.84",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "simvastatin_to_atorvastatin",
+      "edge_type": "lineage",
+      "source_id": "drug:simvastatin",
+      "target_id": "drug:atorvastatin",
+      "confidence": 0.723,
+      "extra": {
+        "edge_id": "simvastatin_to_atorvastatin",
+        "from_drug_id": "simvastatin",
+        "to_drug_id": "atorvastatin",
+        "edge_type": "follow_on",
+        "confidence": 0.723,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.075
+        },
+        "provenance": "auto",
+        "explanation": "Atorvastatin (1996) derived from Simvastatin (1988) | in Hmg Coa Reductase Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.08 | confidence=0.72",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "isotretinoin_to_acitretin",
+      "edge_type": "lineage",
+      "source_id": "drug:isotretinoin",
+      "target_id": "drug:acitretin",
+      "confidence": 0.413,
+      "extra": {
+        "edge_id": "isotretinoin_to_acitretin",
+        "from_drug_id": "isotretinoin",
+        "to_drug_id": "acitretin",
+        "edge_type": "follow_on",
+        "confidence": 0.413,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 0.0,
+          "scaffold_score": 0.377
+        },
+        "provenance": "auto",
+        "explanation": "Acitretin (1997) derived from Isotretinoin (1982) | in Retinoic Acid Receptors Target Family | scores: chronology=1.0, scaffold=0.38 | confidence=0.41",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "sildenafil_to_tadalafil",
+      "edge_type": "lineage",
+      "source_id": "drug:sildenafil",
+      "target_id": "drug:tadalafil",
+      "confidence": 0.734,
+      "extra": {
+        "edge_id": "sildenafil_to_tadalafil",
+        "from_drug_id": "sildenafil",
+        "to_drug_id": "tadalafil",
+        "edge_type": "follow_on",
+        "confidence": 0.734,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.114
+        },
+        "provenance": "auto",
+        "explanation": "Tadalafil (2003) derived from Sildenafil (1998) | in Pde5 Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.11 | confidence=0.73",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "hydrocortisone_to_prednisone",
+      "edge_type": "lineage",
+      "source_id": "drug:hydrocortisone",
+      "target_id": "drug:prednisone",
+      "confidence": 0.839,
+      "extra": {
+        "edge_id": "hydrocortisone_to_prednisone",
+        "from_drug_id": "hydrocortisone",
+        "to_drug_id": "prednisone",
+        "edge_type": "follow_on",
+        "confidence": 0.839,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.464
+        },
+        "provenance": "auto",
+        "explanation": "Prednisone (1955) derived from Hydrocortisone (1952) | in Glucocorticoid Receptor Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.46 | confidence=0.84",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "hydrocortisone_to_dexamethasone",
+      "edge_type": "lineage",
+      "source_id": "drug:hydrocortisone",
+      "target_id": "drug:dexamethasone",
+      "confidence": 0.905,
+      "extra": {
+        "edge_id": "hydrocortisone_to_dexamethasone",
+        "from_drug_id": "hydrocortisone",
+        "to_drug_id": "dexamethasone",
+        "edge_type": "follow_on",
+        "confidence": 0.905,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.683
+        },
+        "provenance": "auto",
+        "explanation": "Dexamethasone (1958) derived from Hydrocortisone (1952) | in Glucocorticoid Receptor Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.68 | confidence=0.90",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "hydrocortisone_to_fluticasone",
+      "edge_type": "lineage",
+      "source_id": "drug:hydrocortisone",
+      "target_id": "drug:fluticasone",
+      "confidence": 0.345,
+      "extra": {
+        "edge_id": "hydrocortisone_to_fluticasone",
+        "from_drug_id": "hydrocortisone",
+        "to_drug_id": "fluticasone",
+        "edge_type": "follow_on",
+        "confidence": 0.345,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 0.0,
+          "scaffold_score": 0.151
+        },
+        "provenance": "auto",
+        "explanation": "Fluticasone (1990) derived from Hydrocortisone (1952) | in Glucocorticoid Receptor Target Family | scores: chronology=1.0, scaffold=0.15 | confidence=0.35",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "prednisone_to_dexamethasone",
+      "edge_type": "lineage",
+      "source_id": "drug:prednisone",
+      "target_id": "drug:dexamethasone",
+      "confidence": 0.91,
+      "extra": {
+        "edge_id": "prednisone_to_dexamethasone",
+        "from_drug_id": "prednisone",
+        "to_drug_id": "dexamethasone",
+        "edge_type": "follow_on",
+        "confidence": 0.91,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.7
+        },
+        "provenance": "auto",
+        "explanation": "Dexamethasone (1958) derived from Prednisone (1955) | in Glucocorticoid Receptor Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.70 | confidence=0.91",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "prednisone_to_fluticasone",
+      "edge_type": "lineage",
+      "source_id": "drug:prednisone",
+      "target_id": "drug:fluticasone",
+      "confidence": 0.358,
+      "extra": {
+        "edge_id": "prednisone_to_fluticasone",
+        "from_drug_id": "prednisone",
+        "to_drug_id": "fluticasone",
+        "edge_type": "follow_on",
+        "confidence": 0.358,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 0.0,
+          "scaffold_score": 0.194
+        },
+        "provenance": "auto",
+        "explanation": "Fluticasone (1990) derived from Prednisone (1955) | in Glucocorticoid Receptor Target Family | scores: chronology=1.0, scaffold=0.19 | confidence=0.36",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "dexamethasone_to_fluticasone",
+      "edge_type": "lineage",
+      "source_id": "drug:dexamethasone",
+      "target_id": "drug:fluticasone",
+      "confidence": 0.358,
+      "extra": {
+        "edge_id": "dexamethasone_to_fluticasone",
+        "from_drug_id": "dexamethasone",
+        "to_drug_id": "fluticasone",
+        "edge_type": "follow_on",
+        "confidence": 0.358,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 0.0,
+          "scaffold_score": 0.194
+        },
+        "provenance": "auto",
+        "explanation": "Fluticasone (1990) derived from Dexamethasone (1958) | in Glucocorticoid Receptor Target Family | scores: chronology=1.0, scaffold=0.19 | confidence=0.36",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "imatinib_to_sunitinib",
+      "edge_type": "lineage",
+      "source_id": "drug:imatinib",
+      "target_id": "drug:sunitinib",
+      "confidence": 0.78,
+      "extra": {
+        "edge_id": "imatinib_to_sunitinib",
+        "from_drug_id": "imatinib",
+        "to_drug_id": "sunitinib",
+        "edge_type": "follow_on",
+        "confidence": 0.78,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.266
+        },
+        "provenance": "auto",
+        "explanation": "Sunitinib (2006) derived from Imatinib (2001) | in C Kit Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.27 | confidence=0.78",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "imatinib_to_sunitinib",
+      "edge_type": "lineage",
+      "source_id": "drug:imatinib",
+      "target_id": "drug:sunitinib",
+      "confidence": 0.78,
+      "extra": {
+        "edge_id": "imatinib_to_sunitinib",
+        "from_drug_id": "imatinib",
+        "to_drug_id": "sunitinib",
+        "edge_type": "follow_on",
+        "confidence": 0.78,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.266
+        },
+        "provenance": "auto",
+        "explanation": "Sunitinib (2006) derived from Imatinib (2001) | in Pdgfr Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.27 | confidence=0.78",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "paclitaxel_to_colchicine",
+      "edge_type": "lineage",
+      "source_id": "drug:paclitaxel",
+      "target_id": "drug:colchicine",
+      "confidence": 0.3,
+      "extra": {
+        "edge_id": "paclitaxel_to_colchicine",
+        "from_drug_id": "paclitaxel",
+        "to_drug_id": "colchicine",
+        "edge_type": "follow_on",
+        "confidence": 0.3,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 0.0,
+          "scaffold_score": 0.0
+        },
+        "provenance": "auto",
+        "explanation": "Colchicine (2009) derived from Paclitaxel (1992) | in Tubulin Target Family | scores: chronology=1.0 | confidence=0.30",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "aspirin_to_ibuprofen",
+      "edge_type": "lineage",
+      "source_id": "drug:aspirin",
+      "target_id": "drug:ibuprofen",
+      "confidence": 0.359,
+      "extra": {
+        "edge_id": "aspirin_to_ibuprofen",
+        "from_drug_id": "aspirin",
+        "to_drug_id": "ibuprofen",
+        "edge_type": "follow_on",
+        "confidence": 0.359,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 0.0,
+          "scaffold_score": 0.195
+        },
+        "provenance": "auto",
+        "explanation": "Ibuprofen (1969) derived from Aspirin (1899) | in Cox 1 Target Family | scores: chronology=1.0, scaffold=0.20 | confidence=0.36",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "aspirin_to_ibuprofen",
+      "edge_type": "lineage",
+      "source_id": "drug:aspirin",
+      "target_id": "drug:ibuprofen",
+      "confidence": 0.359,
+      "extra": {
+        "edge_id": "aspirin_to_ibuprofen",
+        "from_drug_id": "aspirin",
+        "to_drug_id": "ibuprofen",
+        "edge_type": "follow_on",
+        "confidence": 0.359,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 0.0,
+          "scaffold_score": 0.195
+        },
+        "provenance": "auto",
+        "explanation": "Ibuprofen (1969) derived from Aspirin (1899) | in Cox 2 Target Family | scores: chronology=1.0, scaffold=0.20 | confidence=0.36",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "aspirin_to_celecoxib",
+      "edge_type": "lineage",
+      "source_id": "drug:aspirin",
+      "target_id": "drug:celecoxib",
+      "confidence": 0.325,
+      "extra": {
+        "edge_id": "aspirin_to_celecoxib",
+        "from_drug_id": "aspirin",
+        "to_drug_id": "celecoxib",
+        "edge_type": "follow_on",
+        "confidence": 0.325,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 0.0,
+          "scaffold_score": 0.085
+        },
+        "provenance": "auto",
+        "explanation": "Celecoxib (1998) derived from Aspirin (1899) | in Cox 2 Target Family | scores: chronology=1.0, scaffold=0.08 | confidence=0.33",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "ibuprofen_to_celecoxib",
+      "edge_type": "lineage",
+      "source_id": "drug:ibuprofen",
+      "target_id": "drug:celecoxib",
+      "confidence": 0.725,
+      "extra": {
+        "edge_id": "ibuprofen_to_celecoxib",
+        "from_drug_id": "ibuprofen",
+        "to_drug_id": "celecoxib",
+        "edge_type": "follow_on",
+        "confidence": 0.725,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.083
+        },
+        "provenance": "auto",
+        "explanation": "Celecoxib (1998) derived from Ibuprofen (1969) | in Cox 2 Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.08 | confidence=0.72",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "latanoprost_to_travoprost",
+      "edge_type": "lineage",
+      "source_id": "drug:latanoprost",
+      "target_id": "drug:travoprost",
+      "confidence": 0.904,
+      "extra": {
+        "edge_id": "latanoprost_to_travoprost",
+        "from_drug_id": "latanoprost",
+        "to_drug_id": "travoprost",
+        "edge_type": "follow_on",
+        "confidence": 0.904,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.68
+        },
+        "provenance": "auto",
+        "explanation": "Travoprost (2001) derived from Latanoprost (1996) | in Prostaglandin F Receptor Target Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.68 | confidence=0.90",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "iohexol_to_iodixanol",
+      "edge_type": "lineage",
+      "source_id": "drug:iohexol",
+      "target_id": "drug:iodixanol",
+      "confidence": 0.7,
+      "extra": {
+        "edge_id": "iohexol_to_iodixanol",
+        "from_drug_id": "iohexol",
+        "to_drug_id": "iodixanol",
+        "edge_type": "follow_on",
+        "confidence": 0.7,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.0
+        },
+        "provenance": "auto",
+        "explanation": "Iodixanol (1996) derived from Iohexol (1985) | in Radiographic Imaging Target Family | scores: chronology=1.0, mechanism=1.0 | confidence=0.70",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "omeprazole_to_lansoprazole",
+      "edge_type": "lineage",
+      "source_id": "drug:omeprazole",
+      "target_id": "drug:lansoprazole",
+      "confidence": 0.843,
+      "extra": {
+        "edge_id": "omeprazole_to_lansoprazole",
+        "from_drug_id": "omeprazole",
+        "to_drug_id": "lansoprazole",
+        "edge_type": "follow_on",
+        "confidence": 0.843,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.478
+        },
+        "provenance": "auto",
+        "explanation": "Lansoprazole (1995) derived from Omeprazole (1989) | in Proton pump inhibitor Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.48 | confidence=0.84",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "metformin_to_sitagliptin",
+      "edge_type": "lineage",
+      "source_id": "drug:metformin",
+      "target_id": "drug:sitagliptin",
+      "confidence": 0.714,
+      "extra": {
+        "edge_id": "metformin_to_sitagliptin",
+        "from_drug_id": "metformin",
+        "to_drug_id": "sitagliptin",
+        "edge_type": "follow_on",
+        "confidence": 0.714,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.045
+        },
+        "provenance": "auto",
+        "explanation": "Sitagliptin (2006) derived from Metformin (1957) | in Biguanide Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.05 | confidence=0.71",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "metformin_to_dapagliflozin",
+      "edge_type": "lineage",
+      "source_id": "drug:metformin",
+      "target_id": "drug:dapagliflozin",
+      "confidence": 0.704,
+      "extra": {
+        "edge_id": "metformin_to_dapagliflozin",
+        "from_drug_id": "metformin",
+        "to_drug_id": "dapagliflozin",
+        "edge_type": "follow_on",
+        "confidence": 0.704,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.012
+        },
+        "provenance": "auto",
+        "explanation": "Dapagliflozin (2012) derived from Metformin (1957) | in Biguanide Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.01 | confidence=0.70",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "sitagliptin_to_dapagliflozin",
+      "edge_type": "lineage",
+      "source_id": "drug:sitagliptin",
+      "target_id": "drug:dapagliflozin",
+      "confidence": 0.728,
+      "extra": {
+        "edge_id": "sitagliptin_to_dapagliflozin",
+        "from_drug_id": "sitagliptin",
+        "to_drug_id": "dapagliflozin",
+        "edge_type": "follow_on",
+        "confidence": 0.728,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.093
+        },
+        "provenance": "auto",
+        "explanation": "Dapagliflozin (2012) derived from Sitagliptin (2006) | in Biguanide Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.09 | confidence=0.73",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "aspirin_to_warfarin",
+      "edge_type": "lineage",
+      "source_id": "drug:aspirin",
+      "target_id": "drug:warfarin",
+      "confidence": 0.773,
+      "extra": {
+        "edge_id": "aspirin_to_warfarin",
+        "from_drug_id": "aspirin",
+        "to_drug_id": "warfarin",
+        "edge_type": "follow_on",
+        "confidence": 0.773,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.245
+        },
+        "provenance": "auto",
+        "explanation": "Warfarin (1954) derived from Aspirin (1899) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.24 | confidence=0.77",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "aspirin_to_clopidogrel",
+      "edge_type": "lineage",
+      "source_id": "drug:aspirin",
+      "target_id": "drug:clopidogrel",
+      "confidence": 0.76,
+      "extra": {
+        "edge_id": "aspirin_to_clopidogrel",
+        "from_drug_id": "aspirin",
+        "to_drug_id": "clopidogrel",
+        "edge_type": "follow_on",
+        "confidence": 0.76,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.2
+        },
+        "provenance": "auto",
+        "explanation": "Clopidogrel (1997) derived from Aspirin (1899) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.20 | confidence=0.76",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "aspirin_to_dabigatran",
+      "edge_type": "lineage",
+      "source_id": "drug:aspirin",
+      "target_id": "drug:dabigatran",
+      "confidence": 0.732,
+      "extra": {
+        "edge_id": "aspirin_to_dabigatran",
+        "from_drug_id": "aspirin",
+        "to_drug_id": "dabigatran",
+        "edge_type": "follow_on",
+        "confidence": 0.732,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.108
+        },
+        "provenance": "auto",
+        "explanation": "Dabigatran (2008) derived from Aspirin (1899) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.11 | confidence=0.73",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "aspirin_to_rivaroxaban",
+      "edge_type": "lineage",
+      "source_id": "drug:aspirin",
+      "target_id": "drug:rivaroxaban",
+      "confidence": 0.726,
+      "extra": {
+        "edge_id": "aspirin_to_rivaroxaban",
+        "from_drug_id": "aspirin",
+        "to_drug_id": "rivaroxaban",
+        "edge_type": "follow_on",
+        "confidence": 0.726,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.086
+        },
+        "provenance": "auto",
+        "explanation": "Rivaroxaban (2008) derived from Aspirin (1899) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.09 | confidence=0.73",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "warfarin_to_clopidogrel",
+      "edge_type": "lineage",
+      "source_id": "drug:warfarin",
+      "target_id": "drug:clopidogrel",
+      "confidence": 0.743,
+      "extra": {
+        "edge_id": "warfarin_to_clopidogrel",
+        "from_drug_id": "warfarin",
+        "to_drug_id": "clopidogrel",
+        "edge_type": "follow_on",
+        "confidence": 0.743,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.145
+        },
+        "provenance": "auto",
+        "explanation": "Clopidogrel (1997) derived from Warfarin (1954) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.14 | confidence=0.74",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "warfarin_to_dabigatran",
+      "edge_type": "lineage",
+      "source_id": "drug:warfarin",
+      "target_id": "drug:dabigatran",
+      "confidence": 0.74,
+      "extra": {
+        "edge_id": "warfarin_to_dabigatran",
+        "from_drug_id": "warfarin",
+        "to_drug_id": "dabigatran",
+        "edge_type": "follow_on",
+        "confidence": 0.74,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.133
+        },
+        "provenance": "auto",
+        "explanation": "Dabigatran (2008) derived from Warfarin (1954) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.13 | confidence=0.74",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "warfarin_to_rivaroxaban",
+      "edge_type": "lineage",
+      "source_id": "drug:warfarin",
+      "target_id": "drug:rivaroxaban",
+      "confidence": 0.726,
+      "extra": {
+        "edge_id": "warfarin_to_rivaroxaban",
+        "from_drug_id": "warfarin",
+        "to_drug_id": "rivaroxaban",
+        "edge_type": "follow_on",
+        "confidence": 0.726,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.086
+        },
+        "provenance": "auto",
+        "explanation": "Rivaroxaban (2008) derived from Warfarin (1954) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.09 | confidence=0.73",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "clopidogrel_to_dabigatran",
+      "edge_type": "lineage",
+      "source_id": "drug:clopidogrel",
+      "target_id": "drug:dabigatran",
+      "confidence": 0.742,
+      "extra": {
+        "edge_id": "clopidogrel_to_dabigatran",
+        "from_drug_id": "clopidogrel",
+        "to_drug_id": "dabigatran",
+        "edge_type": "follow_on",
+        "confidence": 0.742,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.139
+        },
+        "provenance": "auto",
+        "explanation": "Dabigatran (2008) derived from Clopidogrel (1997) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.14 | confidence=0.74",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "clopidogrel_to_rivaroxaban",
+      "edge_type": "lineage",
+      "source_id": "drug:clopidogrel",
+      "target_id": "drug:rivaroxaban",
+      "confidence": 0.746,
+      "extra": {
+        "edge_id": "clopidogrel_to_rivaroxaban",
+        "from_drug_id": "clopidogrel",
+        "to_drug_id": "rivaroxaban",
+        "edge_type": "follow_on",
+        "confidence": 0.746,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.152
+        },
+        "provenance": "auto",
+        "explanation": "Rivaroxaban (2008) derived from Clopidogrel (1997) | in NSAID, antiplatelet Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.15 | confidence=0.75",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "simvastatin_to_atorvastatin",
+      "edge_type": "lineage",
+      "source_id": "drug:simvastatin",
+      "target_id": "drug:atorvastatin",
+      "confidence": 0.723,
+      "extra": {
+        "edge_id": "simvastatin_to_atorvastatin",
+        "from_drug_id": "simvastatin",
+        "to_drug_id": "atorvastatin",
+        "edge_type": "follow_on",
+        "confidence": 0.723,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.075
+        },
+        "provenance": "auto",
+        "explanation": "Atorvastatin (1996) derived from Simvastatin (1988) | in Statin Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.08 | confidence=0.72",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "sildenafil_to_tadalafil",
+      "edge_type": "lineage",
+      "source_id": "drug:sildenafil",
+      "target_id": "drug:tadalafil",
+      "confidence": 0.734,
+      "extra": {
+        "edge_id": "sildenafil_to_tadalafil",
+        "from_drug_id": "sildenafil",
+        "to_drug_id": "tadalafil",
+        "edge_type": "follow_on",
+        "confidence": 0.734,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.114
+        },
+        "provenance": "auto",
+        "explanation": "Tadalafil (2003) derived from Sildenafil (1998) | in PDE5 inhibitor Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.11 | confidence=0.73",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "finasteride_to_tamsulosin",
+      "edge_type": "lineage",
+      "source_id": "drug:finasteride",
+      "target_id": "drug:tamsulosin",
+      "confidence": 0.7,
+      "extra": {
+        "edge_id": "finasteride_to_tamsulosin",
+        "from_drug_id": "finasteride",
+        "to_drug_id": "tamsulosin",
+        "edge_type": "follow_on",
+        "confidence": 0.7,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.0
+        },
+        "provenance": "auto",
+        "explanation": "Tamsulosin (1997) derived from Finasteride (1992) | in 5-alpha reductase inhibitor Family | scores: chronology=1.0, mechanism=1.0 | confidence=0.70",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "hydrocortisone_to_prednisone",
+      "edge_type": "lineage",
+      "source_id": "drug:hydrocortisone",
+      "target_id": "drug:prednisone",
+      "confidence": 0.839,
+      "extra": {
+        "edge_id": "hydrocortisone_to_prednisone",
+        "from_drug_id": "hydrocortisone",
+        "to_drug_id": "prednisone",
+        "edge_type": "follow_on",
+        "confidence": 0.839,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.464
+        },
+        "provenance": "auto",
+        "explanation": "Prednisone (1955) derived from Hydrocortisone (1952) | in Corticosteroid Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.46 | confidence=0.84",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "hydrocortisone_to_dexamethasone",
+      "edge_type": "lineage",
+      "source_id": "drug:hydrocortisone",
+      "target_id": "drug:dexamethasone",
+      "confidence": 0.905,
+      "extra": {
+        "edge_id": "hydrocortisone_to_dexamethasone",
+        "from_drug_id": "hydrocortisone",
+        "to_drug_id": "dexamethasone",
+        "edge_type": "follow_on",
+        "confidence": 0.905,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.683
+        },
+        "provenance": "auto",
+        "explanation": "Dexamethasone (1958) derived from Hydrocortisone (1952) | in Corticosteroid Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.68 | confidence=0.90",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "prednisone_to_dexamethasone",
+      "edge_type": "lineage",
+      "source_id": "drug:prednisone",
+      "target_id": "drug:dexamethasone",
+      "confidence": 0.91,
+      "extra": {
+        "edge_id": "prednisone_to_dexamethasone",
+        "from_drug_id": "prednisone",
+        "to_drug_id": "dexamethasone",
+        "edge_type": "follow_on",
+        "confidence": 0.91,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.7
+        },
+        "provenance": "auto",
+        "explanation": "Dexamethasone (1958) derived from Prednisone (1955) | in Corticosteroid Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.70 | confidence=0.91",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "acyclovir_to_oseltamivir",
+      "edge_type": "lineage",
+      "source_id": "drug:acyclovir",
+      "target_id": "drug:oseltamivir",
+      "confidence": 0.717,
+      "extra": {
+        "edge_id": "acyclovir_to_oseltamivir",
+        "from_drug_id": "acyclovir",
+        "to_drug_id": "oseltamivir",
+        "edge_type": "follow_on",
+        "confidence": 0.717,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.057
+        },
+        "provenance": "auto",
+        "explanation": "Oseltamivir (1999) derived from Acyclovir (1981) | in Antiviral Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.06 | confidence=0.72",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "cisplatin_to_imatinib",
+      "edge_type": "lineage",
+      "source_id": "drug:cisplatin",
+      "target_id": "drug:imatinib",
+      "confidence": 0.704,
+      "extra": {
+        "edge_id": "cisplatin_to_imatinib",
+        "from_drug_id": "cisplatin",
+        "to_drug_id": "imatinib",
+        "edge_type": "follow_on",
+        "confidence": 0.704,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.014
+        },
+        "provenance": "auto",
+        "explanation": "Imatinib (2001) derived from Cisplatin (1978) | in Platinum compound Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.01 | confidence=0.70",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "cisplatin_to_erlotinib",
+      "edge_type": "lineage",
+      "source_id": "drug:cisplatin",
+      "target_id": "drug:erlotinib",
+      "confidence": 0.7,
+      "extra": {
+        "edge_id": "cisplatin_to_erlotinib",
+        "from_drug_id": "cisplatin",
+        "to_drug_id": "erlotinib",
+        "edge_type": "follow_on",
+        "confidence": 0.7,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.0
+        },
+        "provenance": "auto",
+        "explanation": "Erlotinib (2004) derived from Cisplatin (1978) | in Platinum compound Family | scores: chronology=1.0, mechanism=1.0 | confidence=0.70",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "cisplatin_to_sunitinib",
+      "edge_type": "lineage",
+      "source_id": "drug:cisplatin",
+      "target_id": "drug:sunitinib",
+      "confidence": 0.705,
+      "extra": {
+        "edge_id": "cisplatin_to_sunitinib",
+        "from_drug_id": "cisplatin",
+        "to_drug_id": "sunitinib",
+        "edge_type": "follow_on",
+        "confidence": 0.705,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.018
+        },
+        "provenance": "auto",
+        "explanation": "Sunitinib (2006) derived from Cisplatin (1978) | in Platinum compound Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.02 | confidence=0.71",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "imatinib_to_erlotinib",
+      "edge_type": "lineage",
+      "source_id": "drug:imatinib",
+      "target_id": "drug:erlotinib",
+      "confidence": 0.748,
+      "extra": {
+        "edge_id": "imatinib_to_erlotinib",
+        "from_drug_id": "imatinib",
+        "to_drug_id": "erlotinib",
+        "edge_type": "follow_on",
+        "confidence": 0.748,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.159
+        },
+        "provenance": "auto",
+        "explanation": "Erlotinib (2004) derived from Imatinib (2001) | in Platinum compound Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.16 | confidence=0.75",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "imatinib_to_sunitinib",
+      "edge_type": "lineage",
+      "source_id": "drug:imatinib",
+      "target_id": "drug:sunitinib",
+      "confidence": 0.78,
+      "extra": {
+        "edge_id": "imatinib_to_sunitinib",
+        "from_drug_id": "imatinib",
+        "to_drug_id": "sunitinib",
+        "edge_type": "follow_on",
+        "confidence": 0.78,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.266
+        },
+        "provenance": "auto",
+        "explanation": "Sunitinib (2006) derived from Imatinib (2001) | in Platinum compound Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.27 | confidence=0.78",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "erlotinib_to_sunitinib",
+      "edge_type": "lineage",
+      "source_id": "drug:erlotinib",
+      "target_id": "drug:sunitinib",
+      "confidence": 0.753,
+      "extra": {
+        "edge_id": "erlotinib_to_sunitinib",
+        "from_drug_id": "erlotinib",
+        "to_drug_id": "sunitinib",
+        "edge_type": "follow_on",
+        "confidence": 0.753,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.176
+        },
+        "provenance": "auto",
+        "explanation": "Sunitinib (2006) derived from Erlotinib (2004) | in Platinum compound Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.18 | confidence=0.75",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "ibuprofen_to_celecoxib",
+      "edge_type": "lineage",
+      "source_id": "drug:ibuprofen",
+      "target_id": "drug:celecoxib",
+      "confidence": 0.725,
+      "extra": {
+        "edge_id": "ibuprofen_to_celecoxib",
+        "from_drug_id": "ibuprofen",
+        "to_drug_id": "celecoxib",
+        "edge_type": "follow_on",
+        "confidence": 0.725,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.083
+        },
+        "provenance": "auto",
+        "explanation": "Celecoxib (1998) derived from Ibuprofen (1969) | in NSAID Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.08 | confidence=0.72",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "albendazole_to_ivermectin",
+      "edge_type": "lineage",
+      "source_id": "drug:albendazole",
+      "target_id": "drug:ivermectin",
+      "confidence": 0.7,
+      "extra": {
+        "edge_id": "albendazole_to_ivermectin",
+        "from_drug_id": "albendazole",
+        "to_drug_id": "ivermectin",
+        "edge_type": "follow_on",
+        "confidence": 0.7,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.0
+        },
+        "provenance": "auto",
+        "explanation": "Ivermectin (1987) derived from Albendazole (1983) | in Benzimidazole anthelmintic Family | scores: chronology=1.0, mechanism=1.0 | confidence=0.70",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "fluticasone_to_tiotropium",
+      "edge_type": "lineage",
+      "source_id": "drug:fluticasone",
+      "target_id": "drug:tiotropium",
+      "confidence": 0.7,
+      "extra": {
+        "edge_id": "fluticasone_to_tiotropium",
+        "from_drug_id": "fluticasone",
+        "to_drug_id": "tiotropium",
+        "edge_type": "follow_on",
+        "confidence": 0.7,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.0
+        },
+        "provenance": "auto",
+        "explanation": "Tiotropium (2002) derived from Fluticasone (1990) | in Inhaled corticosteroid Family | scores: chronology=1.0, mechanism=1.0 | confidence=0.70",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "latanoprost_to_travoprost",
+      "edge_type": "lineage",
+      "source_id": "drug:latanoprost",
+      "target_id": "drug:travoprost",
+      "confidence": 0.904,
+      "extra": {
+        "edge_id": "latanoprost_to_travoprost",
+        "from_drug_id": "latanoprost",
+        "to_drug_id": "travoprost",
+        "edge_type": "follow_on",
+        "confidence": 0.904,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.68
+        },
+        "provenance": "auto",
+        "explanation": "Travoprost (2001) derived from Latanoprost (1996) | in Prostaglandin analog Family | scores: chronology=1.0, mechanism=1.0, scaffold=0.68 | confidence=0.90",
+        "schema_version": "1.0.0"
+      }
+    },
+    {
+      "edge_id": "iohexol_to_iodixanol",
+      "edge_type": "lineage",
+      "source_id": "drug:iohexol",
+      "target_id": "drug:iodixanol",
+      "confidence": 0.7,
+      "extra": {
+        "edge_id": "iohexol_to_iodixanol",
+        "from_drug_id": "iohexol",
+        "to_drug_id": "iodixanol",
+        "edge_type": "follow_on",
+        "confidence": 0.7,
+        "rationale_tags": [],
+        "score_breakdown": {
+          "chronology_score": 1.0,
+          "mechanism_score": 1.0,
+          "scaffold_score": 0.0
+        },
+        "provenance": "auto",
+        "explanation": "Iodixanol (1996) derived from Iohexol (1985) | in Non-ionic contrast medium Family | scores: chronology=1.0, mechanism=1.0 | confidence=0.70",
+        "schema_version": "1.0.0"
+      }
+    }
+  ]
+}

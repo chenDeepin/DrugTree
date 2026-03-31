@@ -1,39 +1,38 @@
-# DrugTree Tests - Testing Guide
+# DrugTree Tests
 
-## Overview
+## OVERVIEW
+Test code only. Backend uses pytest, frontend uses Playwright and Node checks.
 
-DrugTree uses pytest for backend verification and Node-based browser/data checks for the frontend.
+## STRUCTURE
+- `tests/backend/`, 23 pytest files, shared fixtures in `tests/backend/conftest.py`
+- `tests/backend/perf/`, performance coverage for backend paths
+- `tests/frontend/e2e/`, Playwright regression and browser flows
+- `tests/frontend/e2e/perf/`, frontend perf coverage
+- `tests/frontend/e2e/disease-universe.mjs`, Node integration check
+- `tests/fixtures/` and `tests/fixtures/perf/`, shared test data
+- `tests/frontend/playwright.config.ts`, serves on port `8766` to avoid backend API port `8765`
 
-## Canonical Test Inputs
+## TEST CONVENTIONS
+- Treat `data/drugs.json`, `data/diseases.json`, `data/disease_drug_edges.json`, and `data/ontology/body-ontology.json` as canonical inputs
+- Use `src/frontend/data/` mirrors only when a test is checking generated embeds
+- Cover `drug_etl`, `disease_api`, `graph_index`, `atc_orchestrator`, `family_builder`, `change_detector`, `validation_pipeline`
+- `test_graph_schema_contract.py` is the largest schema contract suite, keep assertions strict
+- Mock external APIs in unit tests, keep network off by default
+- ATC assertions must separate valid WHO codes from placeholder `*99XX99` codes
+- Disease assertions must check edge-backed filtering, not body-region coincidence
+- `tests/frontend/e2e/p0-regression.spec.ts` is the high-signal route, detail, and disease regression file
 
-- Drugs: `data/drugs.json`
-- Diseases: `data/diseases.json`
-- Disease-drug edges: `data/disease_drug_edges.json`
-- Ontology: `data/ontology/body-ontology.json`
-
-The generated frontend mirrors under `src/frontend/data/` are test inputs only when a frontend test explicitly exercises embed output.
-
-## Run Commands
-
+## COMMANDS
 ```bash
-# Focused backend data/graph coverage
-pytest tests/backend/test_atc_orchestrator.py tests/backend/test_drug_etl.py tests/backend/test_disease_api.py tests/backend/test_graph_index.py
-
-# Full backend suite
 pytest tests/backend/
-
-# Frontend disease/data integration
+pytest tests/backend/test_atc_orchestrator.py tests/backend/test_drug_etl.py tests/backend/test_disease_api.py tests/backend/test_graph_index.py
+npx playwright test --config tests/frontend/playwright.config.ts
 node tests/frontend/e2e/disease-universe.mjs
 ```
 
-## Test Expectations
-
-- Backend disease tests should validate canonical disease records plus explicit disease-drug edges
-- Frontend disease tests should assert edge-backed filtering, not body-region coincidence
-- ATC tests should distinguish valid WHO ATC codes from placeholder `*99XX99` codes
-- External API access should be mocked or bypassed in unit tests
-
-## Cleanup
-
-- Remove unused sample fixtures when they no longer back a real test
-- Keep new fixtures minimal and deterministic
+## ANTI-PATTERNS
+- Do not edit generated `src/frontend/data/*` files directly
+- Do not let frontend tests collide with backend API ports
+- Do not use live external services in unit tests
+- Do not infer disease matches from anatomy alone
+- Do not treat placeholder ATC codes as valid WHO classifications

@@ -39,6 +39,9 @@ python3 "${SCRIPT_DIR}/etl/drug_etl.py" \
 echo -e "${GREEN}Rebuilding disease graph artifacts...${NC}"
 python3 "${SCRIPT_DIR}/etl/disease_etl.py"
 
+echo -e "${GREEN}Building graph-native artifacts...${NC}"
+python3 "${PROJECT_ROOT}/scripts/build_graph_artifacts.py"
+
 echo -e "${GREEN}Refreshing frontend embeds...${NC}"
 python3 "${PROJECT_ROOT}/scripts/build_frontend_embeds.py"
 
