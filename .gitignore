@@ -80,6 +80,8 @@ coverage.xml
 test-results/
 tests/frontend/playwright-report/
 tests/frontend/test-results/
+playwright-report/
+blob-report/
 
 # ===== Local planning docs =====
 PLAN.md

@@ -286,7 +286,12 @@ body {
 
 .disease-view-svg {
   width: 100%;
-  height: 500px;
+  min-height: 500px;
+  display: block;
+}
+
+.disease-view-svg .node-label[data-truncated="true"] {
+  cursor: help;
 }
 
 .region-node circle {
@@ -1283,6 +1288,63 @@ body {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
+.page-main.detail-active > :not(#drug-detail-page) {
+  display: none !important;
+}
+
+.page-main.detail-active > #drug-detail-page {
+  display: block;
+}
+
+.drug-detail-page {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.drug-detail-page[hidden] {
+  display: none !important;
+}
+
+.drug-detail-page-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.drug-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.drug-detail-back:hover {
+  background: var(--bg-card);
+}
+
+.drug-detail-eyebrow {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.drug-detail-surface {
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+
 .modal-close {
   position: absolute;
   top: var(--space-md);
@@ -1946,12 +2008,45 @@ body.mode-scientist .info-item.scientist-only {
   width: 100%;
   min-height: 200px;
   max-height: 400px;
-  overflow: auto;
+  overflow: hidden;
   background: var(--bg-elevated);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   margin-top: var(--space-md);
   position: relative;
+}
+
+.genealogy-zoom-controls {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.genealogy-zoom-btn {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+}
+
+.genealogy-zoom-btn:hover,
+.genealogy-zoom-btn:focus-visible {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  outline: none;
 }
 
 .genealogy-tree-empty,

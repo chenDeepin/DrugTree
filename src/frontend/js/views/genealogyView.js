@@ -23,7 +23,9 @@ class GenealogyView {
     this.currentData = null;
     this.svg = null;
     this.g = null;  // D3 selection
+    this.viewport = null;
     this.zoom = null;
+    this.initialTransform = null;
     this.app = options.app || null;  // Reference to DrugTreeApp
     
     // Node positions map for cross-link rendering
@@ -62,6 +64,8 @@ class GenealogyView {
     // Clear existing content
     container.innerHTML = '';
 
+    this._createZoomControls(container);
+
     // Setup SVG
     this._setupSVG(container);
     
@@ -83,6 +87,23 @@ class GenealogyView {
 
     // Add zoom/pan
     this._setupZoomPan();
+    this._fitToView();
+  }
+
+  _createZoomControls(container) {
+    const controls = document.createElement('div');
+    controls.className = 'genealogy-zoom-controls';
+    controls.innerHTML = `
+      <button type="button" class="genealogy-zoom-btn" data-action="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+      <button type="button" class="genealogy-zoom-btn" data-action="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+      <button type="button" class="genealogy-zoom-btn" data-action="reset" aria-label="Reset view" title="Reset view">Fit</button>
+    `;
+
+    controls.querySelector('[data-action="zoom-in"]')?.addEventListener('click', () => this.zoomBy(1.2));
+    controls.querySelector('[data-action="zoom-out"]')?.addEventListener('click', () => this.zoomBy(1 / 1.2));
+    controls.querySelector('[data-action="reset"]')?.addEventListener('click', () => this.resetZoom());
+
+    container.appendChild(controls);
   }
 
   /**
@@ -102,8 +123,11 @@ class GenealogyView {
       .attr('fill', 'transparent')
       .attr('class', 'zoom-background');
 
+    this.viewport = this.svg.append('g')
+      .attr('class', 'tree-viewport');
+
     // Create main group for tree
-    this.g = this.svg.append('g')
+    this.g = this.viewport.append('g')
       .attr('class', 'tree-container')
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
   }
@@ -173,7 +197,7 @@ class GenealogyView {
     });
 
     // Create links
-    const links = this.g.selectAll('.tree-link')
+    this.g.selectAll('.tree-link')
       .data(root.links())
       .enter()
       .append('path')
@@ -301,7 +325,7 @@ class GenealogyView {
   /**
    * Get edge color based on target node
    */
-  _getEdgeColor(targetData) {
+  _getEdgeColor() {
     // Default to generation_successor color
     return this.edgeColors['generation_successor'] || '#27ae60';
   }
@@ -338,13 +362,66 @@ class GenealogyView {
    * Setup zoom and pan functionality
    */
   _setupZoomPan() {
-    const zoom = d3.zoom()
+    this.zoom = d3.zoom()
       .scaleExtent([0.5, 4])
       .on('zoom', (event) => {
-        this.g.attr('transform', event.transform);
+        if (this.viewport) {
+          this.viewport.attr('transform', event.transform);
+        }
       });
 
-    this.svg.call(zoom);
+    this.svg.call(this.zoom);
+  }
+
+  _fitToView() {
+    if (!this.svg || !this.g || !this.zoom) {
+      return;
+    }
+
+    const contentNode = this.g.node();
+    if (!contentNode) {
+      return;
+    }
+
+    const bounds = contentNode.getBBox();
+    if (!bounds.width || !bounds.height) {
+      this.initialTransform = d3.zoomIdentity;
+      this.svg.call(this.zoom.transform, this.initialTransform);
+      return;
+    }
+
+    const padding = 32;
+    const availableWidth = Math.max(this.width - padding * 2, 1);
+    const availableHeight = Math.max(this.height - padding * 2, 1);
+    const scale = Math.min(availableWidth / bounds.width, availableHeight / bounds.height, 1);
+    const translateX = padding + (availableWidth - bounds.width * scale) / 2 - bounds.x * scale;
+    const translateY = padding + (availableHeight - bounds.height * scale) / 2 - bounds.y * scale;
+
+    this.initialTransform = d3.zoomIdentity.translate(translateX, translateY).scale(scale);
+    this.svg.call(this.zoom.transform, this.initialTransform);
+  }
+
+  zoomBy(scaleFactor) {
+    if (!this.svg || !this.zoom) {
+      return;
+    }
+
+    this.svg
+      .transition()
+      .duration(180)
+      .call(this.zoom.scaleBy, scaleFactor);
+  }
+
+  resetZoom() {
+    if (!this.svg || !this.zoom) {
+      return;
+    }
+
+    const nextTransform = this.initialTransform || d3.zoomIdentity;
+    this.svg
+      .transition()
+      .duration(180)
+      .call(this.zoom.transform, nextTransform);
   }
 
   /**
@@ -453,6 +530,9 @@ class GenealogyView {
     this.container = null;
     this.currentData = null;
     this._nodePositions.clear();
+    this.viewport = null;
+    this.zoom = null;
+    this.initialTransform = null;
   }
 }
 

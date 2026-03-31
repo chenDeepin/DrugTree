@@ -8,6 +8,14 @@
 
 import { test, expect, Page } from '@playwright/test';
 
+async function openFirstDrugDetail(page: Page) {
+  const firstDrugCard = page.locator('.drug-card').first();
+  const drugId = await firstDrugCard.getAttribute('data-drug-id');
+  await firstDrugCard.click();
+  await expect(page.locator('#drug-detail-page')).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`#drug/${drugId}$`));
+}
+
 test.describe('Genealogy View', () => {
   
   test.beforeEach(async ({ page }) => {
@@ -43,55 +51,32 @@ test.describe('Genealogy View', () => {
     await expect(genealogyBtn).toHaveClass(/active/);
   });
 
-  test('should open drug modal with genealogy section', async ({ page }) => {
+  test('should open the detail page with a genealogy section', async ({ page }) => {
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
 
-    // Click on first drug card
-    const firstDrugCard = page.locator('.drug-card').first();
-    await firstDrugCard.click();
-    
-    // Wait for modal to appear
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
-    
-    // Check modal is visible
-    await expect(page.locator('.modal-overlay')).toBeVisible();
-    
-    // Check genealogy section exists (may be hidden in public mode)
+    await openFirstDrugDetail(page);
+
     const genealogySection = page.locator('.modal-genealogy');
     await expect(genealogySection).toBeVisible();
   });
 
-  test('should show genealogy tree container when clicking drug', async ({ page }) => {
-    // Switch to scientist mode for full genealogy view
+  test('should show genealogy tree container when opening a drug detail page', async ({ page }) => {
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
-    
-    // Click on first drug card
-    const firstDrugCard = page.locator('.drug-card').first();
-    await firstDrugCard.click();
-    
-    // Wait for modal
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
-    
-    // Check genealogy tree container exists
+
+    await openFirstDrugDetail(page);
+
     const treeContainer = page.locator('#genealogy-tree-container');
     await expect(treeContainer).toBeVisible();
   });
 
-  test('should display parent and successor drugs in modal', async ({ page }) => {
-    // Switch to scientist mode
+  test('should display parent and successor drugs in the detail page', async ({ page }) => {
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
-    
-    // Find a drug that has genealogy data (e.g., atorvastatin)
-    const drugCard = page.locator('.drug-card').first();
-    await drugCard.click();
-    
-    // Wait for modal
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
-    
-    // Check genealogy labels exist
+
+    await openFirstDrugDetail(page);
+
     const parentLabel = page.locator('.genealogy-parents');
     const successorLabel = page.locator('.genealogy-successors');
     
@@ -99,98 +84,118 @@ test.describe('Genealogy View', () => {
     await expect(successorLabel).toBeVisible();
   });
 
-  test('should display generation badge in modal', async ({ page }) => {
+  test('should display generation badge in the detail page', async ({ page }) => {
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
 
-    // Click on first drug
-    await page.locator('.drug-card').first().click();
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
+    await openFirstDrugDetail(page);
     
-    // Check generation display exists
     const generationDisplay = page.locator('#modal-generation');
     await expect(generationDisplay).toBeVisible();
   });
 
   test('should render D3 genealogy tree when data available', async ({ page }) => {
-    // Switch to scientist mode
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
-    
-    // Click on a drug
-    await page.locator('.drug-card').first().click();
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
-    
-    // Wait for potential tree rendering
+
+    await openFirstDrugDetail(page);
     await page.waitForTimeout(1000);
     
-    // Check if tree container has content (may be empty if no genealogy data)
     const treeContainer = page.locator('#genealogy-tree-container');
     const content = await treeContainer.innerHTML();
     
-    // Either has SVG tree or empty state message
     expect(content.length).toBeGreaterThan(0);
   });
 
-  test('should close modal when clicking outside', async ({ page }) => {
-    // Open modal
-    await page.locator('.drug-card').first().click();
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
-    
-    // Click outside modal (on overlay)
-    await page.click('.modal-overlay', { position: { x: 50, y: 50 } });
-    
-    // Modal should close
-    await expect(page.locator('.modal-overlay')).not.toBeVisible();
+  test('should exit the detail page when clicking the back control', async ({ page }) => {
+    await openFirstDrugDetail(page);
+
+    await page.click('#drug-detail-back');
+
+    await expect(page.locator('#drug-detail-page')).toBeHidden();
+    await expect(page).toHaveURL(/\/$/);
   });
 
-  test('should close modal when pressing Escape', async ({ page }) => {
-    // Open modal
-    await page.locator('.drug-card').first().click();
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
-    
-    // Press Escape
+  test('should exit the detail page when pressing Escape', async ({ page }) => {
+    await openFirstDrugDetail(page);
+
     await page.keyboard.press('Escape');
     
-    // Modal should close
-    await expect(page.locator('.modal-overlay')).not.toBeVisible();
+    await expect(page.locator('#drug-detail-page')).toBeHidden();
+    await expect(page).toHaveURL(/\/$/);
   });
 
   test('should maintain view mode after drug selection', async ({ page }) => {
-    // Ensure genealogy view is active
     await page.click('.view-btn[data-view="genealogy"]');
     await page.waitForTimeout(300);
-    
-    // Click on a drug
-    await page.locator('.drug-card').first().click();
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
-    
-    // Close modal
+
+    await openFirstDrugDetail(page);
+
     await page.keyboard.press('Escape');
     
-    // Genealogy view should still be active
     const genealogyBtn = page.locator('.view-btn[data-view="genealogy"]');
     await expect(genealogyBtn).toHaveClass(/active/);
   });
 
   test('should display genealogy tree with nodes when lineage data exists', async ({ page }) => {
-    // Switch to scientist mode
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
-    
-    // Search for a statin (known to have genealogy)
+
     await page.fill('#search-input', 'statin');
     await page.waitForTimeout(500);
-    
-    // Click first result
+
     const drugCard = page.locator('.drug-card').first();
     if (await drugCard.isVisible()) {
-      await drugCard.click();
-      await page.waitForSelector('.modal-overlay', { timeout: 5000 });
-      
-      // Check tree container
+      await openFirstDrugDetail(page);
+
       const treeContainer = page.locator('#genealogy-tree-container');
       await expect(treeContainer).toBeVisible();
     }
+  });
+
+  test('should route genealogy tree node clicks through the route-aware detail page', async ({ page }) => {
+    await page.click('.mode-btn[data-mode="scientist"]');
+    await page.waitForTimeout(300);
+
+    await openFirstDrugDetail(page);
+
+    await page.waitForSelector('.tree-node', { timeout: 10000 });
+
+    await page.evaluate(() => {
+      const pageWindow = window as typeof window & {
+        __genealogySelectionCount?: number;
+        __genealogySelectionCounterInstalled?: boolean;
+        app?: {
+          selectionStore?: EventTarget & { selectedDrugId?: string | null };
+        };
+      };
+
+      pageWindow.__genealogySelectionCount = 0;
+
+      if (!pageWindow.__genealogySelectionCounterInstalled && pageWindow.app?.selectionStore) {
+        pageWindow.app.selectionStore.addEventListener('drug:selected', () => {
+          pageWindow.__genealogySelectionCount = (pageWindow.__genealogySelectionCount || 0) + 1;
+        });
+        pageWindow.__genealogySelectionCounterInstalled = true;
+      }
+
+      if (pageWindow.app?.selectionStore) {
+        pageWindow.app.selectionStore.selectedDrugId = null;
+      }
+    });
+
+    const targetNode = page.locator('.tree-node').first();
+    const targetDrugId = await targetNode.evaluate((node) => {
+      const boundNode = node as typeof node & { __data__?: { data?: { id?: string } } };
+      return boundNode.__data__?.data?.id || null;
+    });
+
+    expect(targetDrugId).toBeTruthy();
+
+    await targetNode.locator('.node-circle').click();
+
+    await expect(page.locator('#drug-detail-page')).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`#drug/${targetDrugId}$`));
+    expect(await page.evaluate(() => (window as typeof window & { __genealogySelectionCount?: number }).__genealogySelectionCount || 0)).toBe(1);
   });
 });

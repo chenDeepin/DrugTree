@@ -6,16 +6,18 @@
 
 **Problem**: Drug databases are fragmented, require logins, and hide structures behind captchas. It's hard to see how drugs relate across generations or therapeutic areas.
 
-**Solution**: An interactive human body atlas showing all approved small-molecule drugs, with one-click structure viewing, drug genealogy trees, and disease navigation.
+**Solution**: An interactive human body atlas showing all approved small-molecule drugs, with deep-linkable drug detail pages, zoomable genealogy trees, and ATC-aware disease navigation.
 
 ## Features
 
 ### Core Features
 - 🗺️ **Central Body Atlas** - Interactive human body with clickable organs and floating ATC tags
 - 🧬 **Structure Viewer** - Instant 2D molecular visualization via RDKit.js
+- 🧭 **Route-Aware Drug Detail Pages** - Open any drug as a deep-linkable `#drug/{id}` detail surface with browser-back support
 - 🌳 **Drug Genealogy** - See how drugs evolved across generations (parent drugs → successors)
-- 🦠 **Disease Navigation** - Browse drugs by disease hierarchy (ICD-10 style)
+- 🦠 **Disease Navigation** - Browse drugs by an ATC-aware disease hierarchy that prunes empty branches from the visible tree
 - 🔍 **Dual Display Modes** - Public (simplified) and Scientist (detailed) views
+- 🔎 **Genealogy Zoom Controls** - Zoom in, zoom out, and reset the lineage tree in scientist detail views
 
 ### Data Features
 - **7,359 Small-Molecule Drugs** from ChEMBL, KEGG, DrugBank, and FDA sources
@@ -43,7 +45,15 @@ open http://localhost:8080
 
 # Optional backend (FastAPI + SQLite)
 uvicorn src.backend.main:app --reload --port 8000
+
+# Frontend regression tests
+npx playwright test --config tests/frontend/playwright.config.ts
+
+# Frontend data integration checks
+node tests/frontend/e2e/disease-universe.mjs
 ```
+
+> **Test harness note**: `tests/frontend/playwright.config.ts` serves the frontend on `http://localhost:8766` to avoid collisions with a backend/API service on `8765`.
 
 ## Architecture
 
@@ -66,6 +76,9 @@ uvicorn src.backend.main:app --reload --port 8000
 │  └───────────────────────────────────────────────────┘  │
 ├─────────────────────────────────────────────────────────┤
 │  Active Filters: [ATC: C ✕] [Search: statin ✕]         │
+├─────────────────────────────────────────────────────────┤
+│  Route-aware Detail: /#drug/atorvastatin                │
+│  Deep-linkable detail page with structure + genealogy   │
 ├─────────────────────────────────────────────────────────┤
 │  Matching Drugs (X results)                              │
 │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐              │
@@ -96,7 +109,7 @@ DrugTree/
 │   │   ├── assets/                   # SVG body atlas
 │   │   ├── js/
 │   │   │   ├── app.js               # DrugTreeApp class
-│   │   │   ├── app-state.js         # State management
+│   │   │   ├── app-state.js         # State management helpers
 │   │   │   ├── structure.js         # RDKit.js molecule viewer
 │   │   │   ├── components/          # UI components
 │   │   │   ├── stores/              # State stores
@@ -117,6 +130,7 @@ DrugTree/
 └── tests/
     ├── backend/                      # pytest suites
     └── frontend/                     # Playwright e2e + Node tests
+        └── e2e/p0-regression.spec.ts # route/detail/disease high-signal regressions
 ```
 
 ## Tech Stack

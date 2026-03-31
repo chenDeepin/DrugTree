@@ -1,10 +1,3 @@
-/**
- * DiseaseView - D3 vertical tree visualization for Body→Disease→Drug hierarchy
- * 
- * Renders a 3-level tree: Body Region (root) → Diseases → Drugs
- * Supports lazy expand/collapse and click-to-select interactions.
- */
-
 class DiseaseView extends EventTarget {
   constructor(app) {
     super();
@@ -16,407 +9,629 @@ class DiseaseView extends EventTarget {
     this.g = null;
     this.tree = null;
     this.root = null;
-    
+
     this.width = 800;
     this.height = 500;
     this.margin = { top: 40, right: 120, bottom: 40, left: 120 };
     this.nodeRadius = 10;
     this.duration = 400;
-    
+
     this.expandedNodes = new Set();
     this.currentRegionId = null;
     this.currentDiseaseId = null;
+    this.lastRenderOptions = null;
+    this.lastMeasuredWidth = 800;
+    this.lastMeasuredHeight = 500;
+    this.resizeObserver = null;
+    this.resizeDebounceId = null;
+    this.boundWindowResizeHandler = null;
+    this.layoutMetrics = {
+      depthSpacing: 180,
+      labelBudgets: {
+        region: 18,
+        disease: 22,
+        drug: 24,
+      },
+    };
   }
 
-  /**
-   * Initialize the disease view
-   */
   init(container, graphStore, selectionStore) {
     this.container = container;
     this.graphStore = graphStore;
     this.selectionStore = selectionStore;
-    
+
     if (!container) {
       console.error('DiseaseView: Missing container element');
       return;
     }
-    
-    this.width = container.clientWidth || 800;
-    this.height = container.clientHeight || 500;
-    
-    // Clear any existing content
+
+    this.updateDimensions();
+
     container.innerHTML = '';
-    
-    // Create SVG
+
     this.svg = d3.select(container)
       .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
       .attr('class', 'disease-view-svg');
-    
-    // Create main group with margin
+
     this.g = this.svg.append('g')
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
-    
-    // Initialize tree layout
-    this.tree = d3.tree()
-      .size([this.height - this.margin.top - this.margin.bottom, 
-             this.width - this.margin.left - this.margin.right]);
-    
+
+    this.tree = d3.tree().size([
+      this.height - this.margin.top - this.margin.bottom,
+      this.width - this.margin.left - this.margin.right,
+    ]);
+
+    this.setupResizeHandling();
+
     console.log('DiseaseView initialized');
   }
 
-  /**
-   * Render the disease hierarchy for a body region
-   */
-  render(regionId, diseaseId = null) {
+  clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  normalizeRenderOptions(regionIdOrOptions, diseaseId = null) {
+    if (regionIdOrOptions && typeof regionIdOrOptions === 'object' && !Array.isArray(regionIdOrOptions)) {
+      return { ...regionIdOrOptions };
+    }
+
+    return {
+      regionId: regionIdOrOptions || null,
+      diseaseId,
+    };
+  }
+
+  normalizeVisibleDrugIds(visibleDrugIds) {
+    if (!visibleDrugIds) {
+      return null;
+    }
+
+    if (visibleDrugIds instanceof Set) {
+      return new Set(visibleDrugIds);
+    }
+
+    if (Array.isArray(visibleDrugIds)) {
+      return new Set(visibleDrugIds.filter(Boolean));
+    }
+
+    if (typeof visibleDrugIds[Symbol.iterator] === 'function') {
+      return new Set(Array.from(visibleDrugIds).filter(Boolean));
+    }
+
+    return null;
+  }
+
+  updateDimensions(width = null, height = null) {
+    if (!this.container) {
+      return { width: this.width, height: this.height };
+    }
+
+    const measuredWidth = Math.round(width || this.container.clientWidth || this.width || 800);
+    const measuredHeight = Math.round(height || this.container.clientHeight || this.height || 500);
+
+    this.lastMeasuredWidth = Math.max(320, measuredWidth);
+    this.lastMeasuredHeight = Math.max(320, measuredHeight);
+    this.width = this.lastMeasuredWidth;
+    this.height = Math.max(this.height, this.lastMeasuredHeight);
+
+    if (this.svg) {
+      this.svg.attr('width', this.width).attr('height', this.height);
+    }
+
+    if (this.g) {
+      this.g.attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+    }
+
+    return { width: this.width, height: this.height };
+  }
+
+  setupResizeHandling() {
+    if (!this.container) {
+      return;
+    }
+
+    const onResize = (width, height) => {
+      if (width < 240) {
+        return;
+      }
+
+      const widthDelta = Math.abs(width - this.lastMeasuredWidth);
+      const heightDelta = Math.abs(height - this.lastMeasuredHeight);
+      if (widthDelta < 32 && heightDelta < 32) {
+        return;
+      }
+
+      window.clearTimeout(this.resizeDebounceId);
+      this.resizeDebounceId = window.setTimeout(() => {
+        this.updateDimensions(width, height);
+
+        if (this.root) {
+          this.refreshLayoutMetrics();
+          this.update(this.root, { immediate: true });
+        } else if (this.lastRenderOptions) {
+          this.render(this.lastRenderOptions);
+        }
+      }, 120);
+    };
+
+    if (typeof ResizeObserver === 'function') {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        const nextWidth = Math.round(entry?.contentRect?.width || this.container.clientWidth || this.width);
+        const nextHeight = Math.round(entry?.contentRect?.height || this.container.clientHeight || this.height);
+        onResize(nextWidth, nextHeight);
+      });
+      this.resizeObserver.observe(this.container);
+      return;
+    }
+
+    this.boundWindowResizeHandler = () => {
+      onResize(
+        Math.round(this.container.clientWidth || this.width),
+        Math.round(this.container.clientHeight || this.height),
+      );
+    };
+    window.addEventListener('resize', this.boundWindowResizeHandler);
+  }
+
+  render(regionIdOrOptions, diseaseId = null) {
     if (!this.graphStore || !this.g) {
       console.warn('DiseaseView not initialized');
       return;
     }
 
-    if (!regionId && diseaseId) {
-      const selectedDisease = this.graphStore.getDiseaseNode(diseaseId);
+    const renderOptions = this.normalizeRenderOptions(regionIdOrOptions, diseaseId);
+    const selectedDiseaseId = renderOptions.diseaseId || null;
+    const activeCategory = renderOptions.activeCategory || 'all';
+    const visibleDrugIdSet = this.normalizeVisibleDrugIds(renderOptions.visibleDrugIds);
+
+    let regionId = renderOptions.regionId || null;
+    if (!regionId && selectedDiseaseId) {
+      const selectedDisease = this.graphStore.getDiseaseNode(selectedDiseaseId);
       regionId = selectedDisease?.body_region || null;
     }
+
+    this.lastRenderOptions = {
+      regionId,
+      diseaseId: selectedDiseaseId,
+      activeCategory,
+      visibleDrugIds: visibleDrugIdSet ? Array.from(visibleDrugIdSet) : null,
+    };
 
     if (!regionId) {
       this.renderFallback('Select a disease or a body region to view the disease hierarchy.');
       return;
     }
-    
+
     this.currentRegionId = regionId;
-    this.currentDiseaseId = diseaseId;
-    
+    this.currentDiseaseId = selectedDiseaseId;
+
     const region = this.graphStore.getBodyRegion(regionId);
     if (!region) {
       console.warn(`DiseaseView: Region not found: ${regionId}`);
       this.renderFallback('No disease hierarchy is available for the selected region.');
       return;
     }
-    
-    // Get diseases for this region
+
     const diseases = this.graphStore.getDiseasesForRegion(regionId);
-    const visibleDiseases = diseaseId
-      ? diseases.filter((d) => d.id === diseaseId)
+    const scopedDiseases = selectedDiseaseId
+      ? diseases.filter((disease) => disease.id === selectedDiseaseId)
       : diseases;
-    if (diseaseId && visibleDiseases.length === 0) {
-      console.warn(`DiseaseView: Disease not found in region '${regionId}': ${diseaseId}`);
+
+    if (selectedDiseaseId && scopedDiseases.length === 0) {
+      console.warn(`DiseaseView: Disease not found in region '${regionId}': ${selectedDiseaseId}`);
       this.renderFallback('The selected disease is not available in this region.');
       return;
     }
 
+    const visibleDiseases = scopedDiseases
+      .map((disease) => {
+        const visibleDrugIds = (disease.drugs || []).filter((drugId) => this.isDrugVisible(drugId, {
+          activeCategory,
+          visibleDrugIdSet,
+        }));
+
+        if (!visibleDrugIds.length) {
+          return null;
+        }
+
+        return {
+          ...disease,
+          visibleDrugIds,
+        };
+      })
+      .filter(Boolean);
+
     if (!visibleDiseases.length) {
-      this.renderFallback(`No diseases are linked to ${region.display_name} yet.`);
+      const hasScopedFilters = activeCategory !== 'all' || Boolean(visibleDrugIdSet);
+      const fallbackMessage = selectedDiseaseId
+        ? (hasScopedFilters
+          ? 'No visible drug branches remain for the selected disease under the active filters.'
+          : 'The selected disease does not currently expose any drug branches.')
+        : (hasScopedFilters
+          ? `No diseases in ${region.display_name} match the active filters.`
+          : `No diseases are linked to ${region.display_name} yet.`);
+
+      this.renderFallback(fallbackMessage);
       return;
     }
-    
-    // Build hierarchy data
+
     const hierarchyData = {
       id: regionId,
       name: region.display_name,
       type: 'region',
       icon: region.icon,
-      children: visibleDiseases.map(d => ({
-        id: d.id,
-        name: d.canonical_name,
+      children: visibleDiseases.map((disease) => ({
+        id: disease.id,
+        name: disease.canonical_name,
         type: 'disease',
-        drugs: d.drugs || [],
-        _children: (d.drugs || []).map(drugId => ({
+        drugIds: disease.visibleDrugIds,
+        children: disease.visibleDrugIds.map((drugId) => ({
           id: drugId,
           name: this.getDrugName(drugId),
-          type: 'drug'
-        }))
-      }))
+          type: 'drug',
+        })),
+      })),
     };
-    
-    // Create root node
+
     this.root = d3.hierarchy(hierarchyData);
-    this.root.x0 = this.height / 2;
+    this.root.x0 = (this.lastMeasuredHeight || this.height) / 2;
     this.root.y0 = 0;
-    
-    // Collapse all disease children initially
-    this.root.children?.forEach(d => {
-      if (d.data._children) {
-        const drugChildren = d.data._children.map(c => d3.hierarchy(c));
-        const shouldExpand = diseaseId && d.data.id === diseaseId;
-        if (shouldExpand) {
-          d.children = drugChildren;
-          d._children = null;
-          this.expandedNodes.add(d.data.id);
-        } else {
-          d.children = null;
-          d._children = drugChildren;
-          this.expandedNodes.delete(d.data.id);
-        }
+
+    this.root.children?.forEach((node) => {
+      const diseaseNodeId = node.data.id;
+      const shouldExpand = Boolean(selectedDiseaseId && diseaseNodeId === selectedDiseaseId) || this.expandedNodes.has(diseaseNodeId);
+
+      if (!Array.isArray(node.children) || node.children.length === 0) {
+        return;
+      }
+
+      if (shouldExpand) {
+        node._children = null;
+        this.expandedNodes.add(diseaseNodeId);
+      } else {
+        node._children = node.children;
+        node.children = null;
+        this.expandedNodes.delete(diseaseNodeId);
       }
     });
-    
-    // Update the tree
+
+    this.refreshLayoutMetrics();
     this.update(this.root);
   }
 
-  /**
-   * Get drug name by ID
-   */
+  isDrugVisible(drugId, { activeCategory = 'all', visibleDrugIdSet = null } = {}) {
+    if (visibleDrugIdSet && !visibleDrugIdSet.has(drugId)) {
+      return false;
+    }
+
+    if (activeCategory && activeCategory !== 'all') {
+      const drug = this.graphStore?.getNode(drugId);
+      if (!drug || drug.atc_category !== activeCategory) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   getDrugName(drugId) {
     const drug = this.graphStore?.getNode(drugId);
     return drug?.name || drugId;
   }
 
-  /**
-   * Update the tree visualization
-   */
-  update(source) {
-    if (!this.tree || !this.root) return;
-    
-    // Compute new tree layout
+  refreshLayoutMetrics() {
+    if (!this.root || !this.tree) {
+      return;
+    }
+
+    this.updateDimensions();
+
+    const allNodes = this.root.descendants();
+    const maxDepth = d3.max(allNodes, (node) => node.depth) || 1;
+    const diseaseCount = allNodes.filter((node) => node.data.type === 'disease').length;
+    const drugCount = allNodes.filter((node) => node.data.type === 'drug').length;
+    const longestLabelLength = d3.max(allNodes, (node) => (node.data.name || '').length) || 0;
+    const visibleNodeCount = Math.max(1, allNodes.length);
+
+    const measuredWidth = this.lastMeasuredWidth || this.width;
+    const measuredHeight = this.lastMeasuredHeight || this.height;
+    const desiredHeight = Math.max(
+      measuredHeight,
+      this.margin.top + this.margin.bottom + 140 + (diseaseCount * 52) + (drugCount * 28),
+    );
+    const innerHeight = Math.max(260, desiredHeight - this.margin.top - this.margin.bottom);
+    const innerWidth = Math.max(320, measuredWidth - this.margin.left - this.margin.right);
+    const densityPenalty = Math.min(108, Math.max(0, visibleNodeCount - 5) * 9);
+    const labelReserve = Math.min(
+      Math.round(innerWidth * 0.35),
+      Math.max(96, longestLabelLength * 5),
+    );
+    const depthSpacing = this.clamp(
+      Math.round((innerWidth - densityPenalty - labelReserve) / Math.max(maxDepth, 1)),
+      110,
+      260,
+    );
+    const layoutWidth = Math.max(1, depthSpacing * maxDepth);
+
+    const regionBudget = this.clamp(Math.floor((this.margin.left - 26) / 7), 14, 24);
+    const diseaseBudget = this.clamp(Math.floor(Math.max(84, depthSpacing - 24) / 7), 14, 28);
+    const drugBudget = this.clamp(
+      Math.floor(Math.max(96, innerWidth - layoutWidth - 24) / 7),
+      14,
+      30,
+    );
+
+    this.height = desiredHeight;
+    this.svg.attr('width', measuredWidth).attr('height', desiredHeight);
+    this.tree.size([innerHeight, layoutWidth]);
+    this.layoutMetrics = {
+      depthSpacing,
+      labelBudgets: {
+        region: regionBudget,
+        disease: diseaseBudget,
+        drug: drugBudget,
+      },
+    };
+  }
+
+  formatNodeLabel(name, type) {
+    const fullLabel = String(name || '');
+    const budget = this.layoutMetrics?.labelBudgets?.[type] || 24;
+
+    if (fullLabel.length <= budget) {
+      return {
+        displayLabel: fullLabel,
+        fullLabel,
+        truncated: false,
+      };
+    }
+
+    const visibleCharacters = Math.max(3, budget - 1);
+    return {
+      displayLabel: `${fullLabel.slice(0, visibleCharacters).trimEnd()}…`,
+      fullLabel,
+      truncated: true,
+    };
+  }
+
+  update(source, { immediate = false } = {}) {
+    if (!this.tree || !this.root) {
+      return;
+    }
+
+    this.refreshLayoutMetrics();
+
     const treeData = this.tree(this.root);
     const nodes = treeData.descendants();
     const links = treeData.links();
-    
-    // Normalize for fixed-depth
-    nodes.forEach(d => {
-      d.y = d.depth * 180;
+    const depthSpacing = this.layoutMetrics?.depthSpacing || 180;
+
+    nodes.forEach((node) => {
+      node.y = node.depth * depthSpacing;
     });
-    
-    // Update nodes
+
+    const transitionDuration = immediate ? 0 : this.duration;
+
     const node = this.g.selectAll('g.node')
-      .data(nodes, d => d.data.id);
-    
-    // Enter new nodes
+      .data(nodes, (d) => d.data.id);
+
     const nodeEnter = node.enter().append('g')
-      .attr('class', d => `node node-${d.data.type}`)
-      .attr('transform', d => `translate(${source.y0},${source.x0})`)
+      .attr('class', (d) => `node node-${d.data.type}`)
+      .attr('data-node-id', (d) => d.data.id)
+      .attr('data-node-type', (d) => d.data.type)
+      .attr('transform', () => `translate(${source.y0 || 0},${source.x0 || 0})`)
       .on('click', (event, d) => this.handleNodeClick(event, d));
-    
-    // Add circles for nodes
+
     nodeEnter.append('circle')
       .attr('class', 'node-circle')
       .attr('r', this.nodeRadius)
-      .style('fill', d => this.getNodeColor(d.data.type))
-      .style('stroke', d => this.getNodeStroke(d.data.type, d))
+      .style('fill', (d) => this.getNodeColor(d.data.type))
+      .style('stroke', (d) => this.getNodeStroke(d.data.type, d))
       .style('stroke-width', '2px');
-    
-    // Add labels for nodes
+
     nodeEnter.append('text')
       .attr('class', 'node-label')
       .attr('dy', '.35em')
-      .attr('x', d => d.children || d._children ? -15 : 15)
-      .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
-      .text(d => d.data.name)
-      .style('font-size', '12px')
-      .style('fill', '#e2e8f0');
-    
-    // Add expand/collapse indicator for disease nodes
-    nodeEnter.filter(d => d.data.type === 'disease' && d._children)
+      .attr('x', (d) => (d.children || d._children ? -15 : 15))
+      .attr('text-anchor', (d) => (d.children || d._children ? 'end' : 'start'));
+
+    nodeEnter.filter((d) => d.data.type === 'disease' && d._children)
       .append('text')
       .attr('class', 'expand-indicator')
       .attr('dy', '-1.5em')
       .attr('text-anchor', 'middle')
       .style('font-size', '10px')
-      .style('fill', '#94a3b8')
+      .style('fill', 'var(--text-secondary)')
       .text('+');
-    
-    // Update positions
+
     const nodeUpdate = nodeEnter.merge(node);
-    
-    nodeUpdate.transition()
-      .duration(this.duration)
-      .attr('transform', d => `translate(${d.y},${d.x})`);
-    
-    // Update expand indicator
+
+    nodeUpdate
+      .attr('data-node-id', (d) => d.data.id)
+      .attr('data-node-type', (d) => d.data.type)
+      .transition()
+      .duration(transitionDuration)
+      .attr('transform', (d) => `translate(${d.y},${d.x})`);
+
+    nodeUpdate.select('circle.node-circle')
+      .style('fill', (d) => this.getNodeColor(d.data.type))
+      .style('stroke', (d) => this.getNodeStroke(d.data.type, d));
+
+    nodeUpdate.select('text.node-label')
+      .attr('x', (d) => (d.children || d._children ? -15 : 15))
+      .attr('text-anchor', (d) => (d.children || d._children ? 'end' : 'start'))
+      .each((d, index, nodesList) => {
+        const labelState = this.formatNodeLabel(d.data.name, d.data.type);
+        const textSelection = d3.select(nodesList[index]);
+        textSelection
+          .attr('title', labelState.fullLabel)
+          .attr('aria-label', labelState.fullLabel)
+          .attr('data-full-label', labelState.fullLabel)
+          .attr('data-truncated', String(labelState.truncated))
+          .text(labelState.displayLabel);
+      });
+
     nodeUpdate.select('.expand-indicator')
-      .text(d => d.children ? '−' : (d._children ? '+' : ''));
-    
-    // Exit old nodes
+      .text((d) => (d.children ? '−' : (d._children ? '+' : '')));
+
     const nodeExit = node.exit().transition()
-      .duration(this.duration)
-      .attr('transform', d => `translate(${source.y},${source.x})`)
+      .duration(transitionDuration)
+      .attr('transform', () => `translate(${source.y || 0},${source.x || 0})`)
       .remove();
-    
+
     nodeExit.select('circle').attr('r', 0);
-    nodeExit.select('text').style('fill-opacity', 0);
-    
-    // Update links
+    nodeExit.selectAll('text').style('fill-opacity', 0);
+
     const link = this.g.selectAll('path.link')
-      .data(links, d => d.target.data.id);
-    
-    // Enter new links
+      .data(links, (d) => d.target.data.id);
+
     const linkEnter = link.enter().insert('path', 'g')
       .attr('class', 'link')
-      .attr('d', d => {
-        const o = { x: source.x0, y: source.y0 };
-        return this.diagonal(o, o);
+      .attr('d', () => {
+        const origin = { x: source.x0 || 0, y: source.y0 || 0 };
+        return this.diagonal(origin, origin);
       })
       .style('fill', 'none')
-      .style('stroke', '#475569')
+      .style('stroke', 'var(--border-medium)')
       .style('stroke-width', '1.5px');
-    
-    // Update links
+
     linkEnter.merge(link).transition()
-      .duration(this.duration)
-      .attr('d', d => this.diagonal(d.source, d.target));
-    
-    // Exit old links
+      .duration(transitionDuration)
+      .attr('d', (d) => this.diagonal(d.source, d.target));
+
     link.exit().transition()
-      .duration(this.duration)
-      .attr('d', d => {
-        const o = { x: source.x, y: source.y };
-        return this.diagonal(o, o);
+      .duration(transitionDuration)
+      .attr('d', () => {
+        const origin = { x: source.x || 0, y: source.y || 0 };
+        return this.diagonal(origin, origin);
       })
       .remove();
-    
-    // Store old positions for next transition
-    nodes.forEach(d => {
-      d.x0 = d.x;
-      d.y0 = d.y;
+
+    nodes.forEach((node) => {
+      node.x0 = node.x;
+      node.y0 = node.y;
     });
   }
 
-  /**
-   * Generate diagonal path between two points
-   */
-  diagonal(s, d) {
-    return `M ${s.y} ${s.x}
-            C ${(s.y + d.y) / 2} ${s.x},
-              ${(s.y + d.y) / 2} ${d.x},
-              ${d.y} ${d.x}`;
+  diagonal(source, target) {
+    return `M ${source.y} ${source.x}
+            C ${(source.y + target.y) / 2} ${source.x},
+              ${(source.y + target.y) / 2} ${target.x},
+              ${target.y} ${target.x}`;
   }
 
-  /**
-   * Get node fill color based on type
-   */
   getNodeColor(type) {
     const colors = {
-      region: '#3b82f6',
-      disease: '#8b5cf6',
-      drug: '#10b981'
+      region: 'var(--accent-primary)',
+      disease: 'var(--atc-g)',
+      drug: 'var(--accent-secondary)',
     };
-    return colors[type] || '#64748b';
+    return colors[type] || 'var(--text-muted)';
   }
 
-  /**
-   * Get node stroke color
-   */
-  getNodeStroke(type, d) {
-    if (d._children && !d.children) {
-      return '#f59e0b'; // Orange for collapsed nodes
+  getNodeStroke(type, node) {
+    if (node._children && !node.children) {
+      return 'var(--atc-d)';
     }
+
     return this.getNodeColor(type);
   }
 
-  /**
-   * Handle node click
-   */
-  handleNodeClick(event, d) {
+  handleNodeClick(event, node) {
     event.stopPropagation();
-    
-    const type = d.data.type;
-    const id = d.data.id;
-    
+
+    const type = node.data.type;
     if (type === 'region') {
-      this.handleRegionClick(d);
+      this.handleRegionClick(node);
     } else if (type === 'disease') {
-      this.handleDiseaseClick(d);
+      this.handleDiseaseClick(node);
     } else if (type === 'drug') {
-      this.handleDrugClick(d);
+      this.handleDrugClick(node);
     }
   }
 
-  /**
-   * Handle region node click
-   */
-  handleRegionClick(d) {
-    const regionId = d.data.id;
-    
+  handleRegionClick(node) {
+    const regionId = node.data.id;
+
     if (this.selectionStore) {
       this.selectionStore.setSelectedRegion(regionId, this.graphStore.getBodyRegion(regionId));
     }
-    
+
     this.dispatchEvent(new CustomEvent('node:clicked', {
-      detail: { id: regionId, type: 'region', data: d.data }
+      detail: { id: regionId, type: 'region', data: node.data },
     }));
   }
 
-  /**
-   * Handle disease node click - toggle expand/collapse
-   */
-  handleDiseaseClick(d) {
-    const diseaseId = d.data.id;
-    
-    if (d.children) {
-      // Collapse
-      this.collapseNode(d);
-    } else if (d._children) {
-      // Expand
-      this.expandNode(d);
+  handleDiseaseClick(node) {
+    const diseaseId = node.data.id;
+
+    if (node.children) {
+      this.collapseNode(node);
+    } else if (node._children) {
+      this.expandNode(node);
     }
-    
+
     if (this.selectionStore) {
       this.selectionStore.setSelectedDisease(diseaseId, this.graphStore.getDiseaseNode(diseaseId));
     }
-    
+
     this.dispatchEvent(new CustomEvent('node:clicked', {
-      detail: { id: diseaseId, type: 'disease', data: d.data }
+      detail: { id: diseaseId, type: 'disease', data: node.data },
     }));
   }
 
-  /**
-   * Handle drug node click - open modal
-   */
-  handleDrugClick(d) {
-    const drugId = d.data.id;
+  handleDrugClick(node) {
+    const drugId = node.data.id;
     const drug = this.graphStore?.getNode(drugId);
-    
+
     if (this.selectionStore) {
       this.selectionStore.setSelectedDrug(drugId, drug);
     }
-    
-    if (this.app && typeof this.app.showDrugModal === 'function') {
-      this.app.showDrugModal(drug);
-    }
-    
+
     this.dispatchEvent(new CustomEvent('node:clicked', {
-      detail: { id: drugId, type: 'drug', data: d.data }
+      detail: { id: drugId, type: 'drug', data: node.data },
     }));
   }
 
-  /**
-   * Expand a node to show children
-   */
-  expandNode(d) {
-    if (d._children) {
-      d.children = d._children;
-      d._children = null;
-      this.update(d);
+  expandNode(node) {
+    if (node._children) {
+      node.children = node._children;
+      node._children = null;
+      this.expandedNodes.add(node.data.id);
+      this.update(node);
     }
   }
 
-  /**
-   * Collapse a node to hide children
-   */
-  collapseNode(d) {
-    if (d.children) {
-      d._children = d.children;
-      d.children = null;
-      this.update(d);
+  collapseNode(node) {
+    if (node.children) {
+      node._children = node.children;
+      node.children = null;
+      this.expandedNodes.delete(node.data.id);
+      this.update(node);
     }
   }
 
-  /**
-   * Render empty state
-   */
   renderFallback(message = 'Select a body region to view disease hierarchy') {
-    if (!this.g) return;
-    
+    if (!this.g) {
+      return;
+    }
+
+    this.root = null;
+    this.updateDimensions();
     this.g.selectAll('*').remove();
-    
+
+    const fallbackX = Math.max(60, ((this.lastMeasuredWidth || this.width) - this.margin.left - this.margin.right) / 2);
+    const fallbackY = Math.max(120, ((this.lastMeasuredHeight || this.height) - this.margin.top - this.margin.bottom) / 2);
+
     this.g.append('text')
-      .attr('x', this.width / 2 - this.margin.left - this.margin.right)
-      .attr('y', this.height / 2 - this.margin.top - this.margin.bottom)
+      .attr('x', fallbackX)
+      .attr('y', fallbackY)
+      .attr('class', 'disease-view-fallback')
       .attr('text-anchor', 'middle')
-      .style('fill', '#64748b')
+      .style('fill', 'var(--text-muted)')
       .style('font-size', '14px')
       .text(message);
   }
@@ -425,21 +640,30 @@ class DiseaseView extends EventTarget {
     this.renderFallback('Select a body region to view disease hierarchy');
   }
 
-  /**
-   * Clear the visualization
-   */
   clear() {
     if (this.g) {
       this.g.selectAll('*').remove();
     }
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+
+    if (this.boundWindowResizeHandler) {
+      window.removeEventListener('resize', this.boundWindowResizeHandler);
+      this.boundWindowResizeHandler = null;
+    }
+
+    window.clearTimeout(this.resizeDebounceId);
     this.root = null;
     this.currentRegionId = null;
     this.currentDiseaseId = null;
+    this.lastRenderOptions = null;
     this.expandedNodes.clear();
   }
 }
 
-// Export as global for non-module usage
 window.DiseaseView = DiseaseView;
 
 console.log('diseaseView.js loaded');

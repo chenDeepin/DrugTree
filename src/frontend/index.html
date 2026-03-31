@@ -207,102 +207,111 @@
           <div class="loading">Loading drugs...</div>
         </div>
       </section>
+
+      <section class="drug-detail-page" id="drug-detail-page" hidden>
+        <div class="drug-detail-page-toolbar">
+          <button type="button" class="drug-detail-back" id="drug-detail-back">← Back to atlas</button>
+          <span class="drug-detail-eyebrow">Drug detail</span>
+        </div>
+
+        <div class="modal-content drug-detail-surface">
+          <h2 id="modal-title">Drug Name</h2>
+          <div class="modal-body">
+            <div class="modal-left">
+              <h3>Molecular Structure</h3>
+              <div class="modal-structure" id="modal-structure">
+                <div class="placeholder">Loading structure...</div>
+              </div>
+            </div>
+            <div class="modal-right">
+              <div class="modal-info-grid">
+                <div class="info-item full-width">
+                  <span class="info-label">Summary</span>
+                  <span class="info-value" id="modal-summary">A concise treatment summary</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Body Region</span>
+                  <span class="info-value" id="modal-region">Heart / Vascular</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">ATC Code</span>
+                  <span class="info-value atc-link" id="modal-atc-code">C10AA05</span>
+                </div>
+                <div class="info-item scientist-only">
+                  <span class="info-label">Drug Class</span>
+                  <span class="info-value" id="modal-class">Statin</span>
+                </div>
+                <div class="info-item scientist-only">
+                  <span class="info-label">Molecular Weight</span>
+                  <span class="info-value" id="modal-mw">558.64 Da</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Phase</span>
+                  <span class="info-value" id="modal-phase">Phase IV</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Year Approved</span>
+                  <span class="info-value" id="modal-year">1996</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Company</span>
+                  <span class="info-value" id="modal-company">Pfizer</span>
+                </div>
+                <div class="info-item full-width">
+                  <span class="info-label">Indication</span>
+                  <span class="info-value" id="modal-indication">Hypercholesterolemia</span>
+                </div>
+                <div class="info-item full-width scientist-only">
+                  <span class="info-label">Targets</span>
+                  <span class="info-value" id="modal-targets">HMG-CoA reductase</span>
+                </div>
+                <div class="info-item full-width">
+                  <span class="info-label">Synonyms</span>
+                  <span class="info-value" id="modal-synonyms">Lipitor, Sortis</span>
+                </div>
+                <div class="info-item full-width scientist-only">
+                  <span class="info-label">InChIKey</span>
+                  <span class="info-value" id="modal-inchikey">XUHSLUINWUXQOJ-UHFFFAOYSA-N</span>
+                </div>
+              </div>
+
+              <div class="modal-genealogy scientist-only">
+                <h3>Drug Genealogy</h3>
+                <div class="genealogy-content">
+                  <div class="genealogy-parents">
+                    <span class="genealogy-label">Parent Drugs:</span>
+                    <span class="genealogy-value" id="modal-parents">-</span>
+                  </div>
+                  <div class="genealogy-successors">
+                    <span class="genealogy-label">Successor Drugs:</span>
+                    <span class="genealogy-value" id="modal-successors">-</span>
+                  </div>
+                  <div class="genealogy-generation">
+                    <span class="genealogy-label">Generation:</span>
+                    <span class="genealogy-value" id="modal-generation">1</span>
+                  </div>
+                </div>
+                <div class="genealogy-tree-container" id="genealogy-tree-container"></div>
+              </div>
+
+              <div class="modal-smiles-section scientist-only">
+                <h3>SMILES Notation</h3>
+                <code id="modal-smiles"></code>
+                <div class="smiles-actions">
+                  <button class="copy-btn" id="copy-smiles">📋 Copy SMILES</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="modal-tip">💡 Tip: Click ATC code to filter by category, or click another drug to compare</p>
+        </div>
+      </section>
     </main>
 
-    <!-- Drug Detail Modal -->
     <div class="modal-overlay" id="modal-overlay">
       <div class="modal-content">
-        <button class="modal-close">&times;</button>
-        <h2 id="modal-title">Drug Name</h2>
-        <div class="modal-body">
-          <div class="modal-left">
-            <h3>Molecular Structure</h3>
-            <div class="modal-structure" id="modal-structure">
-              <div class="placeholder">Loading structure...</div>
-            </div>
-          </div>
-          <div class="modal-right">
-            <div class="modal-info-grid">
-              <div class="info-item full-width">
-                <span class="info-label">Summary</span>
-                <span class="info-value" id="modal-summary">A concise treatment summary</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Body Region</span>
-                <span class="info-value" id="modal-region">Heart / Vascular</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">ATC Code</span>
-                <span class="info-value atc-link" id="modal-atc-code">C10AA05</span>
-              </div>
-              <div class="info-item scientist-only">
-                <span class="info-label">Drug Class</span>
-                <span class="info-value" id="modal-class">Statin</span>
-              </div>
-              <div class="info-item scientist-only">
-                <span class="info-label">Molecular Weight</span>
-                <span class="info-value" id="modal-mw">558.64 Da</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Phase</span>
-                <span class="info-value" id="modal-phase">Phase IV</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Year Approved</span>
-                <span class="info-value" id="modal-year">1996</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Company</span>
-                <span class="info-value" id="modal-company">Pfizer</span>
-              </div>
-              <div class="info-item full-width">
-                <span class="info-label">Indication</span>
-                <span class="info-value" id="modal-indication">Hypercholesterolemia</span>
-              </div>
-              <div class="info-item full-width scientist-only">
-                <span class="info-label">Targets</span>
-                <span class="info-value" id="modal-targets">HMG-CoA reductase</span>
-              </div>
-              <div class="info-item full-width">
-                <span class="info-label">Synonyms</span>
-                <span class="info-value" id="modal-synonyms">Lipitor, Sortis</span>
-              </div>
-              <div class="info-item full-width scientist-only">
-                <span class="info-label">InChIKey</span>
-                <span class="info-value" id="modal-inchikey">XUHSLUINWUXQOJ-UHFFFAOYSA-N</span>
-              </div>
-            </div>
-            
-            <div class="modal-genealogy scientist-only">
-              <h3>Drug Genealogy</h3>
-              <div class="genealogy-content">
-                <div class="genealogy-parents">
-                  <span class="genealogy-label">Parent Drugs:</span>
-                  <span class="genealogy-value" id="modal-parents">-</span>
-                </div>
-                <div class="genealogy-successors">
-                  <span class="genealogy-label">Successor Drugs:</span>
-                  <span class="genealogy-value" id="modal-successors">-</span>
-                </div>
-                <div class="genealogy-generation">
-                  <span class="genealogy-label">Generation:</span>
-                  <span class="genealogy-value" id="modal-generation">1</span>
-                </div>
-              </div>
-              <div class="genealogy-tree-container" id="genealogy-tree-container"></div>
-            </div>
-            
-            <div class="modal-smiles-section scientist-only">
-              <h3>SMILES Notation</h3>
-              <code id="modal-smiles"></code>
-              <div class="smiles-actions">
-                <button class="copy-btn" id="copy-smiles">📋 Copy SMILES</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <p class="modal-tip">💡 Tip: Click ATC code to filter by category, or click another drug to compare</p>
+        <button type="button" class="modal-close" aria-label="Close legacy modal">&times;</button>
       </div>
     </div>
   </div>

@@ -163,7 +163,7 @@ class DiseasePanel {
       this.app.selectionStore.setSelectedDisease(disease.id, disease);
     } else {
       this.app.activeDisease = disease;
-      this.app.activeCategory = "all";
+      this.app.activeBodyRegion = null;
       this.highlightDiseaseRegions(disease);
       this.app.applyFilters();
       this.render();
@@ -171,9 +171,6 @@ class DiseasePanel {
       this.app.updateActiveFiltersBar();
       this.app.updateBodyMapState();
 
-      if (this.app.viewMode === "disease" && this.app.diseaseView) {
-        this.app.diseaseView.render(disease.body_region || null, disease.id);
-      }
     }
 
     const searchInput = document.getElementById("disease-search-input");
@@ -228,9 +225,6 @@ class DiseasePanel {
       searchInput.value = "";
     }
 
-    if (this.app.viewMode === "disease" && this.app.diseaseView) {
-      this.app.diseaseView.render(this.app.activeBodyRegion || null, null);
-    }
   }
 
   /**

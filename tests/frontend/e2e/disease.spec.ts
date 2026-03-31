@@ -8,6 +8,14 @@
 
 import { test, expect, Page } from '@playwright/test';
 
+async function openFirstDrugDetail(page: Page) {
+  const firstDrugCard = page.locator('.drug-card').first();
+  const drugId = await firstDrugCard.getAttribute('data-drug-id');
+  await firstDrugCard.click();
+  await expect(page.locator('#drug-detail-page')).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`#drug/${drugId}$`));
+}
+
 test.describe('Disease View', () => {
   
   test.beforeEach(async ({ page }) => {
@@ -192,9 +200,7 @@ test.describe('Disease View', () => {
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
     
-    // Open a drug modal
-    await page.locator('.drug-card').first().click();
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
+    await openFirstDrugDetail(page);
     
     // Scientist-only elements should be visible
     const smilesSection = page.locator('.modal-smiles-section');
@@ -206,9 +212,7 @@ test.describe('Disease View', () => {
     await page.click('.mode-btn[data-mode="public"]');
     await page.waitForTimeout(300);
     
-    // Open a drug modal
-    await page.locator('.drug-card').first().click();
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
+    await openFirstDrugDetail(page);
     
     // Scientist-only elements should be hidden
     const smilesSection = page.locator('.modal-smiles-section');
@@ -220,9 +224,7 @@ test.describe('Disease View', () => {
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
     
-    // Open modal
-    await page.locator('.drug-card').first().click();
-    await page.waitForSelector('.modal-overlay', { timeout: 5000 });
+    await openFirstDrugDetail(page);
     
     // Click copy button
     const copyBtn = page.locator('#copy-smiles');
@@ -252,7 +254,6 @@ test.describe('Disease View', () => {
     await page.waitForSelector('.app-shell', { timeout: 10000 });
     
     // Check view mode (may reset to default on reload)
-    const diseaseBtn = page.locator('.view-btn[data-view="disease"]');
     // After reload, default is genealogy
     const genealogyBtn = page.locator('.view-btn[data-view="genealogy"]');
     await expect(genealogyBtn).toHaveClass(/active/);
