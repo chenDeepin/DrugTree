@@ -267,9 +267,18 @@ class DrugTreeApp {
   initDiseaseView() {
     const container = document.getElementById('disease-view-container');
     if (container && window.DiseaseView && this.graphStore && this.selectionStore) {
-      this.diseaseView = new window.DiseaseView(this);
-      this.diseaseView.init(container, this.graphStore, this.selectionStore);
-      console.log("DiseaseView initialized");
+      try {
+        this.diseaseView = new window.DiseaseView(this);
+        this.diseaseView.init(container, this.graphStore, this.selectionStore);
+        console.log("DiseaseView initialized");
+      } catch (error) {
+        console.error("DiseaseView failed to initialize:", error);
+        container.innerHTML = `
+          <div class="disease-view-state">
+            Disease hierarchy is temporarily unavailable because the renderer failed to initialize.
+          </div>
+        `;
+      }
     }
   }
   
@@ -747,6 +756,8 @@ class DrugTreeApp {
 
     if (this.diseasePanel) {
       this.diseasePanel.activeDisease = disease;
+      this.diseasePanel.closeDropdown();
+      this.diseasePanel.clearSearchField();
       this.diseasePanel.render();
       if (disease) {
           this.diseasePanel.highlightDiseaseRegions(disease);
@@ -758,16 +769,20 @@ class DrugTreeApp {
     this.updateATCTagsState();
     this.updateActiveFiltersBar();
     this.applyFilters();
-    void this.ensureGraphDataLoaded().then(() => this.renderActiveDiseaseView());
+
+    if (!this.graphStore?.loaded) {
+      void this.ensureGraphDataLoaded().then(() => this.renderActiveDiseaseView());
+    }
   }
 
   handleRegionSelected(detail) {
     const nextRegionId = detail.regionId || null;
     const previousRegionId = detail.previousRegionId || null;
+    const forceReselect = Boolean(detail.force);
 
     this.activeBodyRegion = nextRegionId;
 
-    if (nextRegionId !== previousRegionId && this.activeDisease) {
+    if ((nextRegionId !== previousRegionId || forceReselect) && this.activeDisease) {
       if (this.selectionStore && this.selectionStore.selectedDiseaseId !== null) {
         this.selectionStore.setSelectedDisease(null, null);
       } else {

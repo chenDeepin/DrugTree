@@ -152,22 +152,16 @@
                    class="disease-search-input"
                    placeholder="Search diseases..."
                    autocomplete="off" />
+            <div class="disease-search-status" id="disease-search-status">
+              Type a disease name and press Enter to select the best match.
+            </div>
           </div>
           
           <button class="orphan-toggle" id="orphan-toggle" title="Show only orphan diseases">
             🔬 Orphan Only
           </button>
         </div>
-        
-        <div class="disease-dropdown" id="disease-dropdown">
-          <div class="disease-list" id="disease-list">
-            <div class="disease-loading">
-              <div class="loading-spinner-small"></div>
-              <span>Loading...</span>
-            </div>
-          </div>
-        </div>
-        
+
         <div id="selected-disease"></div>
       </section>
 
@@ -182,8 +176,15 @@
       <!-- Disease View Container -->
       <section class="disease-view-section" id="disease-view-section" style="display: none;">
         <div class="disease-view-header">
-          <h3>Disease Hierarchy</h3>
-          <p class="disease-view-subtitle">Body → Disease → Drugs</p>
+          <div class="disease-view-heading">
+            <h3>Disease Hierarchy</h3>
+            <p class="disease-view-subtitle">Body → Disease → Drugs</p>
+          </div>
+          <div class="disease-view-actions">
+            <button type="button" class="disease-view-reset" id="disease-view-reset" hidden>
+              Back to top
+            </button>
+          </div>
         </div>
         <div class="disease-view-container" id="disease-view-container">
           <div class="loading-state">

@@ -5,32 +5,35 @@ class DiseaseView extends EventTarget {
     this.graphStore = null;
     this.selectionStore = null;
     this.container = null;
+    this.graphLayer = null;
+    this.stateLayer = null;
+    this.resetButton = null;
     this.svg = null;
     this.g = null;
     this.tree = null;
     this.root = null;
 
-    this.width = 800;
-    this.height = 500;
-    this.margin = { top: 40, right: 120, bottom: 40, left: 120 };
-    this.nodeRadius = 10;
+    this.width = 1120;
+    this.height = 760;
+    this.margin = { top: 80, right: 280, bottom: 80, left: 280 };
+    this.nodeRadius = 20;
     this.duration = 400;
 
     this.expandedNodes = new Set();
     this.currentRegionId = null;
     this.currentDiseaseId = null;
     this.lastRenderOptions = null;
-    this.lastMeasuredWidth = 800;
-    this.lastMeasuredHeight = 500;
+    this.lastMeasuredWidth = 1120;
+    this.lastMeasuredHeight = 760;
     this.resizeObserver = null;
     this.resizeDebounceId = null;
     this.boundWindowResizeHandler = null;
     this.layoutMetrics = {
-      depthSpacing: 180,
+      depthSpacing: 300,
       labelBudgets: {
-        region: 18,
-        disease: 22,
-        drug: 24,
+        region: 36,
+        disease: 38,
+        drug: 40,
       },
     };
   }
@@ -39,17 +42,39 @@ class DiseaseView extends EventTarget {
     this.container = container;
     this.graphStore = graphStore;
     this.selectionStore = selectionStore;
+    const d3Api = window.d3 || globalThis.d3;
 
     if (!container) {
       console.error('DiseaseView: Missing container element');
       return;
     }
 
+    this.resetButton = document.getElementById('disease-view-reset');
+    if (this.resetButton && !this.resetButton.dataset.bound) {
+      this.resetButton.addEventListener('click', () => this.resetToRoot());
+      this.resetButton.dataset.bound = 'true';
+    }
+
     this.updateDimensions();
 
     container.innerHTML = '';
 
-    this.svg = d3.select(container)
+    this.stateLayer = document.createElement('div');
+    this.stateLayer.className = 'disease-view-state';
+    this.stateLayer.hidden = true;
+
+    this.graphLayer = document.createElement('div');
+    this.graphLayer.className = 'disease-view-graph';
+
+    container.append(this.stateLayer, this.graphLayer);
+
+    if (!d3Api) {
+      console.error('DiseaseView: D3 is unavailable; skipping hierarchy renderer initialization');
+      this.showStateLayer('Disease hierarchy is temporarily unavailable because the graph renderer could not load.');
+      return;
+    }
+
+    this.svg = d3Api.select(this.graphLayer)
       .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
@@ -58,12 +83,13 @@ class DiseaseView extends EventTarget {
     this.g = this.svg.append('g')
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
 
-    this.tree = d3.tree().size([
+    this.tree = d3Api.tree().size([
       this.height - this.margin.top - this.margin.bottom,
       this.width - this.margin.left - this.margin.right,
     ]);
 
     this.setupResizeHandling();
+    this.updateResetButton();
 
     console.log('DiseaseView initialized');
   }
@@ -108,13 +134,14 @@ class DiseaseView extends EventTarget {
       return { width: this.width, height: this.height };
     }
 
-    const measuredWidth = Math.round(width || this.container.clientWidth || this.width || 800);
-    const measuredHeight = Math.round(height || this.container.clientHeight || this.height || 500);
+    const measureTarget = this.graphLayer || this.container;
+    const measuredWidth = Math.round(width || measureTarget.clientWidth || this.container.clientWidth || this.width || 800);
+    const measuredHeight = Math.round(height || this.lastMeasuredHeight || this.height || 760);
 
     this.lastMeasuredWidth = Math.max(320, measuredWidth);
     this.lastMeasuredHeight = Math.max(320, measuredHeight);
     this.width = this.lastMeasuredWidth;
-    this.height = Math.max(this.height, this.lastMeasuredHeight);
+    this.height = Math.max(640, this.lastMeasuredHeight);
 
     if (this.svg) {
       this.svg.attr('width', this.width).attr('height', this.height);
@@ -132,20 +159,19 @@ class DiseaseView extends EventTarget {
       return;
     }
 
-    const onResize = (width, height) => {
+    const onResize = (width) => {
       if (width < 240) {
         return;
       }
 
       const widthDelta = Math.abs(width - this.lastMeasuredWidth);
-      const heightDelta = Math.abs(height - this.lastMeasuredHeight);
-      if (widthDelta < 32 && heightDelta < 32) {
+      if (widthDelta < 24) {
         return;
       }
 
       window.clearTimeout(this.resizeDebounceId);
       this.resizeDebounceId = window.setTimeout(() => {
-        this.updateDimensions(width, height);
+        this.updateDimensions(width);
 
         if (this.root) {
           this.refreshLayoutMetrics();
@@ -160,20 +186,71 @@ class DiseaseView extends EventTarget {
       this.resizeObserver = new ResizeObserver((entries) => {
         const entry = entries[0];
         const nextWidth = Math.round(entry?.contentRect?.width || this.container.clientWidth || this.width);
-        const nextHeight = Math.round(entry?.contentRect?.height || this.container.clientHeight || this.height);
-        onResize(nextWidth, nextHeight);
+        onResize(nextWidth);
       });
       this.resizeObserver.observe(this.container);
       return;
     }
 
     this.boundWindowResizeHandler = () => {
-      onResize(
-        Math.round(this.container.clientWidth || this.width),
-        Math.round(this.container.clientHeight || this.height),
-      );
+      onResize(Math.round(this.container.clientWidth || this.width));
     };
     window.addEventListener('resize', this.boundWindowResizeHandler);
+  }
+
+  showGraphLayer() {
+    if (this.graphLayer) {
+      this.graphLayer.hidden = false;
+    }
+
+    if (this.stateLayer) {
+      this.stateLayer.hidden = true;
+      this.stateLayer.textContent = '';
+    }
+
+    this.updateResetButton();
+  }
+
+  showStateLayer(message) {
+    if (this.graphLayer) {
+      this.graphLayer.hidden = true;
+    }
+
+    if (this.stateLayer) {
+      this.stateLayer.hidden = false;
+      this.stateLayer.textContent = message;
+    }
+
+    this.updateResetButton();
+  }
+
+  updateResetButton() {
+    if (!this.resetButton) {
+      return;
+    }
+
+    this.resetButton.hidden = !this.currentRegionId;
+  }
+
+  resetToRoot() {
+    if (!this.currentRegionId) {
+      return;
+    }
+
+    const regionId = this.currentRegionId;
+    const regionData = this.graphStore?.getBodyRegion(regionId) || null;
+    this.expandedNodes.clear();
+    this.currentDiseaseId = null;
+
+    if (this.selectionStore) {
+      if (this.selectionStore.selectedDiseaseId) {
+        this.selectionStore.setSelectedDisease(null, null);
+      }
+      this.selectionStore.setSelectedRegion(regionId, regionData, { force: true });
+      return;
+    }
+
+    this.render({ regionId, diseaseId: null, preserveExpansion: false });
   }
 
   render(regionIdOrOptions, diseaseId = null) {
@@ -201,6 +278,8 @@ class DiseaseView extends EventTarget {
     };
 
     if (!regionId) {
+      this.currentRegionId = null;
+      this.currentDiseaseId = null;
       this.renderFallback('Select a disease or a body region to view the disease hierarchy.');
       return;
     }
@@ -257,6 +336,8 @@ class DiseaseView extends EventTarget {
       this.renderFallback(fallbackMessage);
       return;
     }
+
+    this.showGraphLayer();
 
     const hierarchyData = {
       id: regionId,
@@ -340,28 +421,28 @@ class DiseaseView extends EventTarget {
     const measuredHeight = this.lastMeasuredHeight || this.height;
     const desiredHeight = Math.max(
       measuredHeight,
-      this.margin.top + this.margin.bottom + 140 + (diseaseCount * 52) + (drugCount * 28),
+      this.margin.top + this.margin.bottom + 300 + (diseaseCount * 90) + (drugCount * 48),
     );
-    const innerHeight = Math.max(260, desiredHeight - this.margin.top - this.margin.bottom);
+    const innerHeight = Math.max(480, desiredHeight - this.margin.top - this.margin.bottom);
     const innerWidth = Math.max(320, measuredWidth - this.margin.left - this.margin.right);
-    const densityPenalty = Math.min(108, Math.max(0, visibleNodeCount - 5) * 9);
+    const densityPenalty = Math.min(84, Math.max(0, visibleNodeCount - 5) * 6);
     const labelReserve = Math.min(
-      Math.round(innerWidth * 0.35),
-      Math.max(96, longestLabelLength * 5),
+      Math.round(innerWidth * 0.44),
+      Math.max(188, longestLabelLength * 7.1),
     );
     const depthSpacing = this.clamp(
       Math.round((innerWidth - densityPenalty - labelReserve) / Math.max(maxDepth, 1)),
-      110,
-      260,
+      220,
+      400,
     );
     const layoutWidth = Math.max(1, depthSpacing * maxDepth);
 
-    const regionBudget = this.clamp(Math.floor((this.margin.left - 26) / 7), 14, 24);
-    const diseaseBudget = this.clamp(Math.floor(Math.max(84, depthSpacing - 24) / 7), 14, 28);
+    const regionBudget = this.clamp(Math.floor((this.margin.left - 44) / 6.0), 28, 42);
+    const diseaseBudget = this.clamp(Math.floor(Math.max(164, depthSpacing - 10) / 6.0), 24, 40);
     const drugBudget = this.clamp(
-      Math.floor(Math.max(96, innerWidth - layoutWidth - 24) / 7),
-      14,
-      30,
+      Math.floor(Math.max(188, innerWidth - layoutWidth + 72) / 6.0),
+      24,
+      42,
     );
 
     this.height = desiredHeight;
@@ -397,11 +478,44 @@ class DiseaseView extends EventTarget {
     };
   }
 
+  isLeftAnchoredNode(node) {
+    return Boolean((node?.children || node?._children) && node?.depth > 0);
+  }
+
+  clearFallbackArtifacts() {
+    if (!this.g) {
+      return;
+    }
+
+    this.g.selectAll('.disease-view-fallback, [data-fallback="true"]').remove();
+  }
+
+  getHitAreaFrame(node) {
+    const type = node?.data?.type || 'drug';
+    const leftAnchored = this.isLeftAnchoredNode(node);
+    const dimensionsByType = {
+      region: { width: node?.depth === 0 ? 420 : 360, height: node?.depth === 0 ? 80 : 68 },
+      disease: { width: 280, height: 56 },
+      drug: { width: 248, height: 50 },
+    };
+    const { width, height } = dimensionsByType[type] || dimensionsByType.drug;
+
+    return {
+      x: leftAnchored ? -(width - this.nodeRadius - 10) : -(this.nodeRadius + 14),
+      y: -(height / 2),
+      width,
+      height,
+    };
+  }
+
   update(source, { immediate = false } = {}) {
     if (!this.tree || !this.root) {
       return;
     }
 
+    this.showGraphLayer();
+    this.g.selectAll('*').interrupt();
+    this.clearFallbackArtifacts();
     this.refreshLayoutMetrics();
 
     const treeData = this.tree(this.root);
@@ -425,6 +539,11 @@ class DiseaseView extends EventTarget {
       .attr('transform', () => `translate(${source.y0 || 0},${source.x0 || 0})`)
       .on('click', (event, d) => this.handleNodeClick(event, d));
 
+    nodeEnter.append('rect')
+      .attr('class', 'node-hit-area')
+      .attr('rx', 18)
+      .attr('ry', 18);
+
     nodeEnter.append('circle')
       .attr('class', 'node-circle')
       .attr('r', this.nodeRadius)
@@ -435,8 +554,10 @@ class DiseaseView extends EventTarget {
     nodeEnter.append('text')
       .attr('class', 'node-label')
       .attr('dy', '.35em')
-      .attr('x', (d) => (d.children || d._children ? -15 : 15))
-      .attr('text-anchor', (d) => (d.children || d._children ? 'end' : 'start'));
+      .attr('x', (d) => (this.isLeftAnchoredNode(d) ? -15 : 15))
+      .attr('text-anchor', (d) => (this.isLeftAnchoredNode(d) ? 'end' : 'start'))
+      .style('cursor', 'pointer')
+      .on('click', (event, d) => this.handleNodeClick(event, d));
 
     nodeEnter.filter((d) => d.data.type === 'disease' && d._children)
       .append('text')
@@ -456,13 +577,24 @@ class DiseaseView extends EventTarget {
       .duration(transitionDuration)
       .attr('transform', (d) => `translate(${d.y},${d.x})`);
 
+    nodeUpdate.select('rect.node-hit-area')
+      .each((d, index, nodeList) => {
+        const frame = this.getHitAreaFrame(d);
+        d3.select(nodeList[index])
+          .attr('x', frame.x)
+          .attr('y', frame.y)
+          .attr('width', frame.width)
+          .attr('height', frame.height);
+      });
+
     nodeUpdate.select('circle.node-circle')
+      .attr('r', this.nodeRadius)
       .style('fill', (d) => this.getNodeColor(d.data.type))
       .style('stroke', (d) => this.getNodeStroke(d.data.type, d));
 
     nodeUpdate.select('text.node-label')
-      .attr('x', (d) => (d.children || d._children ? -15 : 15))
-      .attr('text-anchor', (d) => (d.children || d._children ? 'end' : 'start'))
+      .attr('x', (d) => (this.isLeftAnchoredNode(d) ? -15 : 15))
+      .attr('text-anchor', (d) => (this.isLeftAnchoredNode(d) ? 'end' : 'start'))
       .each((d, index, nodesList) => {
         const labelState = this.formatNodeLabel(d.data.name, d.data.type);
         const textSelection = d3.select(nodesList[index]);
@@ -555,9 +687,15 @@ class DiseaseView extends EventTarget {
 
   handleRegionClick(node) {
     const regionId = node.data.id;
+    const regionData = this.graphStore?.getBodyRegion(regionId) || null;
+    this.expandedNodes.clear();
+    this.currentDiseaseId = null;
 
     if (this.selectionStore) {
-      this.selectionStore.setSelectedRegion(regionId, this.graphStore.getBodyRegion(regionId));
+      if (this.selectionStore.selectedDiseaseId) {
+        this.selectionStore.setSelectedDisease(null, null);
+      }
+      this.selectionStore.setSelectedRegion(regionId, regionData, { force: true });
     }
 
     this.dispatchEvent(new CustomEvent('node:clicked', {
@@ -620,20 +758,10 @@ class DiseaseView extends EventTarget {
     }
 
     this.root = null;
-    this.updateDimensions();
+    this.currentDiseaseId = null;
+    this.g.selectAll('*').interrupt();
     this.g.selectAll('*').remove();
-
-    const fallbackX = Math.max(60, ((this.lastMeasuredWidth || this.width) - this.margin.left - this.margin.right) / 2);
-    const fallbackY = Math.max(120, ((this.lastMeasuredHeight || this.height) - this.margin.top - this.margin.bottom) / 2);
-
-    this.g.append('text')
-      .attr('x', fallbackX)
-      .attr('y', fallbackY)
-      .attr('class', 'disease-view-fallback')
-      .attr('text-anchor', 'middle')
-      .style('fill', 'var(--text-muted)')
-      .style('font-size', '14px')
-      .text(message);
+    this.showStateLayer(message);
   }
 
   renderEmpty() {
@@ -642,6 +770,7 @@ class DiseaseView extends EventTarget {
 
   clear() {
     if (this.g) {
+      this.g.selectAll('*').interrupt();
       this.g.selectAll('*').remove();
     }
 
@@ -661,6 +790,17 @@ class DiseaseView extends EventTarget {
     this.currentDiseaseId = null;
     this.lastRenderOptions = null;
     this.expandedNodes.clear();
+
+    if (this.stateLayer) {
+      this.stateLayer.hidden = true;
+      this.stateLayer.textContent = '';
+    }
+
+    if (this.graphLayer) {
+      this.graphLayer.hidden = false;
+    }
+
+    this.updateResetButton();
   }
 }
 

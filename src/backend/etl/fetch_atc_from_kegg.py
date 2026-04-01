@@ -17,8 +17,8 @@ from tqdm import tqdm
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-DRUGS_FILE = PROJECT_ROOT / "src/frontend/data/drugs.json"
-OUTPUT_FILE = PROJECT_ROOT / "src/frontend/data/drugs-with-atc.json"
+DRUGS_FILE = PROJECT_ROOT / "data/drugs.json"
+OUTPUT_FILE = PROJECT_ROOT / "data/drugs-with-atc.json"
 
 # KEGG API
 KEGG_API_URL = "https://rest.kegg.jp/get/dr:{}"

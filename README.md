@@ -26,6 +26,8 @@
 - **14 Body Regions** mapped to therapeutic areas
 - **Drug Families** - Group related drugs by mechanism/target
 - **Drug Lineages** - Track evolutionary relationships
+- **Drug Targets** - Protein target lookup with disease associations
+- **Graph Knowledge Engine** - Unified drug-disease-target graph with evidence
 - **Source Provenance** - Track where each drug's data originated
 - **Canonical Root Data Files** - frontend embeds are generated from repo-root datasets
 
@@ -120,10 +122,10 @@ DrugTree/
 │   └── backend/                      # FastAPI + SQLite service
 │       ├── main.py                  # Entry point
 │       ├── run_etl.sh               # ETL pipeline launcher
-│       ├── routers/                 # API route modules
+│       ├── routers/                 # API route modules (drugs, diseases, targets, graph, admin)
 │       ├── models/                  # Pydantic & DB models
 │       ├── services/                # Business logic & graph engine
-│       ├── etl/                     # drug / disease / ATC pipelines
+│       ├── etl/                     # drug / disease / ATC / target pipelines
 │       ├── db/                      # SQLite connection & schema
 │       ├── migrations/              # SQL migrations
 │       ├── cache/                   # API response caching
@@ -252,6 +254,8 @@ All endpoints are prefixed with `/api/v1`.
 | `/api/v1/diseases/{id}` | GET | Get disease by ID |
 | `/api/v1/diseases/{id}/drugs` | GET | Get drugs for a disease |
 | `/api/v1/admin/health/data-quality` | GET | Data quality health check |
+| `/api/v1/targets` | GET | List all drug targets (with pagination) |
+| `/api/v1/targets/{target_id}` | GET | Get target detail by ID |
 
 
 ## Documentation

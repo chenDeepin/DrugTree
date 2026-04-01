@@ -4,6 +4,14 @@
 
 This document describes the end-to-end workflow for updating drug data in DrugTree, including the automated sync process, change detection, validation, and audit logging.
 
+## Canonical Execution Path
+
+The canonical execution path for database updates is `src/backend/run_etl.sh`.
+It is the repo-truthful workflow for fetch, normalize, generate, artifact build, and SQLite load steps.
+
+`src/backend/services/update_scheduler.py` is optional/planned service infrastructure.
+It may orchestrate or trigger updates in the future, but it is not the current source of truth for how the ETL is executed today.
+
 ---
 
 ## Architecture
@@ -33,7 +41,7 @@ This document describes the end-to-end workflow for updating drug data in DrugTr
 
 ### 1. Update Scheduler (`update_scheduler.py`)
 
-**Purpose**: Orchestrates periodic data synchronization
+**Purpose**: Optional/planned service infrastructure for periodic orchestration
 
 **Features**:
 - Weekly sync job (Sunday 2 AM UTC)
@@ -65,10 +73,14 @@ from src.backend.services.update_scheduler import get_scheduler, start_scheduler
 
 # Start scheduler
 scheduler = get_scheduler()
-await start_scheduler()
+start_scheduler()
+
+# Inspect scheduler state
+jobs = scheduler.get_scheduled_jobs()
+status = scheduler.get_sync_status()
 
 # Manual trigger
-await scheduler.trigger_manual_sync(triggered_by="admin_user")
+await scheduler.trigger_manual_sync()
 ```
 
 ---
@@ -220,6 +232,14 @@ health = pipeline.get_health_status()
 
 ## Workflow
 
+### Canonical CLI / ETL execution
+
+```bash
+bash src/backend/run_etl.sh
+```
+
+Use `run_etl.sh` for the real repo update path. It owns the current fetch/normalize/generate/build/load order.
+
 ### Automated Weekly Sync
 
 ```
@@ -251,18 +271,17 @@ health = pipeline.get_health_status()
 
 ```bash
 # Via API
-curl -X POST http://localhost:8000/api/admin/trigger-sync \
+curl -X POST http://localhost:8000/api/v1/admin/trigger-sync \
   -H "Authorization: Bearer $ADMIN_TOKEN"
-
-# Via CLI
-python -m src.backend.services.update_scheduler --trigger
 ```
+
+There is no standalone scheduler CLI entrypoint in the current repo. Use the admin API or an interactive Python session if you need to trigger sync logic directly.
 
 ### Rollback
 
 ```bash
 # Rollback a specific change within 30 days
-curl -X POST http://localhost:8000/api/admin/rollback/{change_id} \
+curl -X POST http://localhost:8000/api/v1/admin/rollback/{change_id} \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
@@ -274,16 +293,16 @@ curl -X POST http://localhost:8000/api/admin/rollback/{change_id} \
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/admin/trigger-sync` | POST | Trigger manual data sync |
-| `/api/admin/rollback/{change_id}` | POST | Rollback a change |
-| `/api/admin/audit-logs` | GET | Query audit logs with filters |
-| `/api/admin/validation-reports` | GET | List validation reports |
+| `/api/v1/admin/trigger-sync` | POST | Trigger manual data sync |
+| `/api/v1/admin/rollback/{change_id}` | POST | Rollback a change |
+| `/api/v1/admin/audit-logs` | GET | Query audit logs with filters |
+| `/api/v1/admin/validation-reports` | GET | List validation reports |
 
 ### Health Endpoint
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/health/data-quality` | GET | Get current data quality metrics |
+| `/api/v1/admin/health/data-quality` | GET | Get current data quality metrics |
 
 **Response Example**:
 ```json
@@ -370,7 +389,8 @@ Key metrics to monitor:
 1. Check scheduler status:
    ```python
    scheduler = get_scheduler()
-   print(scheduler.get_job_status())
+   print(scheduler.get_sync_status())
+   print(scheduler.get_scheduled_jobs())
    ```
 
 2. Verify configuration:
@@ -431,7 +451,7 @@ Key metrics to monitor:
 4. **Monitor alerts regularly**
    ```bash
    # Check for unacknowledged alerts
-   curl http://localhost:8000/api/health/data-quality
+curl http://localhost:8000/api/v1/admin/health/data-quality
    ```
 
 ---

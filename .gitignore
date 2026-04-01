@@ -51,6 +51,7 @@ known_hosts
 
 # ===== Editor / agent state =====
 .cursor/
+.codex/
 .opencode/
 .sisyphus/
 .config/
@@ -104,6 +105,8 @@ data/processed/
 data/changes/
 data/checkpoints/
 data/reports/
+data/backups/
+data/raw/
 data/amr_pub_atc/
 data/amr_pub_atc.csv
 data/kegg_brite_*.keg

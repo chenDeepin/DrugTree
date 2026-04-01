@@ -73,13 +73,14 @@ class SelectionStore extends EventTarget {
    * @param {string} regionId - Region ID
    * @param {Object} regionData - Optional region data
    */
-  setSelectedRegion(regionId, regionData = null) {
+  setSelectedRegion(regionId, regionData = null, options = {}) {
+    const force = Boolean(options?.force);
     const previousId = this.selectedRegionId;
     this.selectedRegionId = regionId;
     
-    if (previousId !== regionId) {
+    if (force || previousId !== regionId) {
       this.dispatchEvent(new CustomEvent('region:selected', { 
-        detail: { regionId, previousRegionId: previousId, regionData }
+        detail: { regionId, previousRegionId: previousId, regionData, force }
       }));
     }
   }

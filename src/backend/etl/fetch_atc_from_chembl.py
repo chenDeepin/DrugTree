@@ -9,9 +9,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-DRUGS_FILE = PROJECT_ROOT / "src/frontend/data/drugs.json"
-OUTPUT_FILE = PROJECT_ROOT / "src/frontend/data/drugs-with-atc.json"
-CHECKPOINT_FILE = PROJECT_ROOT / "src/frontend/data/atc_fetch_checkpoint.json"
+DRUGS_FILE = PROJECT_ROOT / "data/drugs.json"
+OUTPUT_FILE = PROJECT_ROOT / "data/drugs-with-atc.json"
+CHECKPOINT_FILE = PROJECT_ROOT / "data/atc_fetch_checkpoint.json"
 
 CHEMBL_SEARCH_URL = "https://www.ebi.ac.uk/chembl/api/data/molecule/search.json"
 HEADERS = {"Accept": "application/json"}

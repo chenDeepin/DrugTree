@@ -22,8 +22,10 @@ backend/
 - `main.py`, app setup, CORS, route wiring, `DATA_PATH`
 - `routers/drugs.py`, drug, family, lineage endpoints
 - `routers/diseases.py`, disease endpoints
+- `routers/targets.py`, drug target lookup endpoints
 - `routers/admin.py`, health and data-quality checks
 - `routers/graph.py`, graph-native endpoints
+- `routers/AGENTS.md`, full endpoint reference and router patterns
 - `models/drug.py`, `disease.py`, `drug_family.py`, `lineage.py`
 - `models/graph.py`, `nodes.py`, shared graph node types
 - `models/audit.py`, `change.py`, `override.py`, `provenance.py`, `version.py`

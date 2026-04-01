@@ -17,8 +17,8 @@ from pathlib import Path
 from collections import Counter, defaultdict
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
-DRUGS_FILE = PROJECT_ROOT / "src/frontend/data/drugs-with-atc.json"
-OUTPUT_FILE = PROJECT_ROOT / "src/frontend/data/drugs-classified.json"
+DRUGS_FILE = PROJECT_ROOT / "data/drugs-with-atc.json"
+OUTPUT_FILE = PROJECT_ROOT / "data/drugs-classified.json"
 
 BODY_TO_ATC = {
     "brain_cns": "N",

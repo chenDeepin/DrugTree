@@ -15,6 +15,8 @@ class GraphEdgeType(str, Enum):
     lineage = "lineage"
     disease_drug = "disease_drug"
     drug_target = "drug_target"
+    target_disease = "target_disease"
+    drug_bodyregion = "drug_bodyregion"
     family_member = "family_member"
 
 

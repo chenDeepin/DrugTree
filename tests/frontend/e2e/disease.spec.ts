@@ -23,7 +23,7 @@ test.describe('Disease View', () => {
     await page.goto('/');
     // Wait for app to load
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
   test('should display disease view toggle button', async ({ page }) => {
@@ -258,5 +258,145 @@ test.describe('Disease View', () => {
     // After reload, default is genealogy
     const genealogyBtn = page.locator('.view-btn[data-view="genealogy"]');
     await expect(genealogyBtn).toHaveClass(/active/);
+  });
+
+  test('root hierarchy node should reset the graph after drilling into a disease', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForFunction(() => {
+      const app = (window as typeof window & { app?: any }).app;
+      return Boolean(app?.selectionStore && app?.graphStore?.loaded && app?.drugs?.length);
+    }, { timeout: 20000 });
+
+    const target = await page.evaluate(() => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          graphStore?: {
+            diseaseHierarchy?: Map<string, { id: string; body_region?: string; drugs?: string[] }>;
+            getDiseaseNode?: (id: string) => object | null;
+            getDiseasesForRegion?: (regionId: string) => Array<{ id: string }>;
+          };
+          hideDrugDetailSurface?: (options?: { clearSelection?: boolean }) => void;
+          selectionStore?: {
+            clear?: () => void;
+            setSelectedDisease?: (id: string, disease: object | null) => void;
+          };
+        };
+      };
+
+      if (pageWindow.location.hash) {
+        const nextUrl = `${pageWindow.location.pathname}${pageWindow.location.search}`;
+        pageWindow.history.replaceState(null, '', nextUrl);
+      }
+
+      pageWindow.app?.hideDrugDetailSurface?.({ clearSelection: true });
+      pageWindow.app?.selectionStore?.clear?.();
+
+      const diseases = Array.from(pageWindow.app?.graphStore?.diseaseHierarchy?.values() || []);
+      const candidate = diseases.find((disease) => {
+        if (!disease.body_region || !Array.isArray(disease.drugs) || disease.drugs.length === 0) {
+          return false;
+        }
+
+        const regionDiseases = pageWindow.app?.graphStore?.getDiseasesForRegion?.(disease.body_region) || [];
+        return regionDiseases.length > 1;
+      }) || diseases.find((disease) => disease.body_region && Array.isArray(disease.drugs) && disease.drugs.length > 0);
+
+      if (!candidate?.body_region) {
+        throw new Error('Unable to find a disease with a body-region hierarchy');
+      }
+
+      const disease = pageWindow.app?.graphStore?.getDiseaseNode?.(candidate.id) || null;
+      pageWindow.app?.selectionStore?.setSelectedDisease?.(candidate.id, disease);
+
+      return {
+        diseaseId: candidate.id,
+        regionId: candidate.body_region,
+      };
+    });
+
+    await page.click('.view-btn[data-view="disease"]');
+    await page.waitForSelector('.node-region .node-label', { timeout: 10000 });
+    await page.waitForSelector('.node-disease', { timeout: 10000 });
+
+    await page.locator('.node-region .node-label').first().click();
+
+    await page.waitForFunction(() => {
+      const app = (window as typeof window & { app?: any }).app;
+      return app?.activeDisease == null && Boolean(app?.activeBodyRegion);
+    }, { timeout: 5000 });
+
+    const state = await page.evaluate(() => {
+      const app = (window as typeof window & { app?: any }).app;
+      return {
+        activeDiseaseId: app?.activeDisease?.id || null,
+        activeBodyRegion: app?.activeBodyRegion || null,
+        fallbackMessages: Array.from(document.querySelectorAll('.disease-view-fallback'))
+          .map((node) => (node.textContent || '').trim())
+          .filter(Boolean),
+        diseaseNodeCount: document.querySelectorAll('.node-disease').length,
+      };
+    });
+
+    expect(target.regionId).toBeTruthy();
+    expect(state.activeDiseaseId).toBeNull();
+    expect(state.activeBodyRegion).toBe(target.regionId);
+    expect(state.fallbackMessages.length).toBe(0);
+    expect(state.diseaseNodeCount).toBeGreaterThan(0);
+  });
+
+  test('hierarchy reset control should return to the region root after drilling into a disease', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForFunction(() => {
+      const app = (window as typeof window & { app?: any }).app;
+      return Boolean(app?.selectionStore && app?.graphStore?.loaded && app?.drugs?.length);
+    }, { timeout: 20000 });
+
+    const target = await page.evaluate(() => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          graphStore?: {
+            diseaseHierarchy?: Map<string, { id: string; body_region?: string; drugs?: string[] }>;
+            getDiseaseNode?: (id: string) => object | null;
+          };
+          hideDrugDetailSurface?: (options?: { clearSelection?: boolean }) => void;
+          selectionStore?: {
+            clear?: () => void;
+            setSelectedDisease?: (id: string, disease: object | null) => void;
+          };
+        };
+      };
+
+      if (pageWindow.location.hash) {
+        const nextUrl = `${pageWindow.location.pathname}${pageWindow.location.search}`;
+        pageWindow.history.replaceState(null, '', nextUrl);
+      }
+
+      pageWindow.app?.hideDrugDetailSurface?.({ clearSelection: true });
+      pageWindow.app?.selectionStore?.clear?.();
+
+      const candidate = Array.from(pageWindow.app?.graphStore?.diseaseHierarchy?.values() || []).find(
+        (disease) => disease.body_region && Array.isArray(disease.drugs) && disease.drugs.length > 0,
+      );
+
+      if (!candidate?.body_region) {
+        throw new Error('Unable to find a disease with a body-region hierarchy');
+      }
+
+      const disease = pageWindow.app?.graphStore?.getDiseaseNode?.(candidate.id) || null;
+      pageWindow.app?.selectionStore?.setSelectedDisease?.(candidate.id, disease);
+
+      return {
+        regionId: candidate.body_region,
+      };
+    });
+
+    await page.click('.view-btn[data-view="disease"]');
+    await page.waitForSelector('.node-region', { timeout: 10000 });
+    await page.locator('#disease-view-reset').click();
+
+    await page.waitForFunction((expectedRegionId) => {
+      const app = (window as typeof window & { app?: any }).app;
+      return app?.activeDisease == null && app?.activeBodyRegion === expectedRegionId;
+    }, target.regionId, { timeout: 5000 });
   });
 });

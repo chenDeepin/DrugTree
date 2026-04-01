@@ -26,6 +26,8 @@ def test_graph_edge_type_values():
         "lineage",
         "disease_drug",
         "drug_target",
+        "target_disease",
+        "drug_bodyregion",
         "family_member",
     }
 

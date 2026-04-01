@@ -1,7 +1,7 @@
 # DrugTree - Project Knowledge Base
 
-**Generated:** 2026-03-31
-**Commit:** e37b5b1 | **Branch:** main
+**Generated:** 2026-04-02
+**Commit:** 8f6e87e | **Branch:** main
 
 Visual drug exploration tool: human body atlas, ATC classification, route-aware drug detail, drug genealogy, graph knowledge engine, ATC-aware disease graph.
 
@@ -29,15 +29,15 @@ DrugTree/
 │   ├── js/views/                  # diseaseView, genealogyView
 │   └── data/                     # GENERATED embeds (not canonical)
 ├── src/backend/                   # FastAPI + SQLite service
-│   ├── routers/                   # admin, diseases, drugs, graph
-│   ├── models/                    # Pydantic + DB schemas (12 files)
-│   ├── services/                  # graph engine, validation, audit (8 files)
-│   ├── etl/                       # data pipelines (23 files)
+│   ├── routers/                   # admin, diseases, drugs, graph, targets
+│   ├── models/                    # Pydantic + DB schemas (14 files)
+│   ├── services/                  # graph engine, validation, audit (11 files)
+│   ├── etl/                       # data pipelines (37 files)
 │   ├── db/                        # SQLite connection & schema
 │   └── migrations/                # SQL migrations
 ├── scripts/                       # build_frontend_embeds.py, data utils
 ├── tests/
-│   ├── backend/                   # pytest (23 files)
+│   ├── backend/                   # pytest (35 files)
 │   └── frontend/                  # Playwright e2e + Node integration
 ├── docs/                          # architecture docs, specs
 └── package.json                   # Playwright only (root-level)
@@ -55,11 +55,12 @@ DrugTree/
 | Drug families | `src/backend/etl/family_builder.py` | Target/mechanism grouping |
 | Frontend routing | `src/frontend/js/app.js` → `handleHashChange()` | Hash-based `#drug/{id}` routing |
 | E2e regression | `tests/frontend/e2e/p0-regression.spec.ts` | High-signal route/detail/disease tests |
+| Target endpoints | `src/backend/routers/targets.py` | Drug target lookup, `/api/v1/targets/` |
 | API endpoints | `src/backend/main.py` + `routers/` | All prefixed `/api/v1/` |
 
 ## Conventions
 
-- **No CI/CD**: No GitHub Actions, no Docker. All builds/tests are manual.
+- **Minimal CI/CD**: Only `.github/workflows/perf-smoke.yml` exists (perf smoke tests). No Docker, no build pipeline.
 - **No framework**: Frontend is vanilla JS (no React/Vue). No build step.
 - **Dual-stack monorepo**: Single repo, two independent stacks, API-only communication.
 - **Generated data**: `src/frontend/data/*.json` and `*.js` are mirrors of canonical `data/` — never edit directly.
@@ -116,6 +117,7 @@ node tests/frontend/e2e/disease-universe.mjs
 
 - `src/frontend/AGENTS.md` — frontend architecture
 - `src/backend/AGENTS.md` — backend API & services
+- `src/backend/routers/AGENTS.md` — API router endpoints & patterns
 - `src/backend/etl/AGENTS.md` — ETL pipeline patterns
 - `src/backend/models/AGENTS.md` — data models & schemas
 - `src/backend/services/AGENTS.md` — business logic & graph engine

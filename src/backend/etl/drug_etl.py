@@ -20,9 +20,8 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
-CLINICALMOL_PROCESSED_DIR = Path(
-    "/media/chen/Machine_Disk/Python script/ClinicalMol_hier/data/processed"
-)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+CLINICALMOL_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 DEFAULT_DRUG_NAME_LOOKUP = CLINICALMOL_PROCESSED_DIR / "kegg_drug_inchikeys.tsv"
 DEFAULT_COMPOUND_NAME_LOOKUP = CLINICALMOL_PROCESSED_DIR / "kegg_compound_inchikeys.tsv"
 

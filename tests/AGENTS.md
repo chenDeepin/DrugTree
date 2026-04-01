@@ -4,7 +4,7 @@
 Test code only. Backend uses pytest, frontend uses Playwright and Node checks.
 
 ## STRUCTURE
-- `tests/backend/`, 23 pytest files, shared fixtures in `tests/backend/conftest.py`
+- `tests/backend/`, 35 pytest files, shared fixtures in `tests/backend/conftest.py`
 - `tests/backend/perf/`, performance coverage for backend paths
 - `tests/frontend/e2e/`, Playwright regression and browser flows
 - `tests/frontend/e2e/perf/`, frontend perf coverage

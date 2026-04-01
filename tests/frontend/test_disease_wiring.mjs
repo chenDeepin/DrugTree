@@ -25,22 +25,26 @@ test("loadDiseaseDrugEdges prefers the canonical API before embedded edge snapsh
   );
 });
 
-test("DiseasePanel passes the selected disease id into disease view rendering", () => {
+test("DiseasePanel forwards disease selections through SelectionStore", () => {
   const panelJs = readFrontendFile("js/components/disease-panel.js");
 
   assert.match(
     panelJs,
-    /this\.app\.diseaseView\.render\(disease\.body_region \|\| null,\s*disease\.id\);/
+    /this\.app\.selectionStore\.setSelectedDisease\(disease\.id, disease\);/
   );
 });
 
 test("DiseaseView supports focusing a selected disease within a region", () => {
   const viewJs = readFrontendFile("js/views/diseaseView.js");
 
-  assert.match(viewJs, /render\(regionId,\s*diseaseId = null\)/);
+  assert.match(viewJs, /render\(regionIdOrOptions,\s*diseaseId = null\)/);
   assert.match(
     viewJs,
-    /const visibleDiseases = diseaseId[\s\S]*?diseases\.filter\(\(d\) => d\.id === diseaseId\)[\s\S]*?: diseases;/
+    /const selectedDiseaseId = renderOptions\.diseaseId \|\| null;/
+  );
+  assert.match(
+    viewJs,
+    /const scopedDiseases = selectedDiseaseId[\s\S]*?disease\.id === selectedDiseaseId[\s\S]*?: diseases;/
   );
 });
 
@@ -51,27 +55,39 @@ test("DiseasePanel no longer treats disease selection as body-region activation"
   assert.match(panelJs, /this\.app\.selectionStore\.setSelectedDisease\(disease\.id, disease\)/);
 });
 
-test("Disease view mode resolves to an explicit fallback without a locked body region", () => {
+test("Disease view mode builds render options before falling back", () => {
   const appJs = readFrontendFile("js/app.js");
   const viewJs = readFrontendFile("js/views/diseaseView.js");
 
-  assert.match(appJs, /this\.diseaseView\.render\(this\.activeDisease\?\.body_region \|\| this\.activeBodyRegion \|\| null, this\.activeDisease\?\.id \|\| null\)/);
+  assert.match(appJs, /renderActiveDiseaseView\(overrides = \{\}\)/);
+  assert.match(appJs, /this\.diseaseView\.render\(this\.buildDiseaseViewOptions\(overrides\)\);/);
   assert.match(viewJs, /renderFallback\(/);
 });
 
-test("Disease search input uses explicit combobox commit handlers", () => {
+test("Disease search input uses input-only commit handlers", () => {
   const panelJs = readFrontendFile("js/components/disease-panel.js");
 
   assert.match(panelJs, /handleSearchKeydown/);
-  assert.match(panelJs, /commitHighlightedDisease/);
-  assert.match(panelJs, /handleSearchBlur/);
+  assert.match(panelJs, /commitSearchSelection/);
+  assert.doesNotMatch(panelJs, /openDropdown/);
+  assert.doesNotMatch(panelJs, /renderDiseaseList/);
+});
+
+test("DiseasePanel clears transient search state after a disease is selected", () => {
+  const panelJs = readFrontendFile("js/components/disease-panel.js");
+
+  assert.match(panelJs, /this\.clearSearchField\(\{\s*blur:\s*true\s*\}\);/);
+  assert.match(panelJs, /clearSearchField\(\{\s*blur = false\s*\} = \{\}\)/);
 });
 
 test("DrugTreeApp syncs disease and region state from SelectionStore events", () => {
   const appJs = readFrontendFile("js/app.js");
+  const selectionStoreJs = readFrontendFile("js/stores/selectionStore.js");
 
   assert.match(appJs, /selectionStore\.addEventListener\('disease:selected',/);
   assert.match(appJs, /selectionStore\.addEventListener\('region:selected',/);
+  assert.match(selectionStoreJs, /detail:\s*\{\s*regionId,\s*previousRegionId:\s*previousId,\s*regionData,\s*force\s*\}/);
+  assert.match(appJs, /const forceReselect = Boolean\(detail\.force\);/);
   assert.match(appJs, /selectionStore\.setSelectedRegion\(nextRegionId,/);
   assert.match(appJs, /selectionStore\.setSelectedDisease\(null, null\)/);
 });

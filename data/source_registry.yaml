@@ -1,0 +1,277 @@
+# DrugTree Source Registry
+# Lists all data sources used for graph node/edge construction.
+# Each source has: purpose, primary keys, access method, refresh frequency, and license.
+# This file is the contract between ETL modules and data integration.
+# Status taxonomy:
+# - active: end-to-end ETL source consumed downstream
+# - extraction_only: fetched but not yet consumed downstream
+# - planned: no extractor or intentionally deferred this cycle
+#
+# Created: 2026-03-31
+# Version: 1.0.0
+
+sources:
+
+  # ===========================================================
+  # EXISTING SOURCES (already integrated)
+  # ===========================================================
+
+  - name: chembl
+    display_name: ChEMBL
+    purpose: >
+      Primary drug registry with bioactivity data, ATC codes, targets,
+      and clinical phases for approved small-molecule drugs.
+    url: https://www.ebi.ac.uk/chembl
+    access:
+      type: api
+      base_url: https://www.ebi.ac.uk/chembl/api/data
+      docs_url: https://chembl.gitbook.io/chembl-interface-documentation/web-services
+    primary_keys:
+      - chembl_id        # e.g., CHEMBL1487
+    refresh_frequency: quarterly
+    license: CC BY-SA 3.0
+    status: active
+
+  - name: kegg
+    display_name: KEGG
+    purpose: >
+      Drug entries, ATC classification hierarchy, and pathway mapping.
+      Supplements ChEMBL for Japanese-approved drugs and ATC codes.
+    url: https://www.kegg.jp
+    access:
+      type: rest_api
+      base_url: https://rest.kegg.jp
+      docs_url: https://www.kegg.jp/kegg/docs/kegg_api.html
+    primary_keys:
+      - kegg_id          # e.g., D00565
+    refresh_frequency: quarterly
+    license: CC BY-NC-SA 4.0 (academic use)
+    status: active
+
+  - name: pubchem
+    display_name: PubChem
+    purpose: >
+      Chemical structure validation, synonyms, ATC classification,
+      and molecular property retrieval for drug enrichment.
+    url: https://pubchem.ncbi.nlm.nih.gov
+    access:
+      type: rest_api
+      base_url: https://pubchem.ncbi.nlm.nih.gov/rest/pug
+      docs_url: https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest
+    primary_keys:
+      - pubchem_cid       # e.g., 60823
+    refresh_frequency: quarterly
+    license: Public domain
+    status: active
+
+  - name: fda
+    display_name: FDA
+    purpose: >
+      Drug approval status, regulatory history, and clinical trial
+      information for US-market drugs.
+    url: https://www.fda.gov
+    access:
+      type: api
+      base_url: https://api.fda.gov
+      docs_url: https://open.fda.gov/apis
+    primary_keys:
+      - fda_unii          # Unique Ingredient Identifier
+    refresh_frequency: monthly
+    license: Public domain (US government)
+    status: active
+
+  # ===========================================================
+  # NEW SOURCES (Phase 2-4 integration targets)
+  # ===========================================================
+
+  - name: drugcentral
+    display_name: DrugCentral
+    purpose: >
+      Comprehensive drug registry with approval status, ATC codes, synonyms,
+      pharmacologic actions, and indications. Helps fill ATC gaps and
+      unify drug identity across sources.
+    url: http://drugcentral.org
+    access:
+      type: download
+      base_url: http://drugcentral.org/download
+      format: SQL / CSV dumps
+      docs_url: http://drugcentral.org/about
+    primary_keys:
+      - drugcentral_id    # Internal DrugCentral ID
+      - inchikey
+    refresh_frequency: quarterly
+    license: CC BY-SA 4.0
+    status: active
+
+  - name: rxnorm
+    display_name: RxNorm
+    purpose: >
+      Normalizes clinical drug names and brand/generic mappings.
+      Essential for clinical synonym resolution and name unification.
+    url: https://www.nlm.nih.gov/research/umls/rxnorm
+    access:
+      type: rest_api
+      base_url: https://rxnav.nlm.nih.gov/REST
+      docs_url: https://documentation.uts.nlm.nih.gov/rest/home
+    primary_keys:
+      - rxcui             # RxNorm Unique Identifier
+    refresh_frequency: monthly
+    license: UMLS Metathesaurus license (free for US)
+    status: active
+
+  - name: opentargets
+    display_name: Open Targets Platform
+    purpose: >
+      Gene-disease and drug-target associations with evidence scores.
+      Adds quantitative target-disease links and drug-target evidence.
+    url: https://www.opentargets.org
+    access:
+      type: graphql_api
+      base_url: https://api.platform.opentargets.org/api/v4/graphql
+      docs_url: https://docs.platform.opentargets.org/api/latest
+      format: JSON data dumps also available
+    primary_keys:
+      - ensembl_gene_id   # e.g., ENSG00000141510
+      - mondo_id          # e.g., MONDO_0005015
+    refresh_frequency: quarterly
+    license: CC BY-NC 4.0 (aggregated data)
+    status: active
+
+  - name: dgidb
+    display_name: DGIdb
+    purpose: >
+      Drug-gene interactions and druggability annotations.
+      Extends drug-target edges with interaction types and evidence.
+    url: http://www.dgidb.org
+    access:
+      type: api
+      base_url: http://www.dgidb.org/api/v2
+      docs_url: http://www.dgidb.org/pages/about
+      format: JSON / TSV downloads
+    primary_keys:
+      - dgidb_gene_id     # DGIdb gene identifier
+    refresh_frequency: quarterly
+    license: CC BY 4.0
+    status: active
+
+  - name: ttd
+    display_name: Therapeutic Target Database
+    purpose: >
+      Validated therapeutic targets, disease indications, and target pathways.
+      Complements DGIdb for target classification and clinical validation.
+    url: https://idrblab.org/ttd/
+    access:
+      type: download
+      base_url: https://idrblab.org/ttd/download
+      format: TSV downloads (Full dataset)
+      docs_url: https://idrblab.org/ttd/about
+    primary_keys:
+      - ttd_target_id     # TTD target identifier
+    refresh_frequency: quarterly
+    license: Academic use (contact for commercial)
+    status: active
+
+  - name: drugmechdb
+    display_name: DrugMechDB
+    purpose: >
+      Curated mechanistic paths connecting drugs to diseases through
+      targets and pathways. Provides evidence-bearing edges with
+      mechanistic rationale.
+    url: https://drugmechdb.org
+    access:
+      type: download
+      base_url: https://drugmechdb.org/downloads
+      format: JSON / CSV public dumps
+      docs_url: https://drugmechdb.org/about
+    primary_keys:
+      - drugmechdb_id     # Internal DrugMechDB ID
+    refresh_frequency: quarterly
+    license: CC BY 4.0
+    status: extraction_only
+
+  - name: mondo
+    display_name: Mondo Disease Ontology
+    purpose: >
+      Harmonizes disease terms across vocabularies and defines disease
+      hierarchies. Improves disease nodes and enables body mapping
+      through standardized disease identifiers.
+    url: https://github.com/monarch-initiative/mondo
+    access:
+      type: download
+      base_url: https://github.com/monarch-initiative/mondo/releases
+      format: OBO / JSON downloads
+      docs_url: https://mondo.monarchinitiative.org/
+    primary_keys:
+      - mondo_id          # e.g., MONDO_0005015
+    refresh_frequency: quarterly
+    license: CC BY 4.0
+    status: active
+
+  - name: ctd
+    display_name: Comparative Toxicogenomics Database
+    purpose: >
+      Chemical-gene-disease interactions and exposures.
+      Complements target and disease edges with toxicology evidence.
+    url: http://ctdbase.org
+    access:
+      type: download
+      base_url: http://ctdbase.org/downloads
+      format: TSV downloads
+      docs_url: http://ctdbase.org/help/
+    primary_keys:
+      - ctd_chemical_id   # CTD chemical identifier (MeSH)
+      - ctd_gene_id       # CTD gene identifier
+      - ctd_disease_id    # CTD disease identifier (MeSH)
+    refresh_frequency: monthly
+    license: Public domain
+    status: active
+
+  - name: uniprot
+    display_name: UniProt
+    purpose: >
+      Canonical gene/protein identifiers and metadata for target
+      node definition. Provides protein names, functions, and
+      cross-references to other databases.
+    url: https://www.uniprot.org
+    access:
+      type: rest_api
+      base_url: https://rest.uniprot.org/uniprotkb
+      docs_url: https://www.uniprot.org/help/api_queries
+    primary_keys:
+      - uniprot_accession  # e.g., P00533
+    refresh_frequency: monthly
+    license: CC BY 4.0
+    status: planned
+
+  - name: clinicaltrials
+    display_name: ClinicalTrials.gov
+    purpose: >
+      Update recent trials, phases, and indications to enrich
+      development data and clinical context for drugs and diseases.
+    url: https://clinicaltrials.gov
+    access:
+      type: api
+      base_url: https://clinicaltrials.gov/api/v2
+      docs_url: https://clinicaltrials.gov/api/v2/info
+    primary_keys:
+      - nct_id            # e.g., NCT00504829
+    refresh_frequency: monthly
+    license: Public domain (US government)
+    status: active
+
+  - name: who_atc
+    display_name: WHO ATC Classification
+    purpose: >
+      Official WHO therapeutic classifications. Keep in sync as
+      new ATC codes appear and classifications change.
+    url: https://www.whocc.no/atc_ddd_index/
+    access:
+      type: download
+      base_url: https://www.whocc.no/atc_ddd_index/
+      format: Excel / CSV spreadsheets
+      docs_url: https://www.whocc.no/structure_and_principles/
+    primary_keys:
+      - atc_code          # e.g., C10AA05
+    refresh_frequency: yearly
+    license: WHO CC BY-NC-SA 3.0 IGO
+    status: planned

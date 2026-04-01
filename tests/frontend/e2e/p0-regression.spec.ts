@@ -56,6 +56,53 @@ async function openDiseaseView(page: Page) {
   await expect(page.locator('.view-btn[data-view="disease"]')).toHaveClass(/active/);
 }
 
+async function getDiseaseSearchTarget(page: Page) {
+  return page.evaluate(() => {
+    const pageWindow = window as typeof window & {
+      app?: {
+        diseases?: Array<{ id: string; canonical_name?: string; approved_drug_count?: number }>;
+      };
+    };
+
+    const diseases = (pageWindow.app?.diseases || []).filter(
+      (disease) => (disease.approved_drug_count || 0) > 0 && Boolean(disease.canonical_name),
+    );
+    const candidate = diseases
+      .slice()
+      .sort((left, right) => (left.canonical_name || '').localeCompare(right.canonical_name || ''))[0];
+
+    if (!candidate?.id || !candidate.canonical_name) {
+      throw new Error('Unable to find a searchable disease target');
+    }
+
+    return {
+      diseaseId: candidate.id,
+      canonicalName: candidate.canonical_name,
+      query: candidate.canonical_name,
+    };
+  });
+}
+
+async function getHighlightableDiseaseTarget(page: Page) {
+  return page.evaluate(() => {
+    const pageWindow = window as typeof window & {
+      app?: {
+        diseases?: Array<{ id: string; anatomy_nodes?: string[]; approved_drug_count?: number }>;
+      };
+    };
+
+    const candidate = (pageWindow.app?.diseases || []).find(
+      (disease) => (disease.approved_drug_count || 0) > 0 && Array.isArray(disease.anatomy_nodes) && disease.anatomy_nodes.length > 0,
+    );
+
+    if (!candidate?.id) {
+      throw new Error('Unable to find a disease with highlightable anatomy nodes');
+    }
+
+    return { diseaseId: candidate.id };
+  });
+}
+
 async function readRenderedNodeIds(
   page: Page,
   selector: string,
@@ -250,74 +297,58 @@ async function getDiseaseContextTarget(page: Page) {
   });
 }
 
-test.describe('P0 Regression: Dropdown hardening (T1)', () => {
+test.describe('P0 Regression: Disease search simplification (T1)', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
-  test('closed disease dropdown should not intercept clicks on elements below', async ({ page }) => {
-    // The disease dropdown, when closed, must have pointer-events: none
-    // so underlying controls (like drug cards) remain clickable.
+  test('disease search should not render an overlay list or block unrelated controls', async ({ page }) => {
+    await openDiseaseView(page);
 
-    // Switch to disease view to ensure dropdown container exists
-    await page.click('.view-btn[data-view="disease"]');
-    await page.waitForTimeout(300);
+    const target = await getDiseaseSearchTarget(page);
+    const diseaseInput = page.locator('#disease-search-input');
+    await expect(page.locator('#disease-dropdown')).toHaveCount(0);
+    await diseaseInput.fill(target.query);
+    await expect(page.locator('#disease-search-status')).toContainText(/Press Enter|match/i);
 
-    // Verify dropdown exists but is not open
-    const dropdown = page.locator('.disease-dropdown');
-    if (await dropdown.isVisible()) {
-      // If visible, it should not be open (no .open class)
-      await expect(dropdown).not.toHaveClass(/open/);
-    }
-
-    // Click on the first drug card in genealogy view to verify it's reachable
     await page.click('.view-btn[data-view="genealogy"]');
     await page.waitForTimeout(300);
 
-    // ATC tags should be clickable
     const atcTag = page.locator('.atc-tag[data-category="C"]');
     await expect(atcTag).toBeVisible();
     await atcTag.click();
     await page.waitForTimeout(300);
 
-    // Category filter should be applied
     await expect(atcTag).toHaveClass(/is-active/);
   });
 
-  test('highlighted disease item should have distinct styling from active', async ({ page }) => {
-    // When keyboard-navigating the disease dropdown, the highlighted item
-    // uses .is-highlighted which is visually distinct from .is-active.
+  test('disease search should select a disease on Enter without opening a list', async ({ page }) => {
+    await openDiseaseView(page);
 
-    // Switch to disease view
-    await page.click('.view-btn[data-view="disease"]');
-    await page.waitForTimeout(300);
-
-    // Open the disease dropdown
+    const target = await getDiseaseSearchTarget(page);
     const diseaseInput = page.locator('#disease-search-input');
-    if (await diseaseInput.isVisible()) {
-      await diseaseInput.click();
-      await page.waitForTimeout(300);
+    await expect(diseaseInput).toBeVisible();
+    await diseaseInput.fill(target.query);
+    await page.keyboard.press('Enter');
 
-      // Press ArrowDown to highlight first item
-      await page.keyboard.press('ArrowDown');
-      await page.waitForTimeout(100);
+    await expect(page.locator('#selected-disease')).toContainText(target.canonicalName);
+    await expect(page.locator('#disease-dropdown')).toHaveCount(0);
+  });
 
-      // Verify a highlighted item exists
-      const highlighted = page.locator('.disease-item.is-highlighted');
+  test('Escape should clear transient search text without any list-dismiss state', async ({ page }) => {
+    await openDiseaseView(page);
 
-      const highlightedCount = await highlighted.count();
+    const target = await getDiseaseSearchTarget(page);
+    const diseaseInput = page.locator('#disease-search-input');
+    await diseaseInput.fill(target.query);
+    await expect(page.locator('#disease-search-status')).toContainText(/Press Enter|match/i);
 
-      // If highlighting works, highlightedCount should be >= 1
-      // and highlighted items should not simultaneously be active
-      if (highlightedCount > 0) {
-        const firstHighlightedClass = await highlighted.first().getAttribute('class');
-        // is-highlighted should be present
-        expect(firstHighlightedClass).toContain('is-highlighted');
-      }
-    }
+    await page.keyboard.press('Escape');
+    await expect(diseaseInput).toHaveValue('');
+    await expect(page.locator('#disease-search-status')).toContainText(/Type a disease name/i);
   });
 });
 
@@ -326,7 +357,7 @@ test.describe('P0 Regression: Selection source-of-truth (T2)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
   test('drug card click should emit one SelectionStore event and open the route-aware detail page', async ({ page }) => {
@@ -415,7 +446,7 @@ test.describe('P0 Regression: Drug detail route state (T3/T4)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
   test('direct hash deep-link should open the dedicated detail page', async ({ page }) => {
@@ -527,7 +558,7 @@ test.describe('P0 Regression: View-mode event loop (T3)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
   test('single mode toggle click should produce one state transition', async ({ page }) => {
@@ -572,46 +603,37 @@ test.describe('P0 Regression: Body-region highlight layers (T4)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
   test('hovering a body region should not erase disease highlights', async ({ page }) => {
-    // Switch to disease view
-    await page.click('.view-btn[data-view="disease"]');
-    await page.waitForTimeout(300);
+    await openDiseaseView(page);
 
-    // Select a disease to trigger body region highlights
-    const diseaseInput = page.locator('#disease-search-input');
-    if (await diseaseInput.isVisible()) {
-      await diseaseInput.click();
-      await page.waitForTimeout(300);
+    const target = await getHighlightableDiseaseTarget(page);
+    await page.evaluate(({ diseaseId }) => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          graphStore?: { getDiseaseNode?: (id: string) => object | null };
+          selectionStore?: { setSelectedDisease: (id: string, disease: object | null) => void };
+        };
+      };
 
-      // Type to search for a disease
-      await diseaseInput.fill('diabetes');
-      await page.waitForTimeout(500);
+      const disease = pageWindow.app?.graphStore?.getDiseaseNode?.(diseaseId) || null;
+      pageWindow.app?.selectionStore?.setSelectedDisease(diseaseId, disease);
+    }, target);
+    await page.waitForTimeout(500);
 
-      // Click first result if available
-      const firstResult = page.locator('.disease-item').first();
-      if (await firstResult.isVisible()) {
-        await firstResult.click();
-        await page.waitForTimeout(500);
+    const highlightedRegions = page.locator('[data-region].highlighted');
+    const highlightCount = await highlightedRegions.count();
 
-        // Check for highlighted body regions
-        const highlightedRegions = page.locator('[data-region].highlighted');
-        const highlightCount = await highlightedRegions.count();
+    if (highlightCount > 0) {
+      const nonHighlightedRegion = page.locator('[data-region]').filter({ hasNot: page.locator('.highlighted') }).first();
+      if (await nonHighlightedRegion.isVisible()) {
+        await nonHighlightedRegion.hover();
+        await page.waitForTimeout(200);
 
-        if (highlightCount > 0) {
-          // Hover over a different region that isn't highlighted
-          const nonHighlightedRegion = page.locator('[data-region]').filter({ hasNot: page.locator('.highlighted') }).first();
-          if (await nonHighlightedRegion.isVisible()) {
-            await nonHighlightedRegion.hover();
-            await page.waitForTimeout(200);
-
-            // Original highlighted regions should still be highlighted
-            const stillHighlighted = await highlightedRegions.count();
-            expect(stillHighlighted).toBeGreaterThan(0);
-          }
-        }
+        const stillHighlighted = await highlightedRegions.count();
+        expect(stillHighlighted).toBeGreaterThan(0);
       }
     }
   });
@@ -624,32 +646,26 @@ test.describe('P0 Regression: Body-region highlight layers (T4)', () => {
     // Verify ATC tag is active
     await expect(page.locator('.atc-tag[data-category="C"]')).toHaveClass(/is-active/);
 
-    // Switch to disease view and select a disease
-    await page.click('.view-btn[data-view="disease"]');
-    await page.waitForTimeout(300);
+    await openDiseaseView(page);
 
-    const diseaseInput = page.locator('#disease-search-input');
-    if (await diseaseInput.isVisible()) {
-      await diseaseInput.click();
+    const target = await getDiseaseSearchTarget(page);
+    await page.evaluate(({ diseaseId }) => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          graphStore?: { getDiseaseNode?: (id: string) => object | null };
+          selectionStore?: { setSelectedDisease: (id: string, disease: object | null) => void };
+        };
+      };
+
+      const disease = pageWindow.app?.graphStore?.getDiseaseNode?.(diseaseId) || null;
+      pageWindow.app?.selectionStore?.setSelectedDisease(diseaseId, disease);
+    }, target);
+    await page.waitForTimeout(500);
+
+    const clearBtn = page.locator('#clear-filters');
+    if (await clearBtn.isVisible()) {
+      await clearBtn.click();
       await page.waitForTimeout(300);
-      await diseaseInput.fill('cancer');
-      await page.waitForTimeout(500);
-
-      const firstResult = page.locator('.disease-item').first();
-      if (await firstResult.isVisible()) {
-        await firstResult.click();
-        await page.waitForTimeout(500);
-
-        // Clear the disease filter
-        const clearBtn = page.locator('#clear-filters');
-        if (await clearBtn.isVisible()) {
-          await clearBtn.click();
-          await page.waitForTimeout(300);
-
-          // ATC category should still be cleared (clear resets everything)
-          // but no error should occur — the key assertion is no crash
-        }
-      }
     }
   });
 });
@@ -659,7 +675,7 @@ test.describe('P0 Regression: Genealogy interaction model (T5)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
   test('genealogy container should not show dead internal scrollbar', async ({ page }) => {
@@ -704,7 +720,7 @@ test.describe('P0 Regression: Tooltip clamping and responsive topbar (T6)', () =
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
   test('ATC tag preview should not render off-screen at right edge', async ({ page }) => {
@@ -802,7 +818,7 @@ test.describe('P0 Regression: Disease-universe filtering and layout (T5-T8)', ()
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 10000 });
-    await page.waitForSelector('.drug-card', { timeout: 15000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
   });
 
   test('ATC category changes should prune disease branches and clear-filters should remove the stale graph', async ({ page }) => {

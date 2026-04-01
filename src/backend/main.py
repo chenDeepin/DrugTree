@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from .models.drug import HealthResponse
 from .routers.drugs import router as drugs_router
 from .routers.diseases import router as diseases_router
+from .routers.targets import router as targets_router
 from .routers.admin import router as admin_router
 from .routers.graph import router as graph_router
 from .services.data_snapshot import get_data_snapshot_service
@@ -182,6 +183,7 @@ async def record_request_timing(request: Request, call_next):
 # Include routers
 app.include_router(drugs_router)
 app.include_router(diseases_router)
+app.include_router(targets_router)
 app.include_router(admin_router)
 app.include_router(graph_router)
 

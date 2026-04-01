@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Tuple, TypeVar, cast
+from pathlib import Path
+from typing import Any, Optional, Tuple, TypeVar, cast
 
 from ..models.graph import (
     Evidence,
@@ -34,6 +35,9 @@ class GraphQueryService:
         self._cache: dict[str, tuple[str, datetime, object]] = {}
         self._cache_hits = {"evidence": 0, "neighborhood": 0, "subgraph": 0}
         self._cache_misses = {"evidence": 0, "neighborhood": 0, "subgraph": 0}
+        self._target_cache: dict[str, dict[str, Any]] = {}
+        self._dt_edges_cache: list[dict[str, Any]] = []
+        self._processed_cache_version: Optional[str] = None
 
     def _cache_key(self, prefix: str, value: str) -> str:
         return f"{prefix}:{value}"
@@ -50,9 +54,8 @@ class GraphQueryService:
             if bucket in self._cache_misses:
                 self._cache_misses[bucket] += 1
             return default
-        source_hash, created_at, value = cached
-        snapshot = self.snapshot_service.get_snapshot()
-        if snapshot.source_hash != source_hash:
+        cache_version, created_at, value = cached
+        if self._cache_version() != cache_version:
             self._cache.pop(key, None)
             bucket = self._cache_bucket(key)
             if bucket in self._cache_misses:
@@ -70,8 +73,7 @@ class GraphQueryService:
         return cast(CachedValue, value)
 
     def _cache_set(self, key: str, value: CachedValue) -> CachedValue:
-        snapshot = self.snapshot_service.get_snapshot()
-        self._cache[key] = (snapshot.source_hash, datetime.now(timezone.utc), value)
+        self._cache[key] = (self._cache_version(), datetime.now(timezone.utc), value)
         return value
 
     def get_cache_stats(self) -> dict[str, dict[str, int]]:
@@ -97,6 +99,56 @@ class GraphQueryService:
 
     def _load_disease_drug_edges(self) -> list[dict[str, object]]:
         return self.snapshot_service.get_snapshot().disease_drug_edges
+
+    def _target_nodes_path(self) -> Path:
+        return (
+            Path(__file__).parent.parent.parent.parent
+            / "data"
+            / "processed"
+            / "nodes_target.jsonl"
+        )
+
+    def _drug_target_edges_path(self) -> Path:
+        return (
+            Path(__file__).parent.parent.parent.parent
+            / "data"
+            / "processed"
+            / "edges_drug_target.jsonl"
+        )
+
+    def _target_disease_edges_path(self) -> Path:
+        return (
+            Path(__file__).parent.parent.parent.parent
+            / "data"
+            / "processed"
+            / "edges_target_disease.jsonl"
+        )
+
+    def _processed_artifact_version(self) -> str:
+        components: list[str] = []
+        for path in (
+            self._target_nodes_path(),
+            self._drug_target_edges_path(),
+            self._target_disease_edges_path(),
+        ):
+            if not path.exists():
+                components.append(f"{path.name}:missing")
+                continue
+            stat = path.stat()
+            components.append(f"{path.name}:{stat.st_mtime_ns}:{stat.st_size}")
+        return "|".join(components)
+
+    def _cache_version(self) -> str:
+        snapshot = self.snapshot_service.get_snapshot()
+        return f"{snapshot.source_hash}|{self._processed_artifact_version()}"
+
+    def _invalidate_processed_caches_if_needed(self) -> None:
+        current_version = self._processed_artifact_version()
+        if self._processed_cache_version == current_version:
+            return
+        self._processed_cache_version = current_version
+        self._target_cache = {}
+        self._dt_edges_cache = []
 
     def _resolve_drug_node(self, drug_id: str) -> Optional[GraphNodeRef]:
         self.graph_index.get_node(drug_id)
@@ -145,12 +197,78 @@ class GraphQueryService:
             },
         )
 
-    def _resolve_target_node(self, target_id: str) -> GraphNodeRef:
+    def _load_target_jsonl(self) -> dict[str, dict[str, Any]]:
+        self._invalidate_processed_caches_if_needed()
+        if self._target_cache:
+            return self._target_cache
+        self._target_cache = {}
+        target_path = self._target_nodes_path()
+        if not target_path.exists():
+            return self._target_cache
+        import json as _json
+
+        with open(target_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rec = _json.loads(line)
+                tid = str(rec.get("node_id", ""))
+                if tid:
+                    self._target_cache[tid.upper()] = rec
+        return self._target_cache
+
+    def _load_drug_target_edges_jsonl(self) -> list[dict[str, Any]]:
+        self._invalidate_processed_caches_if_needed()
+        if self._dt_edges_cache:
+            return self._dt_edges_cache
+        self._dt_edges_cache = []
+        dt_path = self._drug_target_edges_path()
+        if not dt_path.exists():
+            return self._dt_edges_cache
+        import json as _json
+
+        with open(dt_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    self._dt_edges_cache.append(_json.loads(line))
+        return self._dt_edges_cache
+
+    def _load_target_disease_edges_jsonl(self) -> list[dict[str, Any]]:
+        td_path = self._target_disease_edges_path()
+        if not td_path.exists():
+            return []
+        import json as _json
+
+        edges: list[dict[str, Any]] = []
+        with open(td_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    edges.append(_json.loads(line))
+        return edges
+
+    def _resolve_target_node(self, target_id: str) -> Optional[GraphNodeRef]:
+        targets = self._load_target_jsonl()
+        rec = targets.get(target_id.upper())
+        if rec is None:
+            return None
+
+        label = str(rec.get("label") or target_id)
+        extra: dict[str, Any] = rec.get("extra", {})
         return GraphNodeRef(
             node_id=f"target:{target_id}",
             node_type=GraphNodeType.target,
-            label=target_id,
-            extra={},
+            label=label,
+            extra={
+                "symbol": target_id,
+                "name": extra.get("name"),
+                "uniprot_id": extra.get("uniprot_id"),
+                "ensembl_gene_id": extra.get("ensembl_gene_id"),
+                "disease_ids": list(extra.get("disease_ids") or []),
+                "is_validated_target": bool(extra.get("is_validated_target", False)),
+            },
         )
 
     def get_node(self, node_id: str) -> Optional[GraphNodeRef]:
@@ -255,6 +373,48 @@ class GraphQueryService:
             },
         )
 
+    def _drug_target_edge_evidence(self, edge: dict[str, Any]) -> list[Evidence]:
+        extra: dict[str, Any] = dict(edge.get("extra") or {})
+        interaction_type = str(extra.get("interaction_type") or "unknown")
+        clinical_phase = extra.get("clinical_phase")
+        retrieved_at = extra.get("retrieved_at")
+        description = interaction_type
+        if clinical_phase is not None:
+            description = f"{description}; clinical phase {clinical_phase}"
+        if retrieved_at:
+            description = f"{description}; retrieved_at={retrieved_at}"
+
+        return [
+            Evidence(
+                source=str(source),
+                source_type="database",
+                confidence=float(edge.get("confidence", 1.0)),
+                description=description,
+            )
+            for source in extra.get("evidence_sources", [])
+        ]
+
+    def _target_disease_edge_evidence(self, edge: dict[str, Any]) -> list[Evidence]:
+        extra: dict[str, Any] = dict(edge.get("extra") or {})
+        evidence_type = str(extra.get("evidence_type") or "unknown")
+        association_score = extra.get("association_score")
+        retrieved_at = extra.get("retrieved_at")
+        description = evidence_type
+        if association_score is not None:
+            description = f"{description}; association_score={association_score}"
+        if retrieved_at:
+            description = f"{description}; retrieved_at={retrieved_at}"
+
+        return [
+            Evidence(
+                source=str(source),
+                source_type="database",
+                confidence=float(edge.get("confidence", 1.0)),
+                description=description,
+            )
+            for source in extra.get("evidence_sources", [])
+        ]
+
     def _sort_node_refs(self, nodes: list[GraphNodeRef]) -> list[GraphNodeRef]:
         return sorted(nodes, key=lambda node: (node.node_type.value, node.node_id))
 
@@ -290,6 +450,16 @@ class GraphQueryService:
         lineage_evidence = self._lineage_evidence(edge_id)
         if lineage_evidence:
             return self._cache_set(cache_key, lineage_evidence)
+
+        for edge in self._load_drug_target_edges_jsonl():
+            if str(edge.get("edge_id", "")) == edge_id:
+                return self._cache_set(cache_key, self._drug_target_edge_evidence(edge))
+
+        for edge in self._load_target_disease_edges_jsonl():
+            if str(edge.get("edge_id", "")) == edge_id:
+                return self._cache_set(
+                    cache_key, self._target_disease_edge_evidence(edge)
+                )
 
         for edge in self._load_disease_drug_edges():
             if self._disease_edge_id(edge) == edge_id:

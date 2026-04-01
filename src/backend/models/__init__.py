@@ -37,6 +37,14 @@ from .graph import (
     NeighborhoodResult,
     SubgraphResult,
 )
+from .graph_edges import (
+    DrugTargetEdge,
+    TargetDiseaseEdge,
+    DrugBodyRegionEdge,
+    DrugXref,
+    TargetXref,
+    EvidenceSource,
+)
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
@@ -64,4 +72,10 @@ __all__ = [
     "GraphEdgeRef",
     "NeighborhoodResult",
     "SubgraphResult",
+    "DrugTargetEdge",
+    "TargetDiseaseEdge",
+    "DrugBodyRegionEdge",
+    "DrugXref",
+    "TargetXref",
+    "EvidenceSource",
 ]
