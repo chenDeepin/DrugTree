@@ -48,10 +48,16 @@ backend/
 - Unbounded endpoints, add pagination or filters
 - External API calls without try/except and fallback behavior
 - Hardcoded secrets or local machine paths
+- Test files (`test_*.py`) in production source tree — keep them in `tests/`
+- Duplicate `__all__` definitions across `services/__init__.py` and `routers/__init__.py`
 
 ## CONVENTIONS
+- Module-level `app = FastAPI(...)` in `main.py` — no app factory pattern
+- Only `src/backend/requirements.txt` for deps — no root requirements.txt, no pyproject.toml
 - Keep schemas explicit and small, validate inputs and outputs
 - Preserve SQLite compatibility, keep queries simple and indexed
 - Use graceful degradation for ChEMBL, KEGG, PubChem, FDA calls
 - Keep response caching and scheduler changes localized
 - Treat root `data/` as source of truth, backend reads from it, ETL owns writes
+- `services/__init__.py` has duplicate `__all__` — avoid adding more exports there
+- `routers/__init__.py` only exports `drugs_router`; main.py imports all routers directly

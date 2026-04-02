@@ -8,11 +8,14 @@ Test code only. Backend uses pytest, frontend uses Playwright and Node checks.
 - `tests/backend/perf/`, performance coverage for backend paths
 - `tests/frontend/e2e/`, Playwright regression and browser flows
 - `tests/frontend/e2e/perf/`, frontend perf coverage
-- `tests/frontend/e2e/disease-universe.mjs`, Node integration check
+- `tests/frontend/e2e/disease-universe.mjs`, Node integration check (node:test + assert)
 - `tests/fixtures/` and `tests/fixtures/perf/`, shared test data
 - `tests/frontend/playwright.config.ts`, serves on port `8766` to avoid backend API port `8765`
+- `tests/frontend/e2e/playwright.ts`, import shim for Playwright module resolution
+- Multiple package.json manifests: root, `tests/frontend/`, `tests/frontend/e2e/` (lockfiles gitignored)
 
 ## TEST CONVENTIONS
+- Single backend conftest at `tests/backend/conftest.py` with `httpx.ASGITransport` fixture
 - Treat `data/drugs.json`, `data/diseases.json`, `data/disease_drug_edges.json`, and `data/ontology/body-ontology.json` as canonical inputs
 - Use `src/frontend/data/` mirrors only when a test is checking generated embeds
 - Cover `drug_etl`, `disease_api`, `graph_index`, `atc_orchestrator`, `family_builder`, `change_detector`, `validation_pipeline`
@@ -21,6 +24,9 @@ Test code only. Backend uses pytest, frontend uses Playwright and Node checks.
 - ATC assertions must separate valid WHO codes from placeholder `*99XX99` codes
 - Disease assertions must check edge-backed filtering, not body-region coincidence
 - `tests/frontend/e2e/p0-regression.spec.ts` is the high-signal route, detail, and disease regression file
+- Perf suites are first-class with evidence artifacts to `.sisyphus/evidence/`
+- No pytest config files detected — defaults used throughout
+- Playwright import indirection via `tests/frontend/e2e/playwright.ts` shim
 
 ## COMMANDS
 ```bash

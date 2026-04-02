@@ -21,15 +21,17 @@ Canonical ETL layer for drug, disease, and ATC enrichment, with async external l
 ## DATA FLOW
 - `data/drugs.json` and `data/diseases.json` feed ETL transforms.
 - `data/curated/` overrides load before final classification.
-- `atc_orchestrator.py` fans out ChEMBL, KEGG, and PubChem batches.
+- `atc_orchestrator.py` fans out ChEMBL, KEGG, and PubChem batches with explicit resolution order: preserve → KEGG → PubChem → ChEMBL → WHO → BRITE → fallback.
 - Provenance stays attached to every ATC assignment.
-- `data/checkpoints/` stores resumable progress snapshots.
+- `data/checkpoints/` stores resumable progress snapshots with keys: `processed_ids`, `results`, `stats`, `timestamp`, `status`.
 
 ## EXTERNAL SOURCES
 - ChEMBL, KEGG, PubChem, FDA, ClinicalTrials.gov.
-- All remote calls use async `httpx`.
+- All remote calls should use async `httpx`.
+- Retry pattern: `for attempt in range(max_retries)` with `2.0 ** attempt` backoff, special 429 handling.
 - Wrap every external call in `try/except`, fail soft, keep partial output.
 - Preserve source tags on writes, ChEMBL, KEGG, or PubChem.
+- **Known gap**: 5 files still use sync `requests` — `atc_orchestrator.py`, `drug_etl.py`, `fetch_atc_from_chembl.py`, `fetch_atc_from_kegg.py`, `atc_kegg_api_lookup.py`.
 
 ## CONVENTIONS
 - Treat canonical data as `data/`, not `src/frontend/data/`.
@@ -41,6 +43,6 @@ Canonical ETL layer for drug, disease, and ATC enrichment, with async external l
 ## ANTI-PATTERNS
 - Do not edit generated frontend mirrors.
 - Do not skip provenance on enrichment writes.
-- Do not add sync HTTP clients or blocking requests.
+- Do not add sync HTTP clients or blocking requests (5 legacy files still use `requests`).
 - Do not break checkpoint resume semantics.
 - Do not assume external sources always respond.

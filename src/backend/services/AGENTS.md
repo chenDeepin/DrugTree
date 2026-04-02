@@ -25,3 +25,4 @@ Service layer only, business logic between routers and data stores. Keep this fi
 - No direct edits to generated frontend data.
 - No hidden state changes across validation, detection, or audit paths.
 - No broad catch-all logic that hides failed graph or data updates.
+- Do not duplicate `__all__` exports — `services/__init__.py` already has duplicates.

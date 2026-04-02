@@ -7,7 +7,7 @@ Model layer for Pydantic, SQLAlchemy, and schema tracking.
 - `drug.py`, core drug schemas, ATC, molecular properties, targets, synonyms, body region, external IDs.
 - `disease.py`, disease hierarchy with parent and child links.
 - `drug_family.py`, family basis, member drug IDs, prototype drug ID.
-- `lineage.py`, follow-on and derivative edges, confidence, score breakdown, provenance.
+- `lineage.py`, follow-on and derivative edges, confidence, score breakdown, provenance. DEPRECATED: `rationale_tags` → `generation_rationale`.
 - `graph.py`, node types, refs, evidence, and graph edges.
 - `nodes.py`, disease, target, and cluster node variants.
 - `audit.py`, audit trail records.

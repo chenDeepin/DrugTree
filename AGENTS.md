@@ -1,7 +1,7 @@
 # DrugTree - Project Knowledge Base
 
 **Generated:** 2026-04-02
-**Commit:** 8f6e87e | **Branch:** main
+**Commit:** 5bf07d3 | **Branch:** main
 
 Visual drug exploration tool: human body atlas, ATC classification, route-aware drug detail, drug genealogy, graph knowledge engine, ATC-aware disease graph.
 
@@ -23,7 +23,7 @@ DrugTree/
 │   ├── checkpoints/               # ETL progress snapshots
 │   └── reports/                   # ETL reports
 ├── src/frontend/                  # vanilla JS atlas UI
-│   ├── js/app.js                  # DrugTreeApp class (2145 lines)
+│   ├── js/app.js                  # DrugTreeApp class (2436 lines)
 │   ├── js/components/             # approval-chips, disease-panel, mechanism-card, orphan-badge
 │   ├── js/stores/                 # graphStore, selectionStore
 │   ├── js/views/                  # diseaseView, genealogyView
@@ -60,11 +60,14 @@ DrugTree/
 
 ## Conventions
 
-- **Minimal CI/CD**: Only `.github/workflows/perf-smoke.yml` exists (perf smoke tests). No Docker, no build pipeline.
-- **No framework**: Frontend is vanilla JS (no React/Vue). No build step.
+- **Minimal CI/CD**: Only `.github/workflows/perf-smoke.yml` exists (perf smoke on PR to main + manual dispatch). No Docker, no build pipeline.
+- **No framework**: Frontend is vanilla JS (no React/Vue), global-script based (not ES modules). No build step.
 - **Dual-stack monorepo**: Single repo, two independent stacks, API-only communication.
+- **No app factory**: Backend uses module-level `app = FastAPI(...)` in `main.py`, not a factory pattern.
+- **Nested deps**: Only `src/backend/requirements.txt` exists — no root `requirements.txt`, no `pyproject.toml`, no `setup.py`.
 - **Generated data**: `src/frontend/data/*.json` and `*.js` are mirrors of canonical `data/` — never edit directly.
 - **Port assignments**: 8080 (frontend dev), 8000 (backend), 8765 (backend API test), 8766 (Playwright test harness).
+- **Multiple package.json**: Root (Playwright only), `tests/frontend/`, `tests/frontend/e2e/` — lockfiles gitignored.
 - **Root Playwright**: `package.json` at root has Playwright only; no npm scripts defined.
 
 ## Anti-Patterns (This Project)
@@ -77,8 +80,10 @@ DrugTree/
 - Do NOT hand-edit generated `src/frontend/data/*.js` files
 - Keep valid ATC codes stable; only placeholder `*99XX99` codes are enrichment targets
 - Wrap all external API calls (ChEMBL, KEGG, PubChem, FDA) in try/except with graceful degradation
-- Use `async def` with `httpx` for backend — no sync requests
+- Use `async def` with `httpx` for backend — 5 ETL files still use sync `requests` (known gap: `atc_orchestrator.py`, `drug_etl.py`, `fetch_atc_from_chembl.py`, `fetch_atc_from_kegg.py`, `atc_kegg_api_lookup.py`)
 - Always validate with Pydantic models; add pagination to queries
+- Do NOT add test files (`test_*.py`) into production source tree (`src/backend/`) — keep them in `tests/`
+- Do NOT duplicate `__all__` definitions across `services/__init__.py` and `routers/__init__.py`
 
 ## Commands
 
@@ -95,23 +100,29 @@ bash src/backend/run_etl.sh
 # Frontend embeds only (after data changes)
 python3 scripts/build_frontend_embeds.py
 
-# Backend tests
+# Backend tests (single conftest with httpx.ASGITransport)
 pytest tests/backend/
 
-# Frontend e2e
+# Frontend e2e (port 8766)
 npx playwright test --config tests/frontend/playwright.config.ts
 
-# Frontend data integration
+# Frontend data integration (node:test + assert)
 node tests/frontend/e2e/disease-universe.mjs
+
+# CI perf-smoke (what GitHub Actions runs)
+pytest tests/backend/perf/ && npx playwright test --config tests/frontend/playwright.config.ts --project=p0-regression
 ```
 
 ## Notes
 
+- 830 files, 46,511 lines of code; 22 files exceed 500 lines
 - `data/amr_pub_atc/` contains AMR publication-to-ATC mapping data
-- `data/changes/` has 183 UUID-named JSON change-log files (local state, not committed)
+- `data/changes/` has 327 UUID-named JSON change-log files (local state, not committed)
 - `.sisyphus/` is agent planning state — not project source
 - CORS allows `localhost:8080`, `localhost:8765`, and `https://chendeepin.github.io`
 - `docs/architecture/release-gates.md` defines wave-based release progression (documentation only, not enforced in code)
+- CI workflow generates fixtures → runs backend perf → frontend perf/p0 regression → uploads evidence to `.sisyphus/evidence/`
+- DEPRECATED: `lineage.rationale_tags` → `generation_rationale` in `models/lineage.py`
 
 ## References
 

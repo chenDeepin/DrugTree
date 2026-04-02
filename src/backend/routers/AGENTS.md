@@ -6,7 +6,7 @@ FastAPI router modules for `/api/v1` surface. Each router is a standalone `APIRo
 ## STRUCTURE
 ```
 routers/
-├── __init__.py      # re-exports all routers for main.py include
+├── __init__.py      # only exports drugs_router (main.py imports all directly)
 ├── drugs.py         # 534 lines — drug, family, lineage, graph-stats endpoints
 ├── diseases.py      # 303 lines — disease, edge, target/drug, approvals endpoints
 ├── targets.py       # 258 lines — drug target lookup endpoints

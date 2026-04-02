@@ -4,7 +4,7 @@
 Vanilla JS DrugTree UI, RDKit.js for structures, no framework, no build step.
 
 ## KEY FILES
-- `js/app.js`, `DrugTreeApp`, constructor, `init()`, event binding, render flow, hash routing (2160 lines)
+- `js/app.js`, `DrugTreeApp`, constructor, `init()`, event binding, render flow, hash routing (2436 lines)
 - `js/app-state.js`, `DrugTreeState`
 - `js/stores/graphStore.js`, `js/stores/selectionStore.js`, custom event pub/sub
 - `js/structure.js`, RDKit.js 2D molecule rendering
@@ -14,7 +14,7 @@ Vanilla JS DrugTree UI, RDKit.js for structures, no framework, no build step.
 - `data/`, generated embeds only, never canonical source
 
 ## ARCHITECTURE
-- Main shell lives in `DrugTreeApp`
+- Main shell lives in `DrugTreeApp` — global-script based (not ES modules)
 - Route changes use `handleHashChange()`, deep link shape `#drug/{id}`
 - Public mode, Scientist mode toggle, different detail density
 - Disease view prunes by explicit disease-drug edges, not body-region guessing
