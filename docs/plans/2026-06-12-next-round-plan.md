@@ -15,7 +15,7 @@ Implemented in the current working tree:
 - Phase 2: `drugs.js` and graph bundles removed from eager script payload, generated gzip/Brotli sidecars, compression-aware static test server, detail/grid/D3 a11y basics, Public mode raw-SMILES fallback removal, approval/mechanism/orphan component loading, responsive mobile detail/topbar fixes, touch dwell previews, and five ETL files migrated from sync `requests` to `httpx`.
 - Phase 3 extractions: `js/data-loader.js`, `js/components/drug-grid-renderer.js`, `js/controllers/{preview,filter,atlas,detail}-controller.js`, `src/backend/etl/{atc_lookup_service,atc_enrichment_pipeline,atc_enrichment_models,atc_enrichment_reports,drug_metadata,drug_transform_helpers,disease_etl_helpers,disease_source_loaders}.py`, and `src/backend/services/{validation_pipeline_core,validation_models}.py`.
 
-Still open: no commit/push has been made. A full `run_etl.sh` execution was attempted with a timer and stopped before writes because the required default input `data/processed/compound_master_table.tsv` is missing; broader axe/manual accessibility review was not run.
+Committed locally on branch `optimize-ui-backend-docs-20260613`; no push has been made. A full `run_etl.sh` execution was attempted with a timer and stopped before writes because the required default input `data/processed/compound_master_table.tsv` is missing; broader axe/manual accessibility review was not run.
 
 ---
 
@@ -39,7 +39,7 @@ The two-pane workspace + anchored detail page is uncommitted and half-finished. 
 | P0.2 Remove the dead modal | Delete `#modal-overlay` and any modal-only CSS/JS once the page covers all cases | Implemented: no `#modal-overlay` DOM; method names still carry legacy modal wording |
 | P0.3 Wire scroll controls fully | Confirm `syncWorkspaceScrollControls()` fires on scroll/resize/filter; slider + ↑/↓ disabled when nothing to scroll | Controls track scroll position; disabled state correct on short lists |
 | P0.4 Verify orphan-only path | `orphanDrugIds` populated at load; `applySpecialDrugFilters()` interacts correctly with disease + category filters | Orphan toggle yields correct counts in both views |
-| P0.5 Commit the refactor | Branch, commit with a clear message, keep `Architecture.md`/`UI-Architecture.md` in sync | **Not done:** working tree remains uncommitted on `main`; docs have been updated |
+| P0.5 Commit the refactor | Branch, commit with a clear message, keep `Architecture.md`/`UI-Architecture.md` in sync | **Done locally:** branch `optimize-ui-backend-docs-20260613`, commit `11848fc`; not pushed |
 
 ---
 
@@ -111,6 +111,7 @@ The two-pane workspace + anchored detail page is uncommitted and half-finished. 
 - Focused backend ETL/router suites passed before the full backend run.
 - `timeout 60s bash src/backend/run_etl.sh` — failed before writes: missing `data/processed/compound_master_table.tsv`.
 - `git check-ignore` returned no ignore match for `docs/Architecture.md`, `docs/UI-Architecture.md`, `docs/modules/README.md`, or the current plan/Q&A files.
+- Local commit created: `11848fc refactor: optimize drugtree ui and backend modules` on `optimize-ui-backend-docs-20260613`.
 
 ## Open questions for the maintainer
 1. **Hosting target for compression (C1):** local/test static hosting now serves sidecars. For GitHub Pages/CDN, confirm whether precompressed `.br`/`.gz` sidecars are honored or need deployment config.
