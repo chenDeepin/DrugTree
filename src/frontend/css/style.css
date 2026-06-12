@@ -411,26 +411,253 @@ body {
    Main Page Layout
    ============================================ */
 .page-main {
+  flex: 1;
+  padding: 12px 16px 20px;
+}
+
+.workspace-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(620px, 0.98fr) minmax(720px, 1.18fr);
+  gap: 18px;
+  align-items: stretch;
+  min-height: calc(100vh - 96px);
+}
+
+.workspace-pane {
+  min-width: 0;
+}
+
+.workspace-left-sticky {
+  position: sticky;
+  top: 72px;
+  height: calc(100vh - 82px);
+}
+
+.workspace-panel {
+  position: relative;
+  min-height: calc(100vh - 82px);
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top left, rgba(70, 132, 255, 0.14), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.1), transparent 24%),
+    linear-gradient(180deg, rgba(17, 24, 39, 0.98) 0%, rgba(10, 14, 30, 0.98) 100%);
+  border: 1px solid rgba(154, 181, 228, 0.12);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.workspace-panel::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border-radius: calc(var(--radius-xl) - 10px);
+  border: 1px solid rgba(148, 163, 184, 0.06);
+  pointer-events: none;
+}
+
+.workspace-panel-top {
+  position: relative;
+  z-index: 2;
+  padding: 22px 24px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(180deg, rgba(10, 14, 30, 0.92) 0%, rgba(10, 14, 30, 0.64) 100%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.workspace-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.workspace-panel-copy {
+  min-width: 0;
+}
+
+.workspace-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(120, 171, 255, 0.18);
+  background: rgba(15, 23, 42, 0.58);
+  color: rgba(172, 214, 255, 0.92);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.workspace-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 2.6vw, 2.25rem);
+  letter-spacing: -0.04em;
+  line-height: 1.03;
+}
+
+.workspace-subtitle {
+  margin-top: 8px;
+  max-width: 46ch;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.workspace-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.workspace-scroll-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.workspace-scroll-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 50%;
+  background: rgba(36, 52, 71, 0.95);
+  color: var(--text-primary);
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.workspace-scroll-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(94, 160, 255, 0.45);
+  background: rgba(48, 69, 94, 0.98);
+}
+
+.workspace-scroll-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
+}
+
+.workspace-scroll-slider {
+  appearance: none;
+  width: 10px;
+  height: 120px;
+  margin: 0;
+  background: transparent;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  cursor: pointer;
+}
+
+.workspace-scroll-slider::-webkit-slider-runnable-track {
+  width: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.28), rgba(148, 163, 184, 0.16));
+}
+
+.workspace-scroll-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #dce8ff 0%, #79b0ff 100%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 16px rgba(94, 160, 255, 0.32);
+}
+
+.workspace-scroll-slider::-moz-range-track {
+  width: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.28), rgba(148, 163, 184, 0.16));
+}
+
+.workspace-scroll-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #dce8ff 0%, #79b0ff 100%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 16px rgba(94, 160, 255, 0.32);
+}
+
+.workspace-scroll-area {
+  position: relative;
+  z-index: 1;
   flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 24px 14px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(94, 160, 255, 0.46) rgba(255, 255, 255, 0.06);
+}
+
+.workspace-panel-footer {
+  position: relative;
+  z-index: 2;
+  padding: 14px 24px 24px;
+  background:
+    linear-gradient(180deg, rgba(10, 14, 30, 0.18) 0%, rgba(10, 14, 30, 0.82) 30%, rgba(10, 14, 30, 0.96) 100%);
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.workspace-scroll-area::-webkit-scrollbar {
+  width: 10px;
+}
+
+.workspace-scroll-area::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 999px;
+}
+
+.workspace-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(94, 160, 255, 0.42);
+  border-radius: 999px;
+}
+
+.workspace-panel.detail-active .workspace-scroll-area {
+  pointer-events: none;
+  user-select: none;
+}
+
+.workspace-panel.detail-active .workspace-panel-top {
+  opacity: 0.22;
+}
+
+.workspace-panel.detail-active .workspace-panel-footer {
+  opacity: 0.22;
 }
 
 /* ============================================
    Atlas Hero Section
    ============================================ */
 .atlas-hero {
-  min-height: 78vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: var(--space-xl) var(--space-lg) var(--space-sm);
+  min-height: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .atlas-stage {
-  width: min(1200px, 96vw);
-  min-height: 72vh;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
   position: relative;
   border-radius: var(--radius-xl);
   background:
@@ -440,13 +667,15 @@ body {
   border: 1px solid rgba(154, 181, 228, 0.12);
   box-shadow: var(--shadow-soft);
   overflow: hidden;
-  padding: 34px 34px 26px;
+  padding: 22px 22px 14px;
+  display: flex;
+  flex-direction: column;
 }
 
 .atlas-stage::before {
   content: "";
   position: absolute;
-  inset: 16px;
+  inset: 14px;
   border-radius: calc(var(--radius-xl) - 10px);
   border: 1px solid rgba(148, 163, 184, 0.07);
   pointer-events: none;
@@ -455,8 +684,8 @@ body {
 .atlas-copy {
   position: relative;
   z-index: 2;
-  max-width: 780px;
-  margin: 0 auto 24px;
+  max-width: 720px;
+  margin: 0 auto 10px;
   text-align: center;
 }
 
@@ -472,35 +701,36 @@ body {
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .atlas-copy h1 {
   font-family: var(--font-display);
-  font-size: clamp(2.1rem, 3.8vw, 3.75rem);
+  font-size: clamp(1.82rem, 2.95vw, 3.05rem);
   line-height: 1.02;
   letter-spacing: -0.05em;
-  max-width: 12ch;
-  margin: 0 auto 14px;
+  width: fit-content;
+  max-width: none;
+  margin: 0 auto 8px;
 }
 
 .atlas-subtitle {
-  max-width: 620px;
+  max-width: 580px;
   margin: 0 auto;
   color: var(--text-secondary);
-  font-size: clamp(0.98rem, 1.2vw, 1.08rem);
+  font-size: clamp(0.92rem, 1.02vw, 1rem);
 }
 
 .atlas-summary {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
-  margin-top: 18px;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .summary-pill {
-  padding: 8px 14px;
+  padding: 6px 11px;
   border-radius: var(--radius-full);
   background: rgba(17, 24, 39, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.16);
@@ -513,9 +743,10 @@ body {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: minmax(170px, 230px) minmax(320px, 1fr) minmax(170px, 230px);
-  align-items: center;
-  gap: 26px;
+  grid-template-columns: minmax(148px, 206px) minmax(300px, 1fr) minmax(148px, 206px);
+  align-items: start;
+  gap: 18px;
+  flex: 1;
 }
 
 /* ============================================
@@ -523,8 +754,8 @@ body {
    ============================================ */
 .atlas-body-wrap {
   position: relative;
-  width: min(460px, 100%);
-  min-height: 620px;
+  width: min(396px, 100%);
+  min-height: 458px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -540,8 +771,8 @@ body {
 
 .atlas-glow {
   position: absolute;
-  width: min(500px, 100%);
-  height: min(610px, 96%);
+  width: min(450px, 100%);
+  height: min(500px, 92%);
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 42%, rgba(125, 176, 255, 0.25), transparent 42%),
@@ -551,7 +782,7 @@ body {
 }
 
 .human-body-map {
-  width: min(420px, 100%);
+  width: min(344px, 100%);
   max-height: 84%;
   pointer-events: auto;
   position: relative;
@@ -569,11 +800,11 @@ body {
 .body-region-label {
   position: absolute;
   left: 50%;
-  bottom: 26px;
+  bottom: 18px;
   transform: translateX(-50%);
-  min-width: 290px;
-  max-width: min(92%, 420px);
-  padding: 10px 16px;
+  min-width: 260px;
+  max-width: min(94%, 360px);
+  padding: 9px 14px;
   border-radius: var(--radius-full);
   background: rgba(10, 14, 30, 0.62);
   border: 1px solid rgba(148, 163, 184, 0.16);
@@ -665,32 +896,32 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   z-index: 2;
 }
 
 .atc-rail-left {
   align-items: flex-end;
-  padding-right: 10px;
+  padding-right: 6px;
 }
 
 .atc-rail-right {
   align-items: flex-start;
-  padding-left: 10px;
+  padding-left: 6px;
 }
 
 .atc-rail-left .atc-tag:nth-child(odd) {
-  margin-right: 20px;
+  margin-right: 12px;
 }
 
 .atc-rail-right .atc-tag:nth-child(odd) {
-  margin-left: 20px;
+  margin-left: 12px;
 }
 
 .atc-tag {
   position: relative;
-  min-width: 156px;
-  padding: 12px 16px;
+  min-width: 146px;
+  padding: 10px 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-medium);
   background:
@@ -725,7 +956,7 @@ body {
   content: "";
   position: absolute;
   top: 50%;
-  width: 52px;
+  width: 40px;
   height: 1px;
   background: linear-gradient(90deg, currentColor, transparent);
   opacity: 0.3;
@@ -736,7 +967,7 @@ body {
 }
 
 .atc-rail-left .atc-tag::after {
-  right: -64px;
+  right: -52px;
 }
 
 .atc-rail-right .atc-tag::before {
@@ -744,18 +975,19 @@ body {
 }
 
 .atc-rail-right .atc-tag::after {
-  left: -64px;
+  left: -52px;
   transform: scaleX(-1);
 }
 
 .atc-tag .atc-code {
   font-weight: 700;
-  font-size: var(--font-size-base);
+  font-size: 0.98rem;
 }
 
 .atc-tag .atc-name {
   opacity: 0.85;
   font-weight: 500;
+  font-size: 0.88rem;
 }
 
 .atc-tag:hover {
@@ -793,11 +1025,12 @@ body {
 
 /* Atlas Hint */
 .atlas-hint {
-  margin-top: 4px;
+  margin-top: 0;
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   text-align: center;
-  opacity: 0.7;
+  opacity: 0.62;
+  padding-bottom: 2px;
 }
 
 /* ============================================
@@ -805,22 +1038,22 @@ body {
    ============================================ */
 .disease-panel {
   position: relative;
-  margin-bottom: var(--space-xl);
-}
-
-.disease-panel-body {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
+  margin: 0;
+  padding: 16px 18px;
+  background: rgba(17, 24, 39, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.09);
+  border-radius: var(--radius-lg);
 }
 
 .disease-panel-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-md);
+}
+
+.disease-panel-copy {
+  min-width: 0;
 }
 
 .disease-panel-title {
@@ -829,43 +1062,30 @@ body {
   color: var(--text-primary);
 }
 
-.disease-search-wrap {
-  position: relative;
-  flex: 1;
-}
-
-.disease-search-input {
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
-}
-
-.disease-search-input:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-}
-
 .disease-search-status {
   margin-top: var(--space-xs);
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   line-height: 1.5;
-  min-height: 1.5em;
+  min-height: 1.2em;
+  max-width: 48ch;
 }
 
 .orphan-toggle {
   padding: var(--space-sm) var(--space-md);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  background: rgba(36, 52, 71, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
   font-size: var(--font-size-sm);
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.orphan-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .orphan-toggle.active {
@@ -875,12 +1095,12 @@ body {
 }
 
 .disease-stats {
-  padding: var(--space-sm);
-  border-bottom: 1px solid var(--border-subtle);
   color: var(--text-muted);
   font-size: var(--font-size-xs);
   display: flex;
   gap: var(--space-md);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .stat-item {
@@ -898,7 +1118,7 @@ body {
 }
 
 #selected-disease {
-  margin-top: var(--space-sm);
+  margin-top: 14px;
 }
 
 .disease-name {
@@ -930,14 +1150,28 @@ body {
 
 
 .active-filters-bar {
-  width: min(1200px, 96vw);
-  margin: 0 auto;
-  padding: var(--space-sm) var(--space-lg);
+  width: 100%;
+  margin: 0;
+  padding: 0;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   flex-wrap: wrap;
   min-height: 44px;
+}
+
+.filters-label {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.filter-chips {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .active-filters-bar:empty {
@@ -980,9 +1214,9 @@ body {
    Results Section
    ============================================ */
 .results-section {
-  width: min(1200px, 96vw);
-  margin: 0 auto var(--space-2xl);
-  padding: 0 var(--space-sm);
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .results-header {
@@ -1239,21 +1473,39 @@ body {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
-.page-main.detail-active > :not(#drug-detail-page) {
-  display: none !important;
-}
-
-.page-main.detail-active > #drug-detail-page {
-  display: block;
-}
-
 .drug-detail-page {
-  width: min(1180px, 100%);
-  margin: 0 auto;
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: block;
+  padding: 18px;
+  --detail-shell-top: 18px;
+  --detail-shell-max-width: 900px;
 }
 
 .drug-detail-page[hidden] {
   display: none !important;
+}
+
+.drug-detail-scrim {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: linear-gradient(180deg, rgba(10, 14, 30, 0.22), rgba(10, 14, 30, 0.62));
+  cursor: pointer;
+}
+
+.drug-detail-page-shell {
+  position: absolute;
+  top: var(--detail-shell-top);
+  right: 18px;
+  z-index: 1;
+  width: min(calc(100% - 36px), var(--detail-shell-max-width));
+  max-height: calc(100% - var(--detail-shell-top) - 18px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: auto;
 }
 
 .drug-detail-page-toolbar {
@@ -1261,7 +1513,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
+  margin-bottom: 0;
+  padding: 0 4px;
 }
 
 .drug-detail-back {
@@ -1271,7 +1524,7 @@ body {
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-medium);
-  background: var(--bg-surface);
+  background: rgba(17, 24, 39, 0.94);
   color: var(--text-primary);
   cursor: pointer;
   font-size: var(--font-size-sm);
@@ -1291,9 +1544,14 @@ body {
 }
 
 .drug-detail-surface {
+  width: 100%;
   max-width: none;
-  max-height: none;
-  overflow: visible;
+  max-height: 100%;
+  overflow-y: auto;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(26, 35, 50, 0.98), rgba(15, 23, 42, 0.98));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 26px 90px rgba(0, 0, 0, 0.42);
 }
 
 .modal-close {
@@ -1642,6 +1900,44 @@ body.mode-scientist .info-item.scientist-only {
     justify-content: space-between;
   }
 
+  .page-main {
+    padding: 14px;
+  }
+
+  .workspace-shell {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .workspace-left-sticky {
+    position: static;
+    height: auto;
+  }
+
+  .workspace-panel {
+    min-height: auto;
+  }
+
+  .workspace-panel-header {
+    flex-direction: column;
+  }
+
+  .workspace-panel-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .workspace-scroll-tools {
+    flex-direction: row;
+  }
+
+  .workspace-scroll-slider {
+    writing-mode: horizontal-tb;
+    direction: ltr;
+    width: 132px;
+    height: 10px;
+  }
+
   .atlas-stage {
     padding: 26px 22px 20px;
   }
@@ -1677,6 +1973,18 @@ body.mode-scientist .info-item.scientist-only {
     display: none;
   }
 
+  .drug-detail-page {
+    padding: 14px;
+  }
+
+  .drug-detail-page-shell {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    max-height: 100%;
+  }
+
   .modal-body {
     grid-template-columns: 1fr;
   }
@@ -1687,12 +1995,11 @@ body.mode-scientist .info-item.scientist-only {
 }
 
 @media (max-width: 800px) {
-  .atlas-hero {
-    min-height: 60vh;
-  }
-  
-  .atlas-stage {
-    min-height: 55vh;
+  .workspace-panel-top,
+  .workspace-scroll-area,
+  .workspace-panel-footer {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
   .atlas-copy h1 {
@@ -1700,7 +2007,7 @@ body.mode-scientist .info-item.scientist-only {
   }
 
   .atlas-body-wrap {
-    min-height: 520px;
+    min-height: 500px;
   }
   
   .drug-grid {
@@ -1711,6 +2018,27 @@ body.mode-scientist .info-item.scientist-only {
 @media (max-width: 600px) {
   .brand {
     font-size: var(--font-size-lg);
+  }
+
+  .workspace-panel-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workspace-scroll-tools {
+    justify-content: center;
+  }
+
+  .disease-panel-header,
+  .results-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .disease-stats,
+  .results-meta {
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .atlas-copy h1 {

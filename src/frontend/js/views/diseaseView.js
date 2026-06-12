@@ -15,7 +15,7 @@ class DiseaseView extends EventTarget {
 
     this.width = 1120;
     this.height = 760;
-    this.margin = { top: 80, right: 280, bottom: 80, left: 280 };
+    this.margin = { top: 64, right: 220, bottom: 64, left: 220 };
     this.nodeRadius = 20;
     this.duration = 400;
 
@@ -263,6 +263,7 @@ class DiseaseView extends EventTarget {
     const selectedDiseaseId = renderOptions.diseaseId || null;
     const activeCategory = renderOptions.activeCategory || 'all';
     const visibleDrugIdSet = this.normalizeVisibleDrugIds(renderOptions.visibleDrugIds);
+    const showOrphanOnly = Boolean(renderOptions.showOrphanOnly);
 
     let regionId = renderOptions.regionId || null;
     if (!regionId && selectedDiseaseId) {
@@ -275,6 +276,7 @@ class DiseaseView extends EventTarget {
       diseaseId: selectedDiseaseId,
       activeCategory,
       visibleDrugIds: visibleDrugIdSet ? Array.from(visibleDrugIdSet) : null,
+      showOrphanOnly,
     };
 
     if (!regionId) {
@@ -298,6 +300,9 @@ class DiseaseView extends EventTarget {
     const scopedDiseases = selectedDiseaseId
       ? diseases.filter((disease) => disease.id === selectedDiseaseId)
       : diseases;
+    const orphanScopedDiseases = showOrphanOnly
+      ? scopedDiseases.filter((disease) => disease.orphan_flag)
+      : scopedDiseases;
 
     if (selectedDiseaseId && scopedDiseases.length === 0) {
       console.warn(`DiseaseView: Disease not found in region '${regionId}': ${selectedDiseaseId}`);
@@ -305,7 +310,12 @@ class DiseaseView extends EventTarget {
       return;
     }
 
-    const visibleDiseases = scopedDiseases
+    if (selectedDiseaseId && showOrphanOnly && orphanScopedDiseases.length === 0) {
+      this.renderFallback('The selected disease is not part of the orphan-only workspace filter.');
+      return;
+    }
+
+    const visibleDiseases = orphanScopedDiseases
       .map((disease) => {
         const visibleDrugIds = (disease.drugs || []).filter((drugId) => this.isDrugVisible(drugId, {
           activeCategory,
@@ -408,7 +418,13 @@ class DiseaseView extends EventTarget {
       return;
     }
 
-    this.updateDimensions();
+    const containerWidth = Math.round(
+      this.graphLayer?.clientWidth || this.container?.clientWidth || this.lastMeasuredWidth || this.width || 800,
+    );
+    const sideMargin = this.clamp(Math.round(containerWidth * 0.16), 156, 224);
+    this.margin = { top: 64, right: sideMargin, bottom: 64, left: sideMargin };
+
+    this.updateDimensions(containerWidth);
 
     const allNodes = this.root.descendants();
     const maxDepth = d3.max(allNodes, (node) => node.depth) || 1;
@@ -427,7 +443,7 @@ class DiseaseView extends EventTarget {
     const innerWidth = Math.max(320, measuredWidth - this.margin.left - this.margin.right);
     const densityPenalty = Math.min(84, Math.max(0, visibleNodeCount - 5) * 6);
     const labelReserve = Math.min(
-      Math.round(innerWidth * 0.44),
+      Math.round(innerWidth * 0.38),
       Math.max(188, longestLabelLength * 7.1),
     );
     const depthSpacing = this.clamp(

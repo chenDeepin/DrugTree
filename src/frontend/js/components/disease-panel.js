@@ -1,6 +1,6 @@
 /**
  * Disease Panel Component
- * Provides input-only disease search, filtering, and orphan disease badge display.
+ * Provides disease focus status and orphan-only filtering for the right workspace panel.
  */
 
 class DiseasePanel {
@@ -30,7 +30,7 @@ class DiseasePanel {
   async loadDiseaseData() {
     const status = document.getElementById("disease-search-status");
     if (status) {
-      status.textContent = "Loading approved diseases...";
+      status.textContent = "Loading approved disease graph...";
     }
 
     if (Array.isArray(this.app.diseases) && this.app.diseases.length > 0) {
@@ -72,14 +72,6 @@ class DiseasePanel {
    * Setup event listeners for disease panel
    */
   setupEventListeners() {
-    const searchInput = document.getElementById("disease-search-input");
-    if (searchInput) {
-      searchInput.setAttribute("role", "searchbox");
-      searchInput.setAttribute("aria-label", "Disease search");
-      searchInput.addEventListener("input", (event) => this.handleSearchInput(event));
-      searchInput.addEventListener("keydown", (event) => this.handleSearchKeydown(event));
-    }
-
     const orphanToggle = document.getElementById("orphan-toggle");
     if (orphanToggle) {
       orphanToggle.addEventListener("click", () => {
@@ -87,6 +79,8 @@ class DiseasePanel {
         orphanToggle.classList.toggle("active", this.showOrphanOnly);
         this.filterDiseases();
         this.renderSearchStatus();
+        this.app.updateActiveFiltersBar();
+        this.app.applyFilters();
       });
     }
 
@@ -107,16 +101,6 @@ class DiseasePanel {
         return false;
       }
 
-      if (this.searchQuery) {
-        const searchStr = [
-          disease.canonical_name,
-          ...(disease.synonyms || []),
-        ]
-          .join(" ")
-          .toLowerCase();
-        return searchStr.includes(this.searchQuery);
-      }
-
       return true;
     });
   }
@@ -126,7 +110,7 @@ class DiseasePanel {
    */
   selectDisease(diseaseId) {
     const disease = this.diseases.find((candidate) => candidate.id === diseaseId);
-    if (!disease) {
+    if (!disease || (this.showOrphanOnly && !disease.orphan_flag)) {
       return;
     }
 
@@ -193,14 +177,6 @@ class DiseasePanel {
     this.searchQuery = "";
     this.filterDiseases();
 
-    const searchInput = document.getElementById("disease-search-input");
-    if (searchInput) {
-      searchInput.value = "";
-      if (blur && document.activeElement === searchInput) {
-        searchInput.blur();
-      }
-    }
-
     this.renderSearchStatus();
   }
 
@@ -214,42 +190,30 @@ class DiseasePanel {
   }
 
   handleSearchInput(event) {
-    this.searchQuery = event.target.value.trim().toLowerCase();
-    this.filterDiseases();
-    this.renderSearchStatus();
+    if (!event) {
+      return;
+    }
   }
 
   handleSearchKeydown(event) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      this.commitSearchSelection();
+    if (!event) {
       return;
-    }
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      this.clearSearchField();
     }
   }
 
   commitSearchSelection() {
-    const searchInput = document.getElementById("disease-search-input");
-    const rawQuery = (searchInput?.value || "").trim().toLowerCase();
-    const exactMatch = this.filteredDiseases.find(
-      (disease) => disease.canonical_name.toLowerCase() === rawQuery
-    );
-    const disease = exactMatch || this.filteredDiseases[0] || null;
-    if (disease) {
-      this.selectDisease(disease.id);
-    } else {
-      this.renderSearchStatus();
-    }
+    this.renderSearchStatus();
   }
 
   /**
    * Render the disease panel
    */
   render() {
+    const orphanToggle = document.getElementById("orphan-toggle");
+    if (orphanToggle) {
+      orphanToggle.classList.toggle("active", this.showOrphanOnly);
+    }
+
     this.renderSelectedDisease();
     this.renderSearchStatus();
     this.renderStats();
@@ -286,10 +250,6 @@ class DiseasePanel {
     }
 
     container.innerHTML = "";
-    const searchInput = document.getElementById("disease-search-input");
-    if (searchInput && !this.searchQuery) {
-      searchInput.value = "";
-    }
   }
 
   renderSearchStatus() {
@@ -298,37 +258,21 @@ class DiseasePanel {
       return;
     }
 
-    const trimmedQuery = this.searchQuery.trim();
     if (!this.diseases.length) {
-      container.textContent = "Loading approved diseases...";
+      container.textContent = "Loading approved disease graph...";
       return;
     }
 
-    if (!trimmedQuery) {
-      container.textContent = this.activeDisease
-        ? "Disease selected. Clear the badge to choose another disease."
-        : "Type a disease name and press Enter to select the best match.";
-      return;
-    }
-
-    const exactMatch = this.filteredDiseases.find(
-      (disease) => disease.canonical_name.toLowerCase() === trimmedQuery
-    );
-
-    if (this.filteredDiseases.length === 0) {
+    if (!this.activeDisease) {
       container.textContent = this.showOrphanOnly
-        ? `No orphan diseases match "${trimmedQuery}".`
-        : `No approved diseases match "${trimmedQuery}".`;
+        ? "Orphan-only mode is active. Choose an orphan disease from the graph on the right."
+        : "Choose a disease from the graph on the right, or use the atlas to focus a body region.";
       return;
     }
 
-    const leadDisease = exactMatch || this.filteredDiseases[0];
-    if (exactMatch || this.filteredDiseases.length === 1) {
-      container.textContent = `Press Enter to select ${leadDisease.canonical_name}.`;
-      return;
-    }
-
-    container.textContent = `${this.filteredDiseases.length} matches. Press Enter to select ${leadDisease.canonical_name}.`;
+    container.textContent = this.showOrphanOnly && !this.activeDisease.orphan_flag
+      ? "This disease falls outside orphan-only mode. Clear it or disable the orphan filter."
+      : "Disease selected. Clear the badge to choose another disease.";
   }
 
   /**
