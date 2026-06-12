@@ -29,7 +29,11 @@ State that survives across user interactions and is initialized during app start
 - `this.graphStore` — GraphStore instance (drug genealogy and disease hierarchy)
 - `this.selectionStore` — SelectionStore instance (selection IDs and view modes)
 - `this.diseasePanel` — DiseasePanel instance (disease search and filtering)
-- `this.drugGridRenderer` — DrugGridRenderer instance (incremental card-grid reconciliation)
+- `this.drugGridRenderer` — DrugGridRenderer instance (virtualized/windowed card-grid rendering)
+- `this.previewController` — PreviewController instance (ATC/body hover and touch previews)
+- `this.filterController` — FilterController instance (ATC/search/filter-chip orchestration)
+- `this.atlasController` — AtlasController instance (SVG region interaction and body-map state)
+- `this.detailController` — DetailController instance (anchored detail page, focus, genealogy wiring)
 - `this.diseaseView` — DiseaseView instance (body→disease→drug tree visualization)
 - `this.genealogyView` — GenealogyView instance (drug lineage tree visualization)
 
@@ -599,7 +603,7 @@ applyFilters()
 └── renderDrugList()                        ← B1: full innerHTML rebuild of drug grid
 ```
 
-**Current state**: `applyFilters({ updateBodyMap = true })` defaults to updating B2, but search input calls it with `updateBodyMap: false` after a 40 ms debounce. Category/region/disease paths still use the default when map state or disease highlights can change.
+**Current state**: `applyFilters({ updateBodyMap = true })` defaults to updating B2, but search input calls it with `updateBodyMap: false` after a 40 ms debounce. Category/region/disease paths still use the default when map state or disease highlights can change. `DrugGridRenderer` now owns the B1 virtualized card window, so large result sets no longer place every matching card in the DOM.
 
 **Remaining targeted decomposition**:
 ```
@@ -697,10 +701,10 @@ clearFilters()
 | Priority | Boundary | Rationale | Estimated Impact |
 |----------|----------|-----------|-----------------|
 | **RESOLVED** | B2 Body Map / search | Search calls `applyFilters({ updateBodyMap: false })` | Eliminates body-map recompute on text search |
-| **RESOLVED** | B1 Drug Grid | `DrugGridRenderer` does keyed incremental card reconciliation; structure rendering remains lazy | Reduces broad card recreation on filter/search changes |
+| **RESOLVED** | B1 Drug Grid | `DrugGridRenderer` does virtualized/windowed rendering; structure rendering remains lazy | Keeps live card DOM bounded on large result sets |
 | **RESOLVED** | B8 Disease View | `render()` uses a highlight-only path when signatures are unchanged | Eliminates D3 update/rebuild work for same region/disease render inputs |
 | **MEDIUM** | B4 Filter Chips | Diff-based chip add/remove; eliminate double-rebuild on chip remove | Reduces small but unnecessary innerHTML rebuilds |
-| **MEDIUM** | B6 Detail Page | Split detail controller and avoid field re-render where CSS can handle mode visibility | Reduces detail-page work on mode toggle |
+| **MEDIUM** | B6 Detail Page | Detail controller extracted; avoid field re-render where CSS can handle mode visibility | Reduces detail-page work on mode toggle |
 | **MEDIUM** | B7 Disease Panel | Keyboard navigation should update class only, not rebuild list | Eliminates list flicker during arrow-key navigation |
 | **PARTIAL** | Chain 4 | Store-backed `clearFilters()` now exits after `handleSelectionCleared()`; chip-specific diffing remains future work | Removes the main redundant clear cascade |
 | **LOW** | B3 ATC Tags | Add dirty check for unchanged `activeCategory` | Minor: skips 14 classList toggles |
@@ -712,24 +716,24 @@ clearFilters()
 
 ## 8. Proposed Module Extraction Seams
 
-Analysis of the 1,533-line `DrugTreeApp` class identifying safe seams for extracting focused controllers/renderers. This section maps existing methods to six candidate modules, each with a single primary responsibility.
+Analysis of the now 1,822-line `DrugTreeApp` class after the first-stage controller extraction. This section records the extracted seams and the remaining ownership work needed to narrow those controllers away from broad `app` references.
 
 ### 8.1 Extraction Priority Order
 
-Recommended extraction sequence from lowest risk to highest risk:
+Completed first-stage extraction sequence from lowest risk to highest risk:
 
-1. **DataLoader** (`js/data-loader.js`, partially extracted) → 2. **DrugGridRenderer** (`js/components/drug-grid-renderer.js`, extracted DOM reconciler) → 3. **PreviewController** (self-contained tooltip layer) → 4. **FilterController** (reads+writes app state) → 5. **AtlasController** (SVG+DOM heavy) → 6. **DetailController** (deepest coupling to stores + drug data)
+1. **DataLoader** (`js/data-loader.js`) → 2. **DrugGridRenderer** (`js/components/drug-grid-renderer.js`) → 3. **PreviewController** (`js/controllers/preview-controller.js`) → 4. **FilterController** (`js/controllers/filter-controller.js`) → 5. **AtlasController** (`js/controllers/atlas-controller.js`) → 6. **DetailController** (`js/controllers/detail-controller.js`)
 
 ### 8.2 Module Responsibility Matrix
 
 | Module | Primary Responsibility | Methods to Extract (app.js lines) | State Dependencies (reads/writes on `this.`) | Store Dependencies | DOM Dependencies | Risk | Seam Safety |
 |--------|----------------------|-----------------------------------|-----------------------------------------------|-------------------|-----------------|------|-------------|
-| **DataLoader** | Load drug, disease, edge, and ontology data from API/embedded/fallback sources | `js/data-loader.js` helpers plus `loadDrugData()`, `loadDiseaseData()`, `loadDiseaseDrugEdges()`, `loadBodyOntology()`, `rebuildDiseaseEdgeIndex()` in `app.js` | **Writes**: `drugs`, `filteredDrugs`, `diseases`, `diseaseDrugEdges`, `diseaseDrugIdsByDiseaseId`, `bodyOntology`, `regionMetaById`. **Reads**: embedded globals and API responses | None | `#drug-grid` (loading spinner in `loadDrugData` only) | **Low** | First extraction exists for shared helper functions. Next step is moving the async load methods behind a service that returns data objects, letting `init()` assign them. |
-| **DrugGridRenderer** | Render drug cards into the grid and manage empty-state display | Extracted in `js/components/drug-grid-renderer.js`; `app.js` still owns `createDrugCard()`, `buildEmptyState()`, and `getRenderableDrugs()` | **Reads**: `filteredDrugs`, `drugs`, `activeCategory`, `activeBodyRegion`, `activeDisease`, `searchQuery`, `selectedDrug`, `mode`, `regionMetaById`, `structureViewer`, `selectionStore`. **Writes**: none (rendering only) | Card click still delegates through app/SelectionStore | `#drug-grid`, `#drug-count`, `#results-note` | **Low** | First renderer extraction is complete. Next step is moving card factory/empty-state construction behind a narrower renderer interface or data-only view model. |
-| **PreviewController** | Manage hover-triggered tooltip popups (ATC tag previews and body region previews) with viewport clamping | `showATCTagPreview()` L689-715, `showBodyPreview()` L778-802, `handleATCTagHover()` L676-681, `handleATCTagLeave()` L683-687, `removePreview()` L1503-1508, `clampToViewport()` L1489-1495, `clearHoverTimeout()` L1482-1487, `clearTransientPreviews()` L1497-1501 | **Reads**: `drugs`, `activeCategory`, `activeBodyRegion`, `searchQuery`, `regionMetaById`, `hoverDelay`. **Writes**: `hoverTimeout` | None | Creates/removes `.atc-preview` and `.body-preview` divs appended to `document.body` | **Low** | Self-contained tooltip layer. All preview divs are transient DOM elements with a fixed lifecycle (create → show → remove). The only shared mutable state is `hoverTimeout` which could be internalized. Reads `applyDrugFilters` for counts but that's a pure function from `DrugTreeState`. |
-| **FilterController** | Manage ATC category filtering, search input, clear button, filter bar rendering, and filter application | `filterByCategory()` L804-809, `applyFilters()` L1029-1048, `updateActiveFiltersBar()` L866-940, `getRenderableDrugs()` L1050-1055, `clearFilters()` L811-832, `setupSearch()` L613-624, `setupClearButton()` L669-674, `setupATCTags()` L595-611, `updateATCTagsState()` L849-864 | **Reads**: `drugs`, `activeCategory`, `activeBodyRegion`, `activeDisease`, `searchQuery`, `diseaseDrugIdsByDiseaseId`. **Writes**: `activeCategory`, `filteredDrugs`, `searchQuery`, `hoveredRegion` | `SelectionStore` (calls `clear()` from `clearFilters`) | `#search-input`, `#clear-filters`, `.atc-tag`, `#filter-chips`, `#active-filters` | **Medium** | Reads and writes core filter state. `applyFilters()` triggers both `updateBodyMapState()` (cross-cut) and `renderDrugList()` (rendering). Extraction requires either a callback/event pattern for these downstream calls, or keeping `applyFilters` as an orchestrator in DrugTreeApp. The filter bar rendering (`updateActiveFiltersBar`) is self-contained DOM work. |
-| **AtlasController** | Manage SVG body map initialization, region click/hover/leave interaction, visual state classes, and region labels | `initBodyMap()` L526-571, `handleBodyRegionClick()` L717-743, `handleBodyRegionHover()` L745-763, `handleBodyRegionLeave()` L765-776, `updateBodyMapState()` L942-971, `clearBodyMapHighlight()` L973-986, `updateBodyRegionLabel()` L988-1013, `getRegionMeta()` L1015-1023, `clearTransientPreviews()` L1497-1501, `updateAtlasSummary()` L572-584 | **Reads**: `drugs`, `activeCategory`, `activeBodyRegion`, `activeDisease`, `hoveredRegion`, `searchQuery`, `bodyOntology`, `regionMetaById`, `regionElementsById`, `diseaseHighlightedRegions`. **Writes**: `activeBodyRegion`, `hoveredRegion`, `regionElementsById` | `SelectionStore` (calls `setSelectedRegion` from `handleBodyRegionClick`) | `#body-map`, `#body-region-label`, `#atlas-summary`, SVG `[data-region]` elements | **Medium** | Heavy DOM coupling via SVG element caching in `regionElementsById`. `handleBodyRegionClick` cascades to filters + body label + disease view, making it an orchestrator method. `updateBodyMapState()` reads `applyDrugFilters` for per-region drug counts — requires passing drug data or a count function. `initBodyMap` attaches event listeners on SVG elements that call back into `this`. Seam is safe if the controller receives a reference to the app or uses a lightweight event bus for cascade calls. |
-| **DetailController** | Show/close anchored drug detail page, render genealogy tree, manage focus, handle SMILES copy | `renderDrugDetail()`, `showDrugModal()` wrapper, `openDrugDetail()`, `closeDrugDetail()`, `closeModal()` wrapper, `copySmiles()`, `setupModal()` (legacy name), `populateDrugDetailFields()`, `updateGenealogy()`, `renderGenealogyTree()`, `_buildGenealogyTreeData()` | **Reads**: `drugs`, `selectedDrug`, `mode`, `regionMetaById`, `structureViewer`, route hash. **Writes**: detail positioning/focus state and DOM-only active state | None directly (reads `selectedDrug` which is kept in sync by SelectionStore events) | `#drug-detail-page`, `#drug-detail-scrim`, `#drug-detail-back`, `#modal-title`, `#modal-summary`, `#modal-region`, `#modal-atc-code`, `#modal-class`, `#modal-mw`, `#modal-phase`, `#modal-year`, `#modal-company`, `#modal-indication`, `#modal-targets`, `#modal-synonyms`, `#modal-inchikey`, `#modal-smiles`, `#modal-structure`, `#copy-smiles`, `.scientist-only`, `#genealogy-tree-container`, `#modal-parents`, `#modal-successors`, `#modal-generation` | **Medium-High** | Deepest DOM surface area (20+ element IDs) plus routing/focus/positioning. The legacy names hide an anchored detail-page contract, so extraction should rename the controller even if wrappers remain for compatibility. |
+| **DataLoader** | Load drug, disease, edge, and ontology data from API/embedded/fallback sources | `js/data-loader.js` helpers plus app load methods | **Writes**: `drugs`, `filteredDrugs`, `diseases`, `diseaseDrugEdges`, `diseaseDrugIdsByDiseaseId`, `bodyOntology`, `regionMetaById`. **Reads**: embedded globals and API responses | None | `#drug-grid` (loading spinner in `loadDrugData` only) | Extracted helpers complete; future work is moving async load methods behind a data service object. |
+| **DrugGridRenderer** | Render a bounded virtual card window and manage empty-state display | `js/components/drug-grid-renderer.js` | **Reads**: render arguments supplied by app/filter controller. **Writes**: DOM only | Card click still delegates through app/SelectionStore | `#drug-grid`, `#drug-count`, `#results-note` | Extracted and virtualized. Future work is moving card factory/empty-state construction behind a narrower renderer interface or data-only view model. |
+| **PreviewController** | Manage hover/touch tooltip popups with viewport clamping | `js/controllers/preview-controller.js` | **Reads**: app getters/state (`drugs`, filters, `regionMetaById`, `hoverDelay`). **Writes**: transient preview DOM and internal timeout state | None | Creates/removes `.atc-preview` and `.body-preview` divs appended to `document.body` | Extracted with app reference. Next step is replacing direct app reads with a count/meta provider. |
+| **FilterController** | Manage ATC filtering, search input, clear button, filter bar rendering, and filter application | `js/controllers/filter-controller.js` | **Reads/Writes**: app filter state and `filteredDrugs` | `SelectionStore` for clear/region/disease paths | `#search-input`, `#clear-filters`, `.atc-tag`, `#filter-chips`, `#active-filters` | Extracted with app reference. Next step is a narrower filter state interface or dedicated filter store. |
+| **AtlasController** | Manage SVG body map setup, region interaction, visual state classes, and region labels | `js/controllers/atlas-controller.js` | **Reads/Writes**: app atlas/filter fields and `regionElementsById` | `SelectionStore` for region selection | `#body-map`, `#body-region-label`, `#atlas-summary`, SVG `[data-region]` elements | Extracted with app reference. Next step is splitting pure count/meta functions from DOM state updates. |
+| **DetailController** | Show/close anchored drug detail page, render genealogy tree, manage focus, handle SMILES copy | `js/controllers/detail-controller.js` | **Reads**: selected/full drug data, mode, region meta, structure viewer. **Writes**: detail positioning/focus state and DOM-only active state | None directly | `#drug-detail-page`, `#drug-detail-scrim`, `#drug-detail-back`, `#modal-*`, `#genealogy-tree-container` | Extracted with compatibility wrappers in `app.js`. Next step is renaming legacy modal method surfaces internally. |
 
 ### 8.3 Cross-Cutting Call Graph
 
@@ -792,9 +796,9 @@ During extraction, replace `this.app` references with narrower interfaces:
 2. **Phase 2 — Replace with callbacks/events**: Replace `this.app.method()` calls with callback injection or CustomEvent emission.
 3. **Phase 3 — Remove `app` reference**: Module is fully decoupled, receives only what it needs via constructor or method arguments.
 
-### 8.6 Already-Extracted Modules (Do Not Re-extract)
+### 8.6 Pre-Existing Extracted Modules
 
-The following modules have already been extracted from DrugTreeApp and are NOT candidates for the seams above:
+The following modules predate the controller extraction and are not candidates for the seams above:
 
 | Module | File | Initialized In |
 |--------|------|---------------|
@@ -807,18 +811,17 @@ The following modules have already been extracted from DrugTreeApp and are NOT c
 
 ### 8.7 Line Coverage Summary
 
-| Module | Total Lines | Approx % of app.js |
-|--------|-----------|-------------------|
-| DataLoader | 62-line helper file plus app load methods | first helper extraction complete |
-| DrugGridRenderer | 142-line extracted renderer plus app card factory/empty-state methods | first renderer extraction complete |
-| PreviewController | ~140 lines (L676-715, L778-802, L1482-1508) | 9.1% |
-| FilterController | ~235 lines (L595-624, L669-674, L804-864, L866-940, L1029-1055) | 15.3% |
-| AtlasController | ~260 lines (L526-584, L717-776, L942-1023, L1497-1501) | 17.0% |
-| DetailController | detail render/open/close/focus/genealogy methods | largest remaining extraction |
-| **Total extractable** | **~1,325 lines** | **86.5%** |
-| Remaining in DrugTreeApp (orchestration, lifecycle, handlers) | ~208 lines | 13.5% |
+| Module | Current Lines | Status |
+|--------|--------------:|--------|
+| DataLoader | 62 | helper extraction complete |
+| DrugGridRenderer | 311 | virtual renderer extracted |
+| PreviewController | 101 | extracted |
+| FilterController | 267 | extracted |
+| AtlasController | 230 | extracted |
+| DetailController | 415 | extracted |
+| `DrugTreeApp` | 1,822 | orchestration shell plus compatibility wrappers |
 
-Successful extraction of the remaining modules would reduce DrugTreeApp from its current 2,586 lines toward a smaller orchestration shell: `constructor()`, `init()`, `initStores()`, store event handlers (`handleDrugSelected`, `handleDiseaseSelected`, `handleRegionSelected`, `handleSelectionCleared`, `handleViewChanged`), `setupEventListeners()`, `setupViewToggle()`, `setViewMode()`, `_applyViewUI()`, `switchMode()`, `showError()`, and `reset()`.
+The remaining structural work is not another bulk move; it is narrowing the extracted controller interfaces so they receive specific callbacks/data providers instead of the full `app` object. `DrugTreeApp` should keep `constructor()`, `init()`, `initStores()`, store event handlers (`handleDrugSelected`, `handleDiseaseSelected`, `handleRegionSelected`, `handleSelectionCleared`, `handleViewChanged`), routing, view/mode switches, and error/reset handling.
 
 ---
 
@@ -982,9 +985,9 @@ Priority-ordered list of changes needed to move from current broad rerenders to 
 - Store-backed clear now returns after `SelectionStore.clear()` dispatches `selection:cleared`.
 - Remaining work is chip-specific diffing and deciding whether ATC/search should be moved to a dedicated filter store.
 
-**3. Keep grid rendering signature-based (DONE for DOM reconciliation)**
-- `DrugGridRenderer` skips no-op signatures and reuses/moves existing cards.
-- Future work is virtualizing large visible sets, not broad `innerHTML` replacement.
+**3. Keep grid rendering bounded (DONE for virtualization)**
+- `DrugGridRenderer` skips no-op signatures and renders large visible sets through a virtual window.
+- Future work is tuning overscan/row-height based on measured viewports, not broad `innerHTML` replacement.
 
 **4. Route ATC category and search through a FilterStore or SelectionStore (MEDIUM)**
 - Currently `filterByCategory()` and `setupSearch()` directly mutate `this.activeCategory` and `this.searchQuery`.

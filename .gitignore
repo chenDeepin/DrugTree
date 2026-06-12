@@ -89,6 +89,7 @@ blob-report/
 # ===== Local planning docs =====
 # Keep structural project docs pushable; only scratch/local docs below are ignored.
 !docs/
+!docs/**/
 !docs/**/*.md
 PLAN.md
 PLAN_global.md

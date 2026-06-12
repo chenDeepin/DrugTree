@@ -49,6 +49,9 @@ jobs:
       - name: Run P0 regression smoke
         run: npx playwright test tests/frontend/e2e/p0-regression.spec.ts --config tests/frontend/playwright.config.ts --project=chromium
 
+      - name: Run visual snapshot smoke
+        run: npx playwright test tests/frontend/e2e/visual-snapshots.spec.ts --config tests/frontend/playwright.config.ts --project=chromium
+
       - name: Build local perf summary
         run: python3 scripts/perf/run_local_bench.py --output .sisyphus/evidence/final-performance-summary.json
 

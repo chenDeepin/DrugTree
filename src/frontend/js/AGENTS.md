@@ -1,16 +1,18 @@
 # DrugTree Frontend JS Architecture
 
 ## OVERVIEW
-Frontend JS layer for DrugTree, centered on app.js plus shared state, stores, views, and components.
+Frontend JS layer for DrugTree, centered on app.js plus shared state, stores, views, controllers, and components.
 
 ## KEY FILES
-app.js, main app runtime, boot flow, routing, filters, listeners, card rendering (2436 lines).
+app.js, main app runtime, boot flow, routing, listeners, store event handling, and compatibility wrappers (1822 lines).
 app-state.js, state helpers, body region labels, summaries, category toggles.
 structure.js, RDKit.js SMILES to 2D SVG rendering.
 stores/graphStore.js, graph load and pub/sub state updates.
 stores/selectionStore.js, current selection events and view changes.
+controllers/, preview, filter, atlas, and anchored detail page controllers.
+components/drug-grid-renderer.js, virtualized/windowed card-grid rendering.
 components/, approval chips, disease panel, mechanism card, orphan badge.
-views/, disease tree (diseaseView.js, 825 lines) and genealogy tree rendering.
+views/, disease tree and genealogy tree rendering.
 
 ## ARCHITECTURE PATTERNS
 API first, local embeds as fallback.

@@ -82,12 +82,13 @@ test("DiseasePanel clears transient search state after a disease is selected", (
 
 test("DrugTreeApp syncs disease and region state from SelectionStore events", () => {
   const appJs = readFrontendFile("js/app.js");
+  const atlasControllerJs = readFrontendFile("js/controllers/atlas-controller.js");
   const selectionStoreJs = readFrontendFile("js/stores/selectionStore.js");
 
   assert.match(appJs, /selectionStore\.addEventListener\('disease:selected',/);
   assert.match(appJs, /selectionStore\.addEventListener\('region:selected',/);
   assert.match(selectionStoreJs, /detail:\s*\{\s*regionId,\s*previousRegionId:\s*previousId,\s*regionData,\s*force\s*\}/);
   assert.match(appJs, /const forceReselect = Boolean\(detail\.force\);/);
-  assert.match(appJs, /selectionStore\.setSelectedRegion\(nextRegionId,/);
+  assert.match(atlasControllerJs, /selectionStore\.setSelectedRegion\(nextRegionId,/);
   assert.match(appJs, /selectionStore\.setSelectedDisease\(null, null\)/);
 });

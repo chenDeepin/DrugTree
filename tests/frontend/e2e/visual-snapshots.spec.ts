@@ -72,6 +72,10 @@ test.describe('Visual snapshots', () => {
     await expect(page.locator('#drug-detail-page')).toHaveAttribute('role', 'dialog');
     await saveSnapshot(page, 'desktop-detail');
 
+    await page.click('.mode-btn[data-mode="scientist"]');
+    await expect(page.locator('body')).toHaveClass(/mode-scientist/);
+    await saveSnapshot(page, 'desktop-scientist-detail');
+
     const desktopLayout = await page.evaluate(() => {
       const detail = document.querySelector('#drug-detail-page')?.getBoundingClientRect();
       const shell = document.querySelector('.drug-detail-page-shell')?.getBoundingClientRect();
@@ -85,8 +89,24 @@ test.describe('Visual snapshots', () => {
     expect(desktopLayout.shellWithinViewport).toBe(true);
     expect(desktopLayout.horizontalOverflow).toBeLessThanOrEqual(4);
 
+    await page.click('#drug-detail-back');
+    await expect(page.locator('#drug-detail-page')).toBeHidden();
+    await page.hover('.atc-tag[data-category="C"]');
+    await page.waitForSelector('.atc-preview.visible', { timeout: 2500 });
+    await saveSnapshot(page, 'desktop-atc-preview');
+
     await page.setViewportSize({ width: 390, height: 844 });
     await waitForAtlas(page);
+    await saveSnapshot(page, 'mobile-home');
+
+    await page.fill('#search-input', 'aspirin');
+    await expect(page.locator('#drug-count')).toContainText(/matching drugs/i, { timeout: 10000 });
+    await saveSnapshot(page, 'mobile-search');
+
+    await page.click('#clear-filters');
+    await focusDiseaseRegion(page);
+    await saveSnapshot(page, 'mobile-disease-view');
+
     await page.evaluate(() => {
       const app = window.app;
       const drug = app?.filteredDrugs?.[0] || app?.drugs?.[0] || null;

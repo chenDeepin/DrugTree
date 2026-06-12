@@ -4,8 +4,12 @@
 Canonical ETL layer for drug, disease, and ATC enrichment, with async external lookups, lineage builders, and checkpointed batch runs.
 
 ## STRUCTURE
-- `atc_orchestrator.py`, main ATC enrichment entrypoint.
-- `drug_etl.py`, `disease_etl.py`, core canonical loaders.
+- `atc_orchestrator.py`, thin ATC enrichment public API and CLI wrapper.
+- `atc_lookup_service.py`, `atc_enrichment_pipeline.py`, `atc_enrichment_models.py`, `atc_enrichment_reports.py`, ATC lookup/enrichment/reporting stages.
+- `drug_etl.py`, core canonical drug loader/orchestrator.
+- `drug_metadata.py`, `drug_transform_helpers.py`, drug metadata and transformation helpers.
+- `disease_etl.py`, core canonical disease loader/orchestrator.
+- `disease_etl_helpers.py`, `disease_source_loaders.py`, disease parsing and source-loading helpers.
 - `family_builder.py`, `lineage_builder.py`, `reclassify_category_v.py`, derived classification builders.
 - `atc_batch_chembl.py`, `atc_batch_kegg.py`, `atc_batch_pubchem.py`, batch source adapters.
 - `chembl_client.py`, `pubchem_client.py`, `fda_client.py`, `clinicaltrials_client.py`, async HTTP clients.
@@ -21,7 +25,7 @@ Canonical ETL layer for drug, disease, and ATC enrichment, with async external l
 ## DATA FLOW
 - `data/drugs.json` and `data/diseases.json` feed ETL transforms.
 - `data/curated/` overrides load before final classification.
-- `atc_orchestrator.py` fans out ChEMBL, KEGG, and PubChem batches with explicit resolution order: preserve → KEGG → PubChem → ChEMBL → WHO → BRITE → fallback.
+- ATC enrichment fans out ChEMBL, KEGG, and PubChem batches with explicit resolution order: preserve → KEGG → PubChem → ChEMBL → WHO → BRITE → fallback.
 - Provenance stays attached to every ATC assignment.
 - `data/checkpoints/` stores resumable progress snapshots with keys: `processed_ids`, `results`, `stats`, `timestamp`, `status`.
 

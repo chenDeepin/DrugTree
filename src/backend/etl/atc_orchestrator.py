@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Optional
 
 try:
+    from .atc_utils import is_placeholder_atc_code, is_specific_atc_code
     from .atc_lookup_service import ATCCode, ATCLookupError, ATCNotFoundError, ATCOrchestrator
     from .atc_enrichment_pipeline import (
         ATCEnrichmentPipeline,
@@ -21,6 +22,7 @@ try:
         DEFAULT_REPORTS_DIR,
     )
 except ImportError:  # pragma: no cover - direct script fallback
+    from src.backend.etl.atc_utils import is_placeholder_atc_code, is_specific_atc_code
     from src.backend.etl.atc_lookup_service import ATCCode, ATCLookupError, ATCNotFoundError, ATCOrchestrator
     from src.backend.etl.atc_enrichment_pipeline import (
         ATCEnrichmentPipeline,
@@ -129,4 +131,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

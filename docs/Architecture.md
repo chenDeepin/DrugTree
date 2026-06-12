@@ -123,17 +123,18 @@ ETL lives in `src/backend/etl/` (~37 files) and is launched via `run_etl.sh`. Gr
 
 | Stage | Output | Key modules |
 |-------|--------|-------------|
-| Drug normalization | `data/drugs.json` | `drug_etl.py` (uses `httpx` for KEGG calls) |
-| ATC enrichment | ATC codes on drugs | `atc_orchestrator.py`, `atc_utils.py`, `atc_batch_*`, `classify_remaining_drugs.py` |
+| Drug normalization | `data/drugs.json` | `drug_etl.py`, `drug_metadata.py`, `drug_transform_helpers.py` (uses `httpx` for KEGG calls) |
+| ATC enrichment | ATC codes on drugs | `atc_orchestrator.py`, `atc_lookup_service.py`, `atc_enrichment_pipeline.py`, `atc_enrichment_models.py`, `atc_enrichment_reports.py`, `atc_utils.py`, `atc_batch_*`, `classify_remaining_drugs.py` |
 | Lineage building | `data/processed/lineage_edges.json` | `lineage_builder.py` |
 | Family clustering | `data/processed/drug_families.json` | `family_builder.py` |
-| Disease ETL | `data/diseases.json` | `disease_etl.py` (981 ln), `normalize_diseases.py` |
+| Disease ETL | `data/diseases.json` | `disease_etl.py`, `disease_etl_helpers.py`, `disease_source_loaders.py`, `normalize_diseases.py` |
 | Target enrichment | targets tables / edges | `normalize_targets.py`, `fetch_opentargets.py`, `fetch_drugcentral.py` |
 | Edge generation | graph + disease-drug edges | `generate_edges.py`, `load_graph_edges.py` |
-| Validation | gate reports | `dag_validator.py` |
+| Validation | gate reports | `validation_pipeline.py`, `validation_pipeline_core.py`, `validation_models.py`, `dag_validator.py` |
 
 **Conventions & gaps:**
 - External calls should use `httpx` with try/except + graceful degradation. The five formerly sync-`requests` ATC/KEGG files were migrated to `httpx` on 2026-06-12.
+- The named B7 split targets are now under the ~600-line review threshold: `atc_orchestrator.py` is the thin public wrapper/CLI, ATC lookup and enrichment stages live in focused modules, drug and disease ETL helpers are separated from orchestration, and validation models/core are split from the service entrypoint.
 - After any data change, regenerate embeds: `python3 scripts/build_frontend_embeds.py`.
 
 ---
@@ -186,7 +187,7 @@ Ranked roughly by leverage. These are the entry points for the "optimize the bac
 | B4 | **Search/list gaps bounded** | `/drugs/search`, `/diseases/search/{q}`, `/diseases/region/{r}`, `/diseases/{id}/drugs`, `/drugs/category/{c}` | `limit`/`offset` with caps | Keep README endpoint table in sync |
 | B5 | **Disease tree pagination added** | `/tree/disease/{id}` | No silent `[:20]` truncation | `limit` default 20, cap 100 |
 | B6 | **Former sync `requests` files migrated** | see §3 | Uses `httpx` fallback behavior | Keep new ETL integrations on `httpx` |
-| B7 | **Large modules remain** | `atc_orchestrator`, `drug_etl`, `disease_etl`, `validation_pipeline`, `graph_queries`, `audit_logger`, `load_graph_edges` | Hard to test/change | `atc_utils.py` is the first split; continue by stage |
+| B7 | **Named ETL/validation split targets completed** | `atc_orchestrator`, `drug_etl`, `disease_etl`, `validation_pipeline` | Public wrappers are now small and stage helpers are explicit; focused tests cover the split | Remaining large non-plan modules (`graph_queries.py`, `audit_logger.py`, `load_graph_edges.py`) are separate future work |
 | B8 | **Duplicate `__all__`** | `services/__init__.py` | Export drift risk | Don't add exports there; `main.py` imports routers directly |
 
 **Performance note:** the in-memory model is fast for reads but assumes the dataset fits in process memory (it does today: ~5.5 MB drugs, ~100 KB diseases). Snapshot and graph caches are warmed at startup; target SQLite reads are still local file reads, but no longer run on the event loop.

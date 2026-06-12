@@ -702,6 +702,69 @@ test.describe('Next-round rendering seams (Phase 0 / Track A)', () => {
     await expect(page).toHaveURL(new RegExp(`#drug/${drugId}$`));
   });
 
+  test('large filtered result sets should virtualize while remaining scroll-reachable', async ({ page }) => {
+    const virtualState = await page.evaluate(async () => {
+      const app = window.app as any;
+      const input = document.querySelector('#search-input') as HTMLInputElement | null;
+      const scrollArea = document.querySelector('#workspace-scroll-area') as HTMLElement | null;
+      const grid = document.querySelector('#drug-grid') as HTMLElement | null;
+
+      if (!app || !input || !scrollArea || !grid) {
+        throw new Error('App, search input, scroll area, or grid unavailable');
+      }
+
+      input.value = 'a';
+      input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'a' }));
+      await new Promise((resolve) => setTimeout(resolve, 160));
+      const initialCardCount = document.querySelectorAll('.drug-card').length;
+      const totalFiltered = app.filteredDrugs.length;
+
+      scrollArea.scrollTop = scrollArea.scrollHeight;
+      scrollArea.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      return {
+        virtualized: grid.classList.contains('is-virtualized'),
+        initialCardCount,
+        afterScrollCardCount: document.querySelectorAll('.drug-card').length,
+        totalFiltered,
+        windowStart: app.drugGridRenderer.virtualStartIndex,
+        windowEnd: app.drugGridRenderer.virtualEndIndex,
+      };
+    });
+
+    expect(virtualState.virtualized).toBe(true);
+    expect(virtualState.totalFiltered).toBeGreaterThan(virtualState.initialCardCount);
+    expect(virtualState.initialCardCount).toBeLessThanOrEqual(120);
+    expect(virtualState.afterScrollCardCount).toBeLessThanOrEqual(120);
+    expect(virtualState.windowEnd).toBeGreaterThan(virtualState.windowStart);
+  });
+
+  test('interactive filters and atlas regions should expose accessible states', async ({ page }) => {
+    const firstRegion = page.locator('#body-map [data-region]').first();
+
+    await expect(page.locator('#search-input')).toHaveAttribute('aria-label', /Search drugs/i);
+    await expect(page.locator('#disease-search-status')).toHaveAttribute('aria-live', 'polite');
+    await expect(page.locator('.mode-btn[data-mode="public"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.view-btn[data-view="genealogy"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#orphan-toggle')).toHaveAttribute('aria-pressed', 'false');
+    await expect(firstRegion).toHaveAttribute('role', 'button');
+    await expect(firstRegion).toHaveAttribute('tabindex', '0');
+    await expect(firstRegion).toHaveAttribute('aria-label', /Filter by /);
+
+    await page.click('.atc-tag[data-category="C"]');
+    await expect(page.locator('.atc-tag[data-category="C"]')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.click('.mode-btn[data-mode="scientist"]');
+    await expect(page.locator('.mode-btn[data-mode="scientist"]')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.click('.view-btn[data-view="disease"]');
+    await expect(page.locator('.view-btn[data-view="disease"]')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.click('#orphan-toggle');
+    await expect(page.locator('#orphan-toggle')).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('public drug cards should not expose raw SMILES attributes', async ({ page }) => {
     await expect(page.locator('body')).toHaveClass(/mode-public/);
     await expect(page.locator('.drug-card .drug-structure').first()).not.toHaveAttribute('data-smiles', /.+/);
