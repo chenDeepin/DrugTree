@@ -755,6 +755,12 @@ class DrugTreeApp {
       }
 
       try {
+        await this.ensureGraphDataLoaded();
+      } catch (error) {
+        console.warn(`Failed to load graph lineage data for ${drugId}:`, error);
+      }
+
+      try {
         await this.loadFullDrugDataset();
       } catch (error) {
         console.warn(`Failed to load local lineage dataset for ${drugId}:`, error);

@@ -12,7 +12,7 @@ Implemented in the current working tree:
 - Phase 0 detail-page stabilization: anchored detail scroll positioning, hash route behavior, legacy `#modal-overlay` removal, and core Playwright regression coverage.
 - Phase 1 Track A: search no longer recomputes body-map state, region counts are cached, search is debounced, mode switch preserves card DOM, `DrugGridRenderer` performs windowed/virtualized rendering, duplicate clear/region cascades are narrowed, and disease view uses a highlight-only path for unchanged signatures.
 - Phase 1 Track B: admin refresh hook, startup cache warm, graph source mtime/size auto-refresh, graph-query source-version cache invalidation, target SQLite work moved to `run_in_threadpool()`, target detail compound query path, bounded list/search endpoints, and explicit disease-tree pagination.
-- Phase 2: `drugs.js` and graph bundles removed from eager script payload, generated gzip/Brotli sidecars, compression-aware static test server, detail/grid/D3 a11y basics, Public mode raw-SMILES fallback removal, approval/mechanism/orphan component loading, responsive mobile detail/topbar fixes, touch dwell previews, and five ETL files migrated from sync `requests` to `httpx`.
+- Phase 2: `drugs.js` and graph bundles removed from eager script payload, generated gzip/Brotli sidecars, compression-aware static test server, detail/grid/D3 a11y basics, Public mode raw-SMILES fallback removal, Scientist lineage provenance from graph-edge embeds, approval/mechanism/orphan component loading, responsive mobile detail/topbar fixes, touch dwell previews, and five ETL files migrated from sync `requests` to `httpx`.
 - Phase 3 extractions: `js/data-loader.js`, `js/components/drug-grid-renderer.js`, `js/controllers/{preview,filter,atlas,detail}-controller.js`, `src/backend/etl/{atc_lookup_service,atc_enrichment_pipeline,atc_enrichment_models,atc_enrichment_reports,drug_metadata,drug_transform_helpers,disease_etl_helpers,disease_source_loaders}.py`, and `src/backend/services/{validation_pipeline_core,validation_models}.py`.
 
 Committed locally on branch `optimize-ui-backend-docs-20260613`. The real default full-source `run_etl.sh` path still stops before writes because the required default input `data/processed/compound_master_table.tsv` is missing from this checkout. A separate isolated timed smoke in `/tmp` used a temporary canonical-derived compatibility table and completed the launcher sequence with `ETL_CORE_TIMEOUT_SECONDS=120`, `ETL_STEP_TIMEOUT_SECONDS=5`, `--no-kegg`, and `--limit 20`. Broader axe/manual accessibility review was not run.
@@ -73,7 +73,7 @@ The two-pane workspace + anchored detail page began as the unstable surface for 
 | C1 Shrink embed payload (U6) | Serve embeds gzip/Brotli on the static path; lazy-load graph bundles only when graph features are used | **Done:** generated sidecars, compression-aware server, Playwright compression assertion |
 | C2 Detail-page a11y (U7) | Focus trap + focus restore on `#drug-detail-page`; `aria-modal`, labelled-by; `aria-live` on drug count; keyboard close/nav | **Done for automated scope:** Playwright covers detail semantics, focusable controls, and mobile placement; axe/manual screen-reader scan not run |
 | C3 Grid + D3 a11y semantics (U7) | `role`/`aria` on `#drug-grid`, cards, atlas regions, controls, and D3 tree nodes; ensure keyboard activation | **Done for core paths:** cards, atlas regions, toggles, and D3 nodes are keyboard/ARIA-covered; broader screen-reader QA still recommended |
-| C4 Deepen Public/Scientist split (UI §8) | Hide SMILES/InChIKey/descriptors in Public; reveal available chemistry/lineage/provenance in Scientist | **Partly done:** raw SMILES hidden in Public; Scientist shows current canonical expert fields. cLogP/TPSA/HBA/HBD/provenance are not in canonical data yet |
+| C4 Deepen Public/Scientist split (UI §8) | Hide SMILES/InChIKey/descriptors in Public; reveal available chemistry/lineage/provenance in Scientist | **Done for available data:** raw SMILES hidden in Public; Scientist shows current canonical expert fields plus lineage confidence/provenance from generated graph-edge embeds. cLogP/TPSA/HBA/HBD are not in canonical data, so they are not displayed |
 | C5 ETL async migration (B6) | Migrate the 5 sync-`requests` ETL files to `httpx` with try/except + graceful degradation | **Done for code/test/smoke scope:** no sync `requests`, direct `httpx.get/post`, `time.sleep`, or `ThreadPoolExecutor` in those files; `run_etl.sh` now wraps required and optional steps with configurable timeouts; isolated timed smoke completed. Real default source-table ETL remains unproven until `data/processed/compound_master_table.tsv` is supplied |
 
 ---
@@ -103,8 +103,10 @@ The two-pane workspace + anchored detail page began as the unstable surface for 
 
 ## Verification evidence (2026-06-13)
 - `pytest tests/backend/` — 327 passed, 8 warnings.
-- `npx playwright test --config tests/frontend/playwright.config.ts --reporter=line` — final rerun 72 passed. A prior run had one transient route-to-detail perf-budget miss (`501.7 ms` median vs `500 ms` budget); isolated rerun and full rerun passed.
-- `node tests/frontend/test_file_safe_bootstrap.mjs` — 4 passed.
+- `npx playwright test --config tests/frontend/playwright.config.ts --reporter=line` — final rerun 73 passed.
+- `npx playwright test --config tests/frontend/playwright.config.ts --reporter=line tests/frontend/e2e/visual-snapshots.spec.ts` — 1 passed; regenerated `.sisyphus/evidence/visual-snapshots/*.png`, including an inspected Scientist detail snapshot showing atorvastatin lineage provenance without detail-page auto-scroll clipping.
+- `npx playwright test --config tests/frontend/playwright.config.ts --reporter=line tests/frontend/e2e/genealogy.spec.ts` — 13 passed.
+- `node tests/frontend/test_file_safe_bootstrap.mjs` — 5 passed, including generated graph-edge lineage evidence retention.
 - `node tests/frontend/e2e/disease-universe.mjs` — 19 passed.
 - `node tests/frontend/test_disease_interactions.mjs` — 9 passed.
 - `node tests/frontend/test_disease_wiring.mjs` — 8 passed.

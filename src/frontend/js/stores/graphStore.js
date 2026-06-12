@@ -271,11 +271,20 @@ class GraphStore {
   getEdges(drugId) {
     const edges = [];
     for (const [edgeId, edge] of this.edges) {
-      if (edge.source === drugId || edge.target === drugId) {
+      const sourceId = this._normalizeEntityId(edge.source || edge.source_id);
+      const targetId = this._normalizeEntityId(edge.target || edge.target_id);
+      if (sourceId === drugId || targetId === drugId) {
         edges.push(edge);
       }
     }
     return edges;
+  }
+
+  _normalizeEntityId(entityId) {
+    if (!entityId) {
+      return null;
+    }
+    return String(entityId).replace(/^[^:]+:/, '');
   }
 
   /**

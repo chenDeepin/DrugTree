@@ -40,6 +40,24 @@ async function focusDiseaseRegion(page: Page) {
   await page.waitForSelector('.node-disease', { timeout: 10000 });
 }
 
+async function openDrugDetail(page: Page, drugId: string) {
+  await page.evaluate(async (selectedDrugId) => {
+    const app = window.app;
+    if (!app?.requestDrugSelection) {
+      throw new Error('DrugTree app selection is unavailable');
+    }
+
+    await app.loadFullDrugDataset?.();
+    const drug = app.findDrugById?.(selectedDrugId);
+    if (!drug) {
+      throw new Error(`No drug found for detail snapshot: ${selectedDrugId}`);
+    }
+
+    app.requestDrugSelection(drug);
+  }, drugId);
+  await expect(page.locator('#drug-detail-page')).toBeVisible({ timeout: 10000 });
+}
+
 test.describe('Visual snapshots', () => {
   test.setTimeout(90000);
 
@@ -60,20 +78,16 @@ test.describe('Visual snapshots', () => {
     await focusDiseaseRegion(page);
     await saveSnapshot(page, 'desktop-disease-view');
 
-    await page.evaluate(() => {
-      const app = window.app;
-      const drug = app?.filteredDrugs?.[0] || app?.drugs?.[0] || null;
-      if (!app?.requestDrugSelection || !drug) {
-        throw new Error('No drug available for detail snapshot');
-      }
-      app.requestDrugSelection(drug);
-    });
-    await expect(page.locator('#drug-detail-page')).toBeVisible({ timeout: 10000 });
+    await openDrugDetail(page, 'aspirin');
     await expect(page.locator('#drug-detail-page')).toHaveAttribute('role', 'dialog');
     await saveSnapshot(page, 'desktop-detail');
 
     await page.click('.mode-btn[data-mode="scientist"]');
     await expect(page.locator('body')).toHaveClass(/mode-scientist/);
+    await openDrugDetail(page, 'atorvastatin');
+    await expect(page.locator('#modal-title')).toContainText(/atorvastatin/i);
+    await expect(page.locator('#modal-lineage-evidence')).not.toContainText('Loading', { timeout: 15000 });
+    await expect(page.locator('#modal-lineage-evidence')).toContainText(/provenance auto/);
     await saveSnapshot(page, 'desktop-scientist-detail');
 
     const desktopLayout = await page.evaluate(() => {
@@ -107,15 +121,7 @@ test.describe('Visual snapshots', () => {
     await focusDiseaseRegion(page);
     await saveSnapshot(page, 'mobile-disease-view');
 
-    await page.evaluate(() => {
-      const app = window.app;
-      const drug = app?.filteredDrugs?.[0] || app?.drugs?.[0] || null;
-      if (!app?.requestDrugSelection || !drug) {
-        throw new Error('No drug available for mobile detail snapshot');
-      }
-      app.requestDrugSelection(drug);
-    });
-    await expect(page.locator('#drug-detail-page')).toBeVisible({ timeout: 10000 });
+    await openDrugDetail(page, 'aspirin');
     await saveSnapshot(page, 'mobile-detail');
 
     const mobileLayout = await page.evaluate(() => {

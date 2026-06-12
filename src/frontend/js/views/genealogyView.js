@@ -455,6 +455,15 @@ class GenealogyView {
   /**
    * Show tooltip with confidence breakdown (Scientist mode)
    */
+  _escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   _showTooltip(event, linkData) {
     if (!this.isScientistMode) return;
 
@@ -462,24 +471,31 @@ class GenealogyView {
     this._hideTooltip();
 
     // Create tooltip content
-    const confidence = ((linkData.confidence || 0.5) * 100).toFixed(0);
+    const confidence = ((linkData.confidence ?? 0.5) * 100).toFixed(0);
     const breakdown = linkData.score_breakdown || {};
     const tags = linkData.rationale_tags || [];
+    const provenance = linkData.provenance || 'unknown';
+    const explanation = linkData.explanation || '';
+    const formattedType = this._escapeHtml(this._formatEdgeType(linkData.edge_type));
+    const safeProvenance = this._escapeHtml(provenance);
+    const safeExplanation = this._escapeHtml(explanation);
     
     let content = `
       <div class="genealogy-tooltip">
         <div class="tooltip-header">
-          <span class="tooltip-type">${this._formatEdgeType(linkData.edge_type)}</span>
+          <span class="tooltip-type">${formattedType}</span>
           <span class="tooltip-confidence">${confidence}%</span>
         </div>
         <div class="tooltip-breakdown">
+          <div>Provenance: ${safeProvenance}</div>
           <div>Chronology: ${((breakdown.chronology_score || 0.5) * 100).toFixed(0)}%</div>
           <div>Mechanism: ${((breakdown.mechanism_score || 0.5) * 100).toFixed(0)}%</div>
           <div>Scaffold: ${((breakdown.scaffold_score || 0.5) * 100).toFixed(0)}%</div>
         </div>
+        ${explanation ? `<div class="tooltip-explanation">${safeExplanation}</div>` : ''}
         ${tags.length > 0 ? `
         <div class="tooltip-tags">
-          ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
+          ${tags.map(t => `<span class="tag">${this._escapeHtml(t)}</span>`).join('')}
         </div>` : ''}
       </div>
     `;

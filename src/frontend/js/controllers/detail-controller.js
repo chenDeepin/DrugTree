@@ -76,6 +76,7 @@ class DetailController {
   setGenealogyPlaceholder(message) {
     const parentsElement = document.getElementById("modal-parents");
     const successorsElement = document.getElementById("modal-successors");
+    const evidenceElement = document.getElementById("modal-lineage-evidence");
     const container = document.getElementById("genealogy-tree-container");
 
     if (parentsElement) {
@@ -83,6 +84,9 @@ class DetailController {
     }
     if (successorsElement) {
       successorsElement.textContent = message;
+    }
+    if (evidenceElement) {
+      evidenceElement.textContent = message;
     }
     if (container) {
       container.innerHTML = `<div class="genealogy-tree-empty">${message}</div>`;
@@ -204,6 +208,31 @@ class DetailController {
     };
   }
 
+  normalizeGraphEntityId(entityId) {
+    if (!entityId) {
+      return null;
+    }
+    return String(entityId).replace(/^[^:]+:/, "");
+  }
+
+  formatLineageEvidence(drugId, lineageData) {
+    const links = (lineageData?.tree?.links || []).filter((link) => {
+      return link?.source === drugId || link?.target === drugId;
+    });
+
+    if (links.length === 0) {
+      return "No lineage evidence available";
+    }
+
+    return links.slice(0, 3).map((link) => {
+      const sourceName = this.resolveLineageNodeName(link.source, lineageData);
+      const targetName = this.resolveLineageNodeName(link.target, lineageData);
+      const confidence = Math.round((link.confidence || 0) * 100);
+      const provenance = link.provenance ? `, provenance ${link.provenance}` : "";
+      return `${sourceName} -> ${targetName}: ${confidence}% confidence${provenance}`;
+    }).join("; ");
+  }
+
   getGenealogySourceDrugs() {
     return this.app.fullDrugRecordsById.size > 0
       ? Array.from(this.app.fullDrugRecordsById.values())
@@ -214,11 +243,16 @@ class DetailController {
     const parentsElement = document.getElementById("modal-parents");
     const successorsElement = document.getElementById("modal-successors");
     const generationElement = document.getElementById("modal-generation");
+    const evidenceElement = document.getElementById("modal-lineage-evidence");
     const sourceDrugs = this.getGenealogySourceDrugs();
     const lineageLinks = this.resolveGenealogyLinks(drug.id, lineageData);
 
     if (generationElement) {
       generationElement.textContent = `Generation ${drug.generation || 1}`;
+    }
+
+    if (evidenceElement) {
+      evidenceElement.textContent = this.formatLineageEvidence(drug.id, lineageData);
     }
 
     if (parentsElement) {
@@ -307,9 +341,6 @@ class DetailController {
       const treeData = lineageData || this._buildGenealogyTreeData(drug);
       if (treeData) {
         this.app.genealogyView.render(container, treeData, isScientistMode);
-        window.requestAnimationFrame(() => {
-          container.scrollIntoView({ block: "nearest" });
-        });
       } else {
         container.innerHTML = '<div class="genealogy-tree-empty">No lineage data available</div>';
       }
@@ -324,10 +355,47 @@ class DetailController {
     }
 
     const sourceDrugs = this.getGenealogySourceDrugs();
+    const graphEdges = (this.app.graphStore?.getEdges?.(drug.id) || [])
+      .filter((edge) => edge?.edge_type === "lineage");
 
     const nodes = [];
     const links = [];
     const crossLinks = [];
+    const nodeIds = new Set();
+    const addNode = (candidate) => {
+      if (!candidate?.id || nodeIds.has(candidate.id)) {
+        return;
+      }
+
+      nodeIds.add(candidate.id);
+      nodes.push({
+        id: candidate.id,
+        name: candidate.name || candidate.id,
+        depth: candidate.generation || drug.generation || 1,
+      });
+    };
+    const addGraphLink = (edge) => {
+      const sourceId = this.normalizeGraphEntityId(edge.source || edge.source_id);
+      const targetId = this.normalizeGraphEntityId(edge.target || edge.target_id);
+      if (!sourceId || !targetId) {
+        return;
+      }
+
+      const sourceDrug = sourceDrugs.find((candidate) => candidate.id === sourceId);
+      const targetDrug = sourceDrugs.find((candidate) => candidate.id === targetId);
+      addNode(sourceDrug || { id: sourceId });
+      addNode(targetDrug || { id: targetId });
+      links.push({
+        source: sourceId,
+        target: targetId,
+        edge_type: edge.lineage_type || edge.edge_type || "lineage",
+        confidence: edge.confidence ?? 0.5,
+        score_breakdown: edge.score_breakdown || {},
+        provenance: edge.provenance || null,
+        rationale_tags: edge.rationale_tags || [],
+        explanation: edge.explanation || "",
+      });
+    };
 
     const root = {
       id: drug.id,
@@ -335,11 +403,20 @@ class DetailController {
       depth: drug.generation || 1,
       children: [],
     };
-    nodes.push({ id: drug.id, name: drug.name, depth: drug.generation || 1 });
+    addNode(drug);
+    graphEdges.forEach(addGraphLink);
 
+    const successorIdsFromGraph = new Set(
+      links
+        .filter((link) => link.source === drug.id)
+        .map((link) => link.target)
+    );
     const successorDrugs = sourceDrugs.filter(candidate =>
-      candidate.parent_drugs &&
-      (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name))
+      successorIdsFromGraph.has(candidate.id) ||
+      (
+        candidate.parent_drugs &&
+        (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name))
+      )
     );
 
     if (successorDrugs.length > 0) {
@@ -351,13 +428,21 @@ class DetailController {
       }));
 
       successorDrugs.forEach(successor => {
-        nodes.push({ id: successor.id, name: successor.name, depth: successor.generation || (drug.generation || 1) + 1 });
-        links.push({
-          source: drug.id,
-          target: successor.id,
-          edge_type: "generation_successor",
-          confidence: 0.8,
+        addNode({
+          id: successor.id,
+          name: successor.name,
+          generation: successor.generation || (drug.generation || 1) + 1,
         });
+        if (!links.some((link) => link.source === drug.id && link.target === successor.id)) {
+          links.push({
+            source: drug.id,
+            target: successor.id,
+            edge_type: "generation_successor",
+            confidence: 0.8,
+            score_breakdown: {},
+            provenance: "local",
+          });
+        }
       });
     }
 

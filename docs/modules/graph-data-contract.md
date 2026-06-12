@@ -90,6 +90,8 @@ Each edge file carries a uniform envelope plus type-specific fields.
 }
 ```
 
+`scripts/build_frontend_embeds.py` projects these lineage edges into `src/frontend/data/graph-edges.{json,js}`. That generated frontend payload intentionally keeps a bounded evidence subset for Scientist mode: `lineage_type`, `score_breakdown`, `provenance`, `rationale_tags`, and `explanation`.
+
 **`edges/disease_drug.json`** — mirrors `DrugDiseaseEdge` ([disease-model.md §4](./disease-model.md#4-drug-disease-edge-model)):
 
 ```json

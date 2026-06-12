@@ -173,6 +173,8 @@ The frontend genealogy view (`src/frontend/js/views/genealogyView.js`) renders a
 - Descendants (outgoing edges, bottom of tree)
 - Edge confidence as line opacity
 - Edge type as line style
+- Scientist-mode detail evidence text from graph edge confidence/provenance
+- Scientist-mode tooltips with provenance and edge explanation when present
 
 ---
 

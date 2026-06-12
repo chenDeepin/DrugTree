@@ -213,13 +213,23 @@ def slim_graph_edge(edge):
     if not isinstance(edge, dict):
         return None
 
-    return {
+    slim_edge = {
         "edge_id": edge.get("edge_id"),
         "edge_type": edge.get("edge_type"),
         "source_id": edge.get("source_id"),
         "target_id": edge.get("target_id"),
         "confidence": edge.get("confidence", 1.0),
     }
+
+    if edge.get("edge_type") == "lineage":
+        extra = edge.get("extra") if isinstance(edge.get("extra"), dict) else {}
+        slim_edge["lineage_type"] = extra.get("edge_type")
+        slim_edge["score_breakdown"] = extra.get("score_breakdown") or {}
+        slim_edge["provenance"] = extra.get("provenance")
+        slim_edge["rationale_tags"] = extra.get("rationale_tags") or []
+        slim_edge["explanation"] = extra.get("explanation")
+
+    return slim_edge
 
 
 def main() -> None:

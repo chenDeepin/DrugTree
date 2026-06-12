@@ -109,7 +109,7 @@ Startup is tuned around payload size (embeds total ~9 MB of JS):
 
 1. **Shell first (eager):** `drugs-shell.js` (3.3 MB) gives every drug a light record (id, name, smiles, atc, phase, generation, class, target preview, body regions, search_text) → enough to render cards and filter immediately.
 2. **Full records (lazy):** `ensureFullDrugEmbedLoaded()` injects `drugs.js` (4.2 MB) as a `<script>` only when full detail is needed or file-based tests need complete data; the API (`/api/v1/drugs`) is tried first.
-3. **Graph (lazy/deferred):** `loadGraphData()` injects `graph-meta.js`, `graph-nodes.js`, and `graph-edges.js` with `loadScriptOnce()` only when graph features initialize; those bundles are no longer eager in `index.html`.
+3. **Graph (lazy/deferred):** `loadGraphData()` injects `graph-meta.js`, `graph-nodes.js`, and `graph-edges.js` with `loadScriptOnce()` only when graph features initialize; those bundles are no longer eager in `index.html`. The edge embed keeps bounded lineage evidence fields needed by Scientist mode (`lineage_type`, `score_breakdown`, `provenance`, `rationale_tags`, `explanation`).
 4. **Structures (on-scroll):** `StructureViewer` renders SMILES→SVG only for cards entering the viewport, max 2 concurrent, LRU-cached (~400 SVGs).
 
 This shell + lazy-hydration + lazy-graph split is deliberate and should be preserved. Generated `.gz`/`.br` sidecars are written by `scripts/build_frontend_embeds.py` and served by `scripts/serve_frontend.py` in local/test static hosting.
@@ -123,6 +123,7 @@ The drug detail view is an **anchored in-panel page** (`#drug-detail-page`). The
 - `lastDetailAnchorRect` + `boundDetailOverlayPositioner` keep it positioned across scroll/resize.
 - Routing is still hash-based: `#drug/{id}` via `parseDrugDetailHash()` / `handleHashChange()`, with back-button restore via `lastNonDetailHash`.
 - `#drug-detail-page` has dialog semantics, `aria-labelledby`/`aria-describedby`, focus trapping, and focus restoration.
+- Genealogy rendering does not auto-scroll the page; the detail header, structure, summary, and lineage evidence stay stable when Scientist-only data finishes hydrating.
 
 New work should target `#drug-detail-page`; do not reintroduce `#modal-overlay`.
 
@@ -132,9 +133,9 @@ New work should target `#drug-detail-page`; do not reintroduce `#modal-overlay`.
 
 A single dataset, gated by `getModePresentation(mode)` and `body.mode-public`/`mode-scientist` classes (`.scientist-only` is CSS-driven). Per `product/project-plan.md`:
 - **Public:** name, synonyms, indication, ATC label, body location, brief summary, approval year, small structure thumbnail.
-- **Scientist:** the above plus SMILES/InChIKey, available descriptors (currently MW in canonical data), targets, mechanism where curated, lineage/genealogy, and provenance when the canonical data adds it.
+- **Scientist:** the above plus SMILES/InChIKey, available descriptors (currently MW in canonical data), targets, mechanism where curated, lineage/genealogy, and provenance from graph lineage evidence when present.
 
-The current pass removes raw SMILES from public card attributes/fallbacks, keeps expert snippets behind `.scientist-only`, loads the approval/mechanism/orphan component scripts, and renders approval chips on drug cards. Deeper descriptor/provenance disclosure depends on adding those fields to canonical data first.
+The current pass removes raw SMILES from public card attributes/fallbacks, keeps expert snippets behind `.scientist-only`, loads the approval/mechanism/orphan component scripts, renders approval chips on drug cards, and surfaces lineage confidence/provenance from the lazy graph-edge embed. Deeper chemistry descriptor disclosure still depends on adding those descriptor fields to canonical data first.
 
 ---
 

@@ -157,7 +157,7 @@ ETL (writes) ──► data/*.json (canonical)
 - Runtime must not depend on `drugs-full.json` or `drugs-expanded.json` (legacy).
 - Valid ATC codes are stable; only placeholder `*99XX99` codes are enrichment targets.
 
-Current embed payloads (2026-06-13): `drugs-shell.js` 3.3 MB eager (497.7 KB gzip, 332.3 KB Brotli), `drugs.js` 4.2 MB lazy-loaded on full-detail hydration/file launches (722.4 KB gzip, 480.9 KB Brotli), `graph-nodes.js` 1.1 MB lazy-loaded for graph features (136.0 KB gzip, 108.0 KB Brotli), `diseases.js` 85 KB, others small. Removing eager `drugs.js` cuts ~4.2 MB from the first HTML script payload. `scripts/build_frontend_embeds.py` writes `.gz` and, when `brotli` is installed, `.br` sidecars; `scripts/serve_frontend.py` serves those sidecars for local/test static hosting.
+Current embed payloads (2026-06-13): `drugs-shell.js` 3.3 MB eager (497.7 KB gzip, 332.3 KB Brotli), `drugs.js` 4.2 MB lazy-loaded on full-detail hydration/file launches (722.4 KB gzip, 480.9 KB Brotli), `graph-nodes.js` 1.1 MB lazy-loaded for graph features (136.0 KB gzip, 108.0 KB Brotli), `graph-edges.js` 48 KB lazy-loaded for graph features (4.4 KB gzip, 3.7 KB Brotli), `diseases.js` 85 KB, others small. Removing eager `drugs.js` cuts ~4.2 MB from the first HTML script payload. `scripts/build_frontend_embeds.py` writes `.gz` and, when `brotli` is installed, `.br` sidecars; `scripts/serve_frontend.py` serves those sidecars for local/test static hosting. The graph edge embed preserves bounded lineage evidence fields (`lineage_type`, `score_breakdown`, `provenance`, `rationale_tags`, `explanation`) for Scientist-mode genealogy.
 
 ---
 

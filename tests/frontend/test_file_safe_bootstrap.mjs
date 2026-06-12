@@ -93,6 +93,15 @@ test("bootstrap assets expose static frontend globals for file launches", () => 
   assert.doesNotMatch(appJs, /^\s*import\s/m);
 });
 
+test("generated graph edge embeds preserve scientist lineage evidence", () => {
+  const graphEdgesPath = path.join(FRONTEND_ROOT, "data/graph-edges.js");
+  const graphEdgesText = readFileSync(graphEdgesPath, "utf8");
+
+  assert.match(graphEdgesText, /"provenance"\s*:\s*"auto"/);
+  assert.match(graphEdgesText, /"score_breakdown"\s*:\s*\{/);
+  assert.match(graphEdgesText, /"explanation"\s*:/);
+});
+
 test("file launches can hydrate full drug details from the embedded dataset", { timeout: 30000 }, async () => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1600 } });

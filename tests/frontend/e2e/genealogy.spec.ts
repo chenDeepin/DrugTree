@@ -167,6 +167,18 @@ test.describe('Genealogy View', () => {
     }
   });
 
+  test('should show scientist lineage provenance for local graph evidence', async ({ page }) => {
+    await page.click('.mode-btn[data-mode="scientist"]');
+    await page.fill('#search-input', 'atorvastatin');
+    await expect(page.locator('.drug-card[data-drug-id="atorvastatin"]')).toBeVisible();
+
+    await page.locator('.drug-card[data-drug-id="atorvastatin"]').click();
+    await expect(page.locator('#drug-detail-page')).toBeVisible();
+    await expect(page.locator('#modal-lineage-evidence')).not.toContainText('Loading', { timeout: 15000 });
+    await expect(page.locator('#modal-lineage-evidence')).toContainText(/confidence/);
+    await expect(page.locator('#modal-lineage-evidence')).toContainText(/provenance auto/);
+  });
+
   test('should route genealogy tree node clicks through the route-aware detail page', async ({ page }) => {
     await page.click('.mode-btn[data-mode="scientist"]');
     await page.waitForTimeout(300);
