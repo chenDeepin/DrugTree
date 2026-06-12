@@ -31,7 +31,7 @@ Committed locally on branch `optimize-ui-backend-docs-20260613`; no push has bee
 
 ## Phase 0 — Stabilize the refactor (do first, blocks the rest)
 
-The two-pane workspace + anchored detail page is uncommitted and half-finished. Optimizing on an unstable surface wastes effort.
+The two-pane workspace + anchored detail page began as the unstable surface for this round; it is now stabilized and committed locally on the working branch.
 
 | Task | Detail | Acceptance |
 |------|--------|-----------|
