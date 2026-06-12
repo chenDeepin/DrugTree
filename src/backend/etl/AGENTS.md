@@ -36,13 +36,15 @@ Canonical ETL layer for drug, disease, and ATC enrichment, with async external l
 - Wrap every external call in `try/except`, fail soft, keep partial output.
 - Preserve source tags on writes, ChEMBL, KEGG, or PubChem.
 - The former sync-`requests` ATC/KEGG files (`atc_orchestrator.py`, `drug_etl.py`, `fetch_atc_from_chembl.py`, `fetch_atc_from_kegg.py`, `atc_kegg_api_lookup.py`) have been migrated to `httpx`; do not reintroduce `requests`.
+- `run_etl.sh` defaults to `data/processed/compound_master_table.tsv`; set `COMPOUND_MASTER_TABLE` for alternate source tables.
+- `run_etl.sh` uses `ETL_CORE_TIMEOUT_SECONDS` for required steps and `ETL_STEP_TIMEOUT_SECONDS` for optional fetch/normalize/artifact/load steps.
 
 ## CONVENTIONS
 - Treat canonical data as `data/`, not `src/frontend/data/`.
 - Keep ETL steps deterministic and checkpoint friendly.
 - Follow DAG order before derived builders run.
 - Update provenance and override paths together.
-- Use `run_etl.sh` strict mode expectations when adding launcher steps.
+- Use `run_etl.sh` strict mode and timeout expectations when adding launcher steps.
 
 ## ANTI-PATTERNS
 - Do not edit generated frontend mirrors.

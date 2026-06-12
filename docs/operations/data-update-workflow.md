@@ -240,6 +240,16 @@ bash src/backend/run_etl.sh
 
 Use `run_etl.sh` for the real repo update path. It owns the current fetch/normalize/generate/build/load order.
 
+The launcher requires a ClinicalMol-compatible compound table. By default it reads `data/processed/compound_master_table.tsv`; set `COMPOUND_MASTER_TABLE=/path/to/compound_master_table.tsv` when using a different source file.
+
+The launcher has two timeout knobs:
+
+```bash
+ETL_CORE_TIMEOUT_SECONDS=1800 ETL_STEP_TIMEOUT_SECONDS=300 bash src/backend/run_etl.sh
+```
+
+`ETL_CORE_TIMEOUT_SECONDS` wraps required steps (`drug_etl.py`, `disease_etl.py`) and fails the run if they error or time out. `ETL_STEP_TIMEOUT_SECONDS` wraps optional fetch, normalize, artifact, and SQLite load steps; optional failures are reported as warnings so the rest of the pipeline can continue.
+
 ### Automated Weekly Sync
 
 ```

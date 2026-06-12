@@ -134,6 +134,7 @@ ETL lives in `src/backend/etl/` (~37 files) and is launched via `run_etl.sh`. Gr
 
 **Conventions & gaps:**
 - External calls should use `httpx` with try/except + graceful degradation. The five formerly sync-`requests` ATC/KEGG files were migrated to `httpx` on 2026-06-12.
+- `run_etl.sh` expects `data/processed/compound_master_table.tsv` by default, or `COMPOUND_MASTER_TABLE=/path/to/table.tsv`. Required ETL steps use `ETL_CORE_TIMEOUT_SECONDS` and fail closed on errors/timeouts; optional source/artifact/load steps use `ETL_STEP_TIMEOUT_SECONDS` and degrade with warnings.
 - The named B7 split targets are now under the ~600-line review threshold: `atc_orchestrator.py` is the thin public wrapper/CLI, ATC lookup and enrichment stages live in focused modules, drug and disease ETL helpers are separated from orchestration, and validation models/core are split from the service entrypoint.
 - After any data change, regenerate embeds: `python3 scripts/build_frontend_embeds.py`.
 

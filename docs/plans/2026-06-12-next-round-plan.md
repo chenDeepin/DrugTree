@@ -1,6 +1,6 @@
 # DrugTree — Next Round Plan (UI + Backend Optimization)
 
-**Date:** 2026-06-12 · **Updated:** 2026-06-13 · **Branch:** `main` · **Base commit:** `34933f0`
+**Date:** 2026-06-12 · **Updated:** 2026-06-13 · **Branch:** `optimize-ui-backend-docs-20260613` · **Base commit:** `34933f0`
 **Goal of this round:** Land the in-progress two-pane refactor cleanly, then take the highest-leverage UI and backend optimizations in parallel without breaking the JSON-first / embed-fallback / no-build-step invariants.
 **Inputs:** [2026-06-12-review-qa.md](./2026-06-12-review-qa.md) (findings), [../Architecture.md](../Architecture.md), [../UI-Architecture.md](../UI-Architecture.md).
 
@@ -15,7 +15,7 @@ Implemented in the current working tree:
 - Phase 2: `drugs.js` and graph bundles removed from eager script payload, generated gzip/Brotli sidecars, compression-aware static test server, detail/grid/D3 a11y basics, Public mode raw-SMILES fallback removal, approval/mechanism/orphan component loading, responsive mobile detail/topbar fixes, touch dwell previews, and five ETL files migrated from sync `requests` to `httpx`.
 - Phase 3 extractions: `js/data-loader.js`, `js/components/drug-grid-renderer.js`, `js/controllers/{preview,filter,atlas,detail}-controller.js`, `src/backend/etl/{atc_lookup_service,atc_enrichment_pipeline,atc_enrichment_models,atc_enrichment_reports,drug_metadata,drug_transform_helpers,disease_etl_helpers,disease_source_loaders}.py`, and `src/backend/services/{validation_pipeline_core,validation_models}.py`.
 
-Committed locally on branch `optimize-ui-backend-docs-20260613`; no push has been made. A full `run_etl.sh` execution was attempted with a timer and stopped before writes because the required default input `data/processed/compound_master_table.tsv` is missing; broader axe/manual accessibility review was not run.
+Committed locally on branch `optimize-ui-backend-docs-20260613`. The real default full-source `run_etl.sh` path still stops before writes because the required default input `data/processed/compound_master_table.tsv` is missing from this checkout. A separate isolated timed smoke in `/tmp` used a temporary canonical-derived compatibility table and completed the launcher sequence with `ETL_CORE_TIMEOUT_SECONDS=120`, `ETL_STEP_TIMEOUT_SECONDS=5`, `--no-kegg`, and `--limit 20`. Broader axe/manual accessibility review was not run.
 
 ---
 
@@ -74,7 +74,7 @@ The two-pane workspace + anchored detail page began as the unstable surface for 
 | C2 Detail-page a11y (U7) | Focus trap + focus restore on `#drug-detail-page`; `aria-modal`, labelled-by; `aria-live` on drug count; keyboard close/nav | **Done for automated scope:** Playwright covers detail semantics, focusable controls, and mobile placement; axe/manual screen-reader scan not run |
 | C3 Grid + D3 a11y semantics (U7) | `role`/`aria` on `#drug-grid`, cards, atlas regions, controls, and D3 tree nodes; ensure keyboard activation | **Done for core paths:** cards, atlas regions, toggles, and D3 nodes are keyboard/ARIA-covered; broader screen-reader QA still recommended |
 | C4 Deepen Public/Scientist split (UI §8) | Hide SMILES/InChIKey/descriptors in Public; reveal available chemistry/lineage/provenance in Scientist | **Partly done:** raw SMILES hidden in Public; Scientist shows current canonical expert fields. cLogP/TPSA/HBA/HBD/provenance are not in canonical data yet |
-| C5 ETL async migration (B6) | Migrate the 5 sync-`requests` ETL files to `httpx` with try/except + graceful degradation | **Done for code/test scope:** no sync `requests`, direct `httpx.get/post`, `time.sleep`, or `ThreadPoolExecutor` in those files; full ETL launcher is blocked by missing `data/processed/compound_master_table.tsv` |
+| C5 ETL async migration (B6) | Migrate the 5 sync-`requests` ETL files to `httpx` with try/except + graceful degradation | **Done for code/test/smoke scope:** no sync `requests`, direct `httpx.get/post`, `time.sleep`, or `ThreadPoolExecutor` in those files; `run_etl.sh` now wraps required and optional steps with configurable timeouts; isolated timed smoke completed. Real default source-table ETL remains unproven until `data/processed/compound_master_table.tsv` is supplied |
 
 ---
 
@@ -102,16 +102,20 @@ The two-pane workspace + anchored detail page began as the unstable surface for 
 - For data-shape changes: embeds regenerated and the backend graph singleton refreshed/restarted.
 
 ## Verification evidence (2026-06-13)
-- `pytest tests/backend/` — 325 passed, 8 warnings.
-- `npx playwright test --config tests/frontend/playwright.config.ts --reporter=line` — 72 passed.
+- `pytest tests/backend/` — 327 passed, 8 warnings.
+- `npx playwright test --config tests/frontend/playwright.config.ts --reporter=line` — final rerun 72 passed. A prior run had one transient route-to-detail perf-budget miss (`501.7 ms` median vs `500 ms` budget); isolated rerun and full rerun passed.
 - `node tests/frontend/test_file_safe_bootstrap.mjs` — 4 passed.
 - `node tests/frontend/e2e/disease-universe.mjs` — 19 passed.
 - `node tests/frontend/test_disease_interactions.mjs` — 9 passed.
 - `node tests/frontend/test_disease_wiring.mjs` — 8 passed.
+- Latest frontend perf evidence: cold boot median `1131.6 ms` / budget `1800 ms`; filter interaction median `112.6 ms` / budget `120 ms`; route-to-detail median `485.7 ms` / budget `500 ms`.
 - Focused backend ETL/router suites passed before the full backend run.
-- `timeout 60s bash src/backend/run_etl.sh` — failed before writes: missing `data/processed/compound_master_table.tsv`.
+- `bash -n src/backend/run_etl.sh` — passed.
+- `pytest tests/backend/test_drug_etl.py tests/backend/test_etl_httpx_migration.py tests/backend/test_database_update_contract.py` — 19 passed.
+- `timeout 60s bash src/backend/run_etl.sh` in the real checkout — failed before writes: missing `data/processed/compound_master_table.tsv`.
+- `ETL_CORE_TIMEOUT_SECONDS=120 ETL_STEP_TIMEOUT_SECONDS=5 timeout 240s bash src/backend/run_etl.sh --no-kegg --limit 20` in an isolated `/tmp` copy with a temporary canonical-derived `COMPOUND_MASTER_TABLE` — completed: `Transformed 20 drugs, skipped 0`, optional source fetches degraded with warnings/timeouts, graph/frontend artifacts rebuilt, and SQLite loading finished.
 - `git check-ignore` returned no ignore match for `docs/Architecture.md`, `docs/UI-Architecture.md`, `docs/modules/README.md`, or the current plan/Q&A files.
-- Local commit created: `11848fc refactor: optimize drugtree ui and backend modules` on `optimize-ui-backend-docs-20260613`.
+- Implementation commits before this documentation alignment include `11848fc refactor: optimize drugtree ui and backend modules`, `838bb76 docs: record optimization verification status`, `4764bc3 docs: clear stale plan wording`, and `ce1e1eb fix: drug ETL transform helpers and test contract updates` on `optimize-ui-backend-docs-20260613`.
 
 ## Open questions for the maintainer
 1. **Hosting target for compression (C1):** local/test static hosting now serves sidecars. For GitHub Pages/CDN, confirm whether precompressed `.br`/`.gz` sidecars are honored or need deployment config.

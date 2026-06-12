@@ -161,6 +161,9 @@ def test_workflow_docs_name_run_etl_as_canonical_execution_path() -> None:
 
     assert "run_etl.sh" in workflow_doc
     assert "canonical execution path" in workflow_doc.lower()
+    assert "ETL_CORE_TIMEOUT_SECONDS" in workflow_doc
+    assert "ETL_STEP_TIMEOUT_SECONDS" in workflow_doc
+    assert "COMPOUND_MASTER_TABLE" in workflow_doc
     assert "optional/planned service infrastructure" in workflow_doc.lower()
     assert "/api/v1/admin/trigger-sync" in workflow_doc
     assert "/api/v1/admin/health/data-quality" in workflow_doc
