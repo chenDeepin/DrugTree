@@ -14,6 +14,11 @@ from src.backend.models.drug_family import DrugFamily
 from src.backend.models.lineage import LineageEdge, EdgeType, Provenance
 
 
+def _touch(path: Path) -> None:
+    stat = path.stat()
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000))
+
+
 @pytest.fixture
 def temp_data_files():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -270,6 +275,36 @@ class TestGraphIndex:
 
         assert initial_stats == refreshed_stats
 
+    def test_file_change_auto_refreshes_fallback_sources(self, temp_data_files):
+        index = GraphIndex(
+            families_path=temp_data_files["families_path"],
+            edges_path=temp_data_files["edges_path"],
+            drugs_path=temp_data_files["drugs_path"],
+        )
+
+        assert index.get_family("statins") is not None
+
+        with open(temp_data_files["families_path"], "w") as f:
+            json.dump(
+                {
+                    "families": [
+                        {
+                            "family_id": "kinase_inhibitors",
+                            "label": "Kinase Inhibitors",
+                            "family_basis": "mechanism",
+                            "prototype_drug_id": "imatinib",
+                            "member_drug_ids": ["imatinib"],
+                            "generation_range": [1, 1],
+                        }
+                    ]
+                },
+                f,
+            )
+        _touch(temp_data_files["families_path"])
+
+        assert index.get_family("statins") is None
+        assert index.get_family("kinase_inhibitors") is not None
+
     def test_lazy_loading(self, temp_data_files):
         index = GraphIndex(
             families_path=temp_data_files["families_path"],
@@ -368,6 +403,63 @@ class TestGraphIndex:
 
         assert index.get_node("artifact-drug") is not None
         assert index.get_family("artifact-family") is not None
+
+    def test_file_change_auto_refreshes_graph_artifacts(self, temp_data_files):
+        index = GraphIndex(
+            families_path=temp_data_files["families_path"],
+            edges_path=temp_data_files["edges_path"],
+            drugs_path=temp_data_files["drugs_path"],
+        )
+
+        graph_root = temp_data_files["families_path"].parent / "graph"
+        (graph_root / "nodes").mkdir(parents=True)
+        (graph_root / "edges").mkdir(parents=True)
+
+        with open(graph_root / "graph-meta.json", "w") as f:
+            json.dump({"schema_version": "2.0.0"}, f)
+        with open(graph_root / "nodes" / "drugs.json", "w") as f:
+            json.dump(
+                {
+                    "nodes": [
+                        {
+                            "node_id": "drug:first-artifact",
+                            "node_type": "drug",
+                            "label": "First Artifact",
+                            "extra": {"id": "first-artifact"},
+                        }
+                    ]
+                },
+                f,
+            )
+        with open(graph_root / "nodes" / "clusters.json", "w") as f:
+            json.dump({"nodes": []}, f)
+        with open(graph_root / "edges" / "lineage.json", "w") as f:
+            json.dump({"edges": []}, f)
+
+        index.graph_dir = graph_root
+        index.graph_meta_path = graph_root / "graph-meta.json"
+        index.use_graph_artifacts = True
+
+        assert index.get_node("first-artifact") is not None
+
+        with open(graph_root / "nodes" / "drugs.json", "w") as f:
+            json.dump(
+                {
+                    "nodes": [
+                        {
+                            "node_id": "drug:second-artifact",
+                            "node_type": "drug",
+                            "label": "Second Artifact",
+                            "extra": {"id": "second-artifact"},
+                        }
+                    ]
+                },
+                f,
+            )
+        _touch(graph_root / "nodes" / "drugs.json")
+
+        assert index.get_node("first-artifact") is None
+        assert index.get_node("second-artifact") is not None
 
 
 class TestDrugNode:

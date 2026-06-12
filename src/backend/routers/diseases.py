@@ -5,7 +5,7 @@ REST API endpoints for disease universe data.
 """
 
 import json
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -141,7 +141,11 @@ async def get_disease_stats():
 
 
 @router.get("/diseases/search/{query}", response_model=DiseaseListResponse)
-async def search_diseases(query: str):
+async def search_diseases(
+    query: str,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
+):
     diseases = load_diseases()
     query_lower = query.lower()
     filtered = [
@@ -151,7 +155,9 @@ async def search_diseases(query: str):
         or any(query_lower in str(s).lower() for s in d.synonyms)
         or (d.mechanism_summary and query_lower in d.mechanism_summary.lower())
     ]
-    return DiseaseListResponse(total=len(filtered), diseases=filtered)
+    return DiseaseListResponse(
+        total=len(filtered), diseases=filtered[offset : offset + limit]
+    )
 
 
 @router.get("/diseases/edges", response_model=DrugDiseaseEdgeListResponse)
@@ -183,14 +189,24 @@ async def get_disease(disease_id: str):
 
 
 @router.get("/diseases/region/{region}", response_model=DiseaseListResponse)
-async def get_diseases_by_region(region: str):
+async def get_diseases_by_region(
+    region: str,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
+):
     diseases = load_diseases()
     filtered = [d for d in diseases if d.body_region == region]
-    return DiseaseListResponse(total=len(filtered), diseases=filtered)
+    return DiseaseListResponse(
+        total=len(filtered), diseases=filtered[offset : offset + limit]
+    )
 
 
 @router.get("/diseases/{disease_id}/drugs", response_model=DrugListResponse)
-async def get_drugs_for_disease(disease_id: str):
+async def get_drugs_for_disease(
+    disease_id: str,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
+):
     diseases = load_diseases()
     disease = None
     for d in diseases:
@@ -213,11 +229,17 @@ async def get_drugs_for_disease(disease_id: str):
         if drug_id in drugs_by_id
     ]
 
-    return DrugListResponse(total=len(matching_drugs), drugs=matching_drugs)
+    return DrugListResponse(
+        total=len(matching_drugs), drugs=matching_drugs[offset : offset + limit]
+    )
 
 
 @router.get("/targets/{target_id}/drugs", response_model=DrugListResponse)
-async def get_drugs_for_target(target_id: str):
+async def get_drugs_for_target(
+    target_id: str,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
+):
     drugs = load_drugs()
     target_lower = target_id.lower()
 
@@ -229,7 +251,10 @@ async def get_drugs_for_target(target_id: str):
                 matching_drugs.append(Drug(**drug))
                 break
 
-    return DrugListResponse(total=len(matching_drugs), drugs=matching_drugs)
+    return DrugListResponse(
+        total=len(matching_drugs),
+        drugs=matching_drugs[offset : offset + limit],
+    )
 
 
 @router.get("/approvals", response_model=RegionalApprovalListResponse)

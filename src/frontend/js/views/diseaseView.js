@@ -23,6 +23,7 @@ class DiseaseView extends EventTarget {
     this.currentRegionId = null;
     this.currentDiseaseId = null;
     this.lastRenderOptions = null;
+    this.lastRenderSignature = null;
     this.lastMeasuredWidth = 1120;
     this.lastMeasuredHeight = 760;
     this.resizeObserver = null;
@@ -78,7 +79,9 @@ class DiseaseView extends EventTarget {
       .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
-      .attr('class', 'disease-view-svg');
+      .attr('class', 'disease-view-svg')
+      .attr('role', 'tree')
+      .attr('aria-label', 'Disease hierarchy graph');
 
     this.g = this.svg.append('g')
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
@@ -165,7 +168,7 @@ class DiseaseView extends EventTarget {
       }
 
       const widthDelta = Math.abs(width - this.lastMeasuredWidth);
-      if (widthDelta < 24) {
+      if (widthDelta < 8) {
         return;
       }
 
@@ -278,16 +281,29 @@ class DiseaseView extends EventTarget {
       visibleDrugIds: visibleDrugIdSet ? Array.from(visibleDrugIdSet) : null,
       showOrphanOnly,
     };
+    const renderSignature = JSON.stringify({
+      regionId,
+      diseaseId: selectedDiseaseId,
+      activeCategory,
+      visibleDrugIds: visibleDrugIdSet ? Array.from(visibleDrugIdSet).sort() : null,
+      showOrphanOnly,
+    });
 
     if (!regionId) {
       this.currentRegionId = null;
       this.currentDiseaseId = null;
+      this.lastRenderSignature = null;
       this.renderFallback('Select a disease or a body region to view the disease hierarchy.');
       return;
     }
 
     this.currentRegionId = regionId;
     this.currentDiseaseId = selectedDiseaseId;
+
+    if (this.root && this.lastRenderSignature === renderSignature) {
+      this.updateNodeHighlightState();
+      return;
+    }
 
     const region = this.graphStore.getBodyRegion(regionId);
     if (!region) {
@@ -368,6 +384,7 @@ class DiseaseView extends EventTarget {
     };
 
     this.root = d3.hierarchy(hierarchyData);
+    this.lastRenderSignature = renderSignature;
     this.root.x0 = (this.lastMeasuredHeight || this.height) / 2;
     this.root.y0 = 0;
 
@@ -391,6 +408,31 @@ class DiseaseView extends EventTarget {
 
     this.refreshLayoutMetrics();
     this.update(this.root);
+  }
+
+  updateNodeHighlightState() {
+    if (!this.g) {
+      return;
+    }
+
+    const activeRegionId = this.currentRegionId || null;
+    const activeDiseaseId = this.currentDiseaseId || null;
+
+    this.g.selectAll('g.node')
+      .classed('is-current-region', (node) => node?.data?.type === 'region' && node.data.id === activeRegionId)
+      .classed('is-current-disease', (node) => node?.data?.type === 'disease' && node.data.id === activeDiseaseId)
+      .classed('is-current-path', (node) => {
+        if (!activeDiseaseId || typeof node?.ancestors !== 'function') {
+          return false;
+        }
+        return node.ancestors().some((ancestor) => ancestor?.data?.id === activeDiseaseId);
+      })
+      .attr('aria-current', (node) => (
+        (node?.data?.type === 'region' && node.data.id === activeRegionId)
+          || (node?.data?.type === 'disease' && node.data.id === activeDiseaseId)
+          ? 'true'
+          : null
+      ));
   }
 
   isDrugVisible(drugId, { activeCategory = 'all', visibleDrugIdSet = null } = {}) {
@@ -446,9 +488,10 @@ class DiseaseView extends EventTarget {
       Math.round(innerWidth * 0.38),
       Math.max(188, longestLabelLength * 7.1),
     );
+    const minDepthSpacing = window.innerWidth < 900 ? 128 : 160;
     const depthSpacing = this.clamp(
       Math.round((innerWidth - densityPenalty - labelReserve) / Math.max(maxDepth, 1)),
-      220,
+      minDepthSpacing,
       400,
     );
     const layoutWidth = Math.max(1, depthSpacing * maxDepth);
@@ -511,17 +554,34 @@ class DiseaseView extends EventTarget {
     const leftAnchored = this.isLeftAnchoredNode(node);
     const dimensionsByType = {
       region: { width: node?.depth === 0 ? 420 : 360, height: node?.depth === 0 ? 80 : 68 },
-      disease: { width: 280, height: 56 },
+      disease: { width: 220, height: 56 },
       drug: { width: 248, height: 50 },
     };
     const { width, height } = dimensionsByType[type] || dimensionsByType.drug;
+    const depthSpacing = this.layoutMetrics?.depthSpacing || 220;
+    const leftOffset = Math.min(width - this.nodeRadius - 10, Math.max(120, depthSpacing - 42));
 
     return {
-      x: leftAnchored ? -(width - this.nodeRadius - 10) : -(this.nodeRadius + 14),
+      x: leftAnchored ? -leftOffset : -(this.nodeRadius + 14),
       y: -(height / 2),
       width,
       height,
     };
+  }
+
+  getNodeAriaLabel(node) {
+    const name = node?.data?.name || node?.data?.id || 'Node';
+    const type = node?.data?.type || 'node';
+    if (type === 'disease' && (node.children || node._children)) {
+      return `${name}, disease branch, ${node.children ? 'expanded' : 'collapsed'}`;
+    }
+    if (type === 'drug') {
+      return `${name}, drug. Press Enter to open details.`;
+    }
+    if (type === 'region') {
+      return `${name}, body region. Press Enter to focus this region.`;
+    }
+    return `${name}, ${type}`;
   }
 
   update(source, { immediate = false } = {}) {
@@ -552,8 +612,12 @@ class DiseaseView extends EventTarget {
       .attr('class', (d) => `node node-${d.data.type}`)
       .attr('data-node-id', (d) => d.data.id)
       .attr('data-node-type', (d) => d.data.type)
+      .attr('role', 'treeitem')
+      .attr('tabindex', 0)
+      .attr('focusable', 'true')
       .attr('transform', () => `translate(${source.y0 || 0},${source.x0 || 0})`)
-      .on('click', (event, d) => this.handleNodeClick(event, d));
+      .on('click', (event, d) => this.handleNodeClick(event, d))
+      .on('keydown', (event, d) => this.handleNodeKeydown(event, d));
 
     nodeEnter.append('rect')
       .attr('class', 'node-hit-area')
@@ -589,6 +653,12 @@ class DiseaseView extends EventTarget {
     nodeUpdate
       .attr('data-node-id', (d) => d.data.id)
       .attr('data-node-type', (d) => d.data.type)
+      .attr('aria-label', (d) => this.getNodeAriaLabel(d))
+      .attr('aria-expanded', (d) => (
+        d.data.type === 'disease' && (d.children || d._children)
+          ? String(Boolean(d.children))
+          : null
+      ))
       .transition()
       .duration(transitionDuration)
       .attr('transform', (d) => `translate(${d.y},${d.x})`);
@@ -662,6 +732,8 @@ class DiseaseView extends EventTarget {
       node.x0 = node.x;
       node.y0 = node.y;
     });
+
+    this.updateNodeHighlightState();
   }
 
   diagonal(source, target) {
@@ -699,6 +771,15 @@ class DiseaseView extends EventTarget {
     } else if (type === 'drug') {
       this.handleDrugClick(node);
     }
+  }
+
+  handleNodeKeydown(event, node) {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    this.handleNodeClick(event, node);
   }
 
   handleRegionClick(node) {
@@ -739,7 +820,12 @@ class DiseaseView extends EventTarget {
 
   handleDrugClick(node) {
     const drugId = node.data.id;
-    const drug = this.graphStore?.getNode(drugId);
+    const drug = this.app?.findDrugById?.(drugId) || this.graphStore?.getNode(drugId);
+
+    if (this.app?.requestDrugSelection && drug) {
+      this.app.requestDrugSelection(drug);
+      return;
+    }
 
     if (this.selectionStore) {
       this.selectionStore.setSelectedDrug(drugId, drug);
@@ -775,6 +861,7 @@ class DiseaseView extends EventTarget {
 
     this.root = null;
     this.currentDiseaseId = null;
+    this.lastRenderSignature = null;
     this.g.selectAll('*').interrupt();
     this.g.selectAll('*').remove();
     this.showStateLayer(message);
@@ -805,6 +892,7 @@ class DiseaseView extends EventTarget {
     this.currentRegionId = null;
     this.currentDiseaseId = null;
     this.lastRenderOptions = null;
+    this.lastRenderSignature = null;
     this.expandedNodes.clear();
 
     if (this.stateLayer) {

@@ -38,12 +38,11 @@
 git clone https://github.com/chenDeepin/DrugTree.git
 cd DrugTree
 
-# Start frontend (static server)
-cd src/frontend
-python3 -m http.server 8080
+# Start frontend (static server with generated gzip/Brotli sidecar support)
+python3 scripts/serve_frontend.py --port 8080 --host 127.0.0.1
 
 # Open in browser
-open http://localhost:8080
+open http://127.0.0.1:8080
 
 # Optional backend (FastAPI + SQLite)
 uvicorn src.backend.main:app --reload --port 8000
@@ -58,6 +57,8 @@ node tests/frontend/e2e/disease-universe.mjs
 > **Test harness note**: `tests/frontend/playwright.config.ts` serves the frontend on `http://localhost:8766` to avoid collisions with a backend/API service on `8765`.
 
 > **Important**: `http://127.0.0.1:8000/` is the API service, not the atlas UI. Open the static frontend URL (`http://127.0.0.1:8080/`) to review the body map and drug data in a browser.
+
+> **Generated embed note**: `scripts/build_frontend_embeds.py` writes frontend embeds plus `.gz` and `.br` sidecars. `scripts/serve_frontend.py` serves the precompressed sidecars when the browser advertises support.
 
 ## Architecture
 
@@ -237,23 +238,26 @@ All endpoints are prefixed with `/api/v1`.
 |----------|--------|-------------|
 | `/api/v1/drugs` | GET | List all drugs (with pagination, filters: `category`, `search`, `phase`) |
 | `/api/v1/drugs/{id}` | GET | Get drug by ID |
-| `/api/v1/drugs/search` | GET | Search drugs by name, target, class, or synonyms (`?q=query`) |
-| `/api/v1/drugs/category/{category}` | GET | Filter drugs by ATC category (A-V) |
-| `/api/v1/families` | GET | List all drug families |
+| `/api/v1/drugs/search` | GET | Search drugs by name, target, class, or synonyms (`?q=query&limit=100&offset=0`) |
+| `/api/v1/drugs/category/{category}` | GET | Filter drugs by ATC category (A-V, with `limit`/`offset`) |
+| `/api/v1/families` | GET | List drug families (`limit`/`offset`, limit capped at 1000) |
 | `/api/v1/families/{family_id}` | GET | Get family by ID |
-| `/api/v1/lineages` | GET | List all lineage edges (filters: `drug_id`, `edge_type`) |
+| `/api/v1/lineages` | GET | List lineage edges (filters: `drug_id`, `edge_type`, plus `limit`/`offset`, limit capped at 1000) |
 | `/api/v1/lineage/{drug_id}` | GET | Get genealogy tree for a drug (with `threshold` param) |
 | `/api/v1/regions` | GET | List all body regions from ontology |
-| `/api/v1/tree/disease/{disease_id}` | GET | Get body region and drugs for a disease |
+| `/api/v1/tree/disease/{disease_id}` | GET | Get body region and paginated drugs for a disease (`limit`/`offset`, limit capped at 100; response includes `total`) |
 | `/api/v1/graph/stats` | GET | Get graph index statistics |
 | `/api/v1/graph/node/{node_id}` | GET | Get graph node by namespaced ID |
 | `/api/v1/graph/neighborhood/{node_id}` | GET | N-hop neighborhood (`?max_hops=1-5`) |
 | `/api/v1/graph/evidence/{edge_id}` | GET | Evidence supporting a graph edge |
 | `/api/v1/graph/subgraph` | GET | Subgraph extraction (`?node_ids=a,b,c`) |
-| `/api/v1/diseases` | GET | List disease hierarchy |
+| `/api/v1/diseases` | GET | List disease hierarchy (with pagination) |
 | `/api/v1/diseases/{id}` | GET | Get disease by ID |
-| `/api/v1/diseases/{id}/drugs` | GET | Get drugs for a disease |
+| `/api/v1/diseases/search/{query}` | GET | Search diseases by name, synonym, or mechanism (with `limit`/`offset`) |
+| `/api/v1/diseases/region/{region}` | GET | List diseases in a body region (with `limit`/`offset`) |
+| `/api/v1/diseases/{id}/drugs` | GET | Get drugs for a disease (with `limit`/`offset`) |
 | `/api/v1/admin/health/data-quality` | GET | Data quality health check |
+| `/api/v1/admin/refresh` | POST | Refresh runtime snapshot, graph index, and graph query caches |
 | `/api/v1/targets` | GET | List all drug targets (with pagination) |
 | `/api/v1/targets/{target_id}` | GET | Get target detail by ID |
 

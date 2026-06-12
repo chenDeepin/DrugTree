@@ -4,6 +4,11 @@ from pathlib import Path
 
 from src.backend.etl import load_graph_edges
 from src.backend.routers import targets as targets_router
+from src.backend.routers.targets import (
+    TargetDetailResponse,
+    TargetListResponse,
+    TargetResponse,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +42,27 @@ async def test_targets_list_endpoint_supports_search(api_client):
 
 
 @pytest.mark.asyncio
+async def test_targets_list_runs_sqlite_work_in_threadpool(monkeypatch):
+    calls = []
+
+    async def fake_run_in_threadpool(func, *args, **kwargs):
+        calls.append(func.__name__)
+        return TargetListResponse(
+            total=1,
+            targets=[TargetResponse(id="T1", symbol="T1", name="Target 1")],
+        )
+
+    monkeypatch.setattr(
+        targets_router, "run_in_threadpool", fake_run_in_threadpool, raising=False
+    )
+
+    response = await targets_router.list_targets(limit=1, offset=0)
+
+    assert response.total == 1
+    assert calls == ["_list_targets_sync"]
+
+
+@pytest.mark.asyncio
 async def test_target_detail_endpoint_includes_edges(api_client):
     response = await api_client.get("/api/v1/targets/ADRB1")
 
@@ -50,6 +76,87 @@ async def test_target_detail_endpoint_includes_edges(api_client):
     assert body["drug_connections"]
     assert body["disease_associations"]
     assert body["xrefs"]
+
+
+def test_target_detail_sync_uses_one_compound_execute(monkeypatch):
+    execute_calls = []
+    target_row = {
+        "row_kind": "target",
+        "id": "T1",
+        "symbol": "T1",
+        "name": "Target 1",
+        "modality": "protein",
+        "disease_ids": "[]",
+        "uniprot_id": None,
+        "hgnc_id": None,
+        "entrez_id": None,
+        "ensembl_gene_id": None,
+        "gene_type": "protein_coding",
+        "pathway_ids": "[]",
+        "druggability": "unknown",
+        "is_validated_target": 1,
+        "drug_id": None,
+        "drug_name": None,
+        "interaction_type": None,
+        "mechanism_of_action": None,
+        "drug_confidence": None,
+        "associated_disease_id": None,
+        "disease_name": None,
+        "association_score": None,
+        "evidence_type": None,
+        "disease_confidence": None,
+        "source_name": None,
+        "source_id": None,
+        "source_url": None,
+    }
+
+    class FakeCursor:
+        def fetchall(self):
+            return [target_row]
+
+    class FakeConnection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def execute(self, query, params):
+            execute_calls.append((query, params))
+            return FakeCursor()
+
+    monkeypatch.setattr(targets_router, "get_db_connection", lambda: FakeConnection())
+
+    response = targets_router._get_target_sync("T1")
+
+    assert response.id == "T1"
+    assert len(execute_calls) == 1
+    assert "WITH target AS" in execute_calls[0][0]
+
+
+@pytest.mark.asyncio
+async def test_target_detail_runs_sqlite_work_in_one_threadpool_call(monkeypatch):
+    calls = []
+
+    async def fake_run_in_threadpool(func, *args, **kwargs):
+        calls.append(func.__name__)
+        return TargetDetailResponse(
+            id="T1",
+            symbol="T1",
+            name="Target 1",
+            drug_connections=[],
+            disease_associations=[],
+            xrefs=[],
+        )
+
+    monkeypatch.setattr(
+        targets_router, "run_in_threadpool", fake_run_in_threadpool, raising=False
+    )
+
+    response = await targets_router.get_target("T1")
+
+    assert response.id == "T1"
+    assert calls == ["_get_target_sync"]
 
 
 @pytest.mark.asyncio

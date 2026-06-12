@@ -9,10 +9,9 @@ Usage:
 
 import json
 import re
-import time
-import requests
+import asyncio
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import httpx
 from tqdm import tqdm
 
 # Paths
@@ -28,11 +27,11 @@ REQUEST_DELAY = 0.1  # seconds between requests
 BATCH_SIZE = 100
 
 
-def fetch_kegg_atc(kegg_id: str) -> tuple:
+async def fetch_kegg_atc_async(client: httpx.AsyncClient, kegg_id: str) -> tuple:
     """Fetch ATC code from KEGG API for a single drug."""
     try:
         url = KEGG_API_URL.format(kegg_id)
-        resp = requests.get(url, timeout=10)
+        resp = await client.get(url)
 
         if resp.status_code != 200:
             return kegg_id, None, None
@@ -55,12 +54,21 @@ def fetch_kegg_atc(kegg_id: str) -> tuple:
 
         return kegg_id, None, None
 
-    except Exception as e:
+    except httpx.HTTPError as e:
         print(f"Error fetching {kegg_id}: {e}")
         return kegg_id, None, None
 
 
-def main():
+def fetch_kegg_atc(kegg_id: str) -> tuple:
+    """Compatibility wrapper for legacy synchronous callers."""
+    async def _run() -> tuple:
+        async with httpx.AsyncClient(timeout=10) as client:
+            return await fetch_kegg_atc_async(client, kegg_id)
+
+    return asyncio.run(_run())
+
+
+async def async_main():
     print("=" * 60)
     print("KEGG ATC Code Fetcher for DrugTree")
     print("=" * 60)
@@ -77,26 +85,21 @@ def main():
     drugs_with_kegg = [(i, d) for i, d in enumerate(drugs) if d.get("kegg_id")]
     print(f"Drugs with KEGG ID: {len(drugs_with_kegg)}")
 
-    # Fetch ATC codes with threading
+    # Fetch ATC codes with async rate limiting
     print(f"\nFetching ATC codes from KEGG API...")
-    print(f"(Using {BATCH_SIZE} threads, delay={REQUEST_DELAY}s)")
+    print(f"(Async client, delay={REQUEST_DELAY}s)")
 
     atc_mapping = {}  # kegg_id -> (atc_code, atc_category)
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {}
-
-        for idx, drug in drugs_with_kegg:
-            kegg_id = drug["kegg_id"]
-            future = executor.submit(fetch_kegg_atc, kegg_id)
-            futures[future] = (idx, drug)
-            time.sleep(REQUEST_DELAY)  # Rate limiting
-
-        # Collect results with progress bar
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Fetching"):
-            kegg_id, atc_code, atc_category = future.result()
-            if atc_code:
-                atc_mapping[kegg_id] = (atc_code, atc_category)
+    async with httpx.AsyncClient(timeout=10) as client:
+        with tqdm(total=len(drugs_with_kegg), desc="Fetching") as pbar:
+            for idx, drug in drugs_with_kegg:
+                kegg_id = drug["kegg_id"]
+                kegg_id, atc_code, atc_category = await fetch_kegg_atc_async(client, kegg_id)
+                if atc_code:
+                    atc_mapping[kegg_id] = (atc_code, atc_category)
+                pbar.update(1)
+                await asyncio.sleep(REQUEST_DELAY)
 
     print(f"\nFetched ATC codes for {len(atc_mapping)} drugs")
 
@@ -162,6 +165,10 @@ def main():
     with open(DRUGS_FILE, "w") as f:
         json.dump(output_data, f, indent=2)
     print("✅ Updated main drugs.json")
+
+
+def main():
+    return asyncio.run(async_main())
 
 
 if __name__ == "__main__":

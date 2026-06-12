@@ -31,7 +31,7 @@ Canonical ETL layer for drug, disease, and ATC enrichment, with async external l
 - Retry pattern: `for attempt in range(max_retries)` with `2.0 ** attempt` backoff, special 429 handling.
 - Wrap every external call in `try/except`, fail soft, keep partial output.
 - Preserve source tags on writes, ChEMBL, KEGG, or PubChem.
-- **Known gap**: 5 files still use sync `requests` — `atc_orchestrator.py`, `drug_etl.py`, `fetch_atc_from_chembl.py`, `fetch_atc_from_kegg.py`, `atc_kegg_api_lookup.py`.
+- The former sync-`requests` ATC/KEGG files (`atc_orchestrator.py`, `drug_etl.py`, `fetch_atc_from_chembl.py`, `fetch_atc_from_kegg.py`, `atc_kegg_api_lookup.py`) have been migrated to `httpx`; do not reintroduce `requests`.
 
 ## CONVENTIONS
 - Treat canonical data as `data/`, not `src/frontend/data/`.
@@ -43,6 +43,6 @@ Canonical ETL layer for drug, disease, and ATC enrichment, with async external l
 ## ANTI-PATTERNS
 - Do not edit generated frontend mirrors.
 - Do not skip provenance on enrichment writes.
-- Do not add sync HTTP clients or blocking requests (5 legacy files still use `requests`).
+- Do not add sync HTTP clients or blocking remote calls.
 - Do not break checkpoint resume semantics.
 - Do not assume external sources always respond.

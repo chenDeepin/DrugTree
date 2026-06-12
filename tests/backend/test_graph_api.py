@@ -26,6 +26,15 @@ class _StubGraphIndex:
         return []
 
 
+class _VersionedGraphIndex(_StubGraphIndex):
+    def __init__(self):
+        super().__init__()
+        self.version = "graph-v1"
+
+    def source_version(self):
+        return self.version
+
+
 class _StubSnapshot:
     source_hash = "test-hash"
     disease_drug_edges = []
@@ -42,6 +51,19 @@ def _stub_graph_service() -> GraphQueryService:
         graph_index=cast(Any, _StubGraphIndex()),
         snapshot_service=cast(Any, _StubSnapshotService()),
     )
+
+
+def test_graph_query_cache_version_includes_graph_index_source_version():
+    graph_index = _VersionedGraphIndex()
+    service = GraphQueryService(
+        graph_index=cast(Any, graph_index),
+        snapshot_service=cast(Any, _StubSnapshotService()),
+    )
+
+    first_version = service._cache_version()
+    graph_index.version = "graph-v2"
+
+    assert service._cache_version() != first_version
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:

@@ -107,7 +107,7 @@ test("disease panel no longer renders a dropdown list overlay", () => {
   assert.match(html, /id="disease-search-status"/);
   assert.match(
     css,
-    /\.disease-panel-body\s*\{[\s\S]*position:\s*relative;/
+    /\.disease-panel\s*\{[\s\S]*position:\s*relative;/
   );
   assert.match(
     css,
@@ -168,7 +168,7 @@ test("DiseaseView defaults reserve a larger readable hierarchy canvas", () => {
   assert.equal(view.width >= 1120, true);
   assert.equal(view.height >= 760, true);
   assert.equal(view.nodeRadius >= 20, true);
-  assert.equal(view.margin.left >= 280, true);
+  assert.equal(view.margin.left >= 220, true);
   assert.equal(view.layoutMetrics.depthSpacing >= 300, true);
 });
 

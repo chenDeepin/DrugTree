@@ -38,7 +38,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'python3 -m http.server 8766',
+    command: 'python3 ../../scripts/serve_frontend.py --port 8766 --host 127.0.0.1',
     port: 8766,
     cwd: '../../src/frontend',
     reuseExistingServer: !process.env.CI,

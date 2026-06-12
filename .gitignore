@@ -87,6 +87,9 @@ playwright-report/
 blob-report/
 
 # ===== Local planning docs =====
+# Keep structural project docs pushable; only scratch/local docs below are ignored.
+!docs/
+!docs/**/*.md
 PLAN.md
 PLAN_global.md
 nextplan.md
@@ -129,6 +132,14 @@ src/frontend/atc_enrichment_results.json
 src/frontend/drugs_needing_atc.json
 src/frontend/.pytest_cache/
 src/frontend/.ruff_cache/
+
+# ===== Frontend compressed build artifacts =====
+*.br
+*.gz
+
+# ===== Agent / tool state directories =====
+.omo/
+.codex
 
 # ===== Backup/alternate data files =====
 *-v2.json

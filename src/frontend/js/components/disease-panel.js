@@ -74,9 +74,11 @@ class DiseasePanel {
   setupEventListeners() {
     const orphanToggle = document.getElementById("orphan-toggle");
     if (orphanToggle) {
+      orphanToggle.setAttribute("aria-pressed", this.showOrphanOnly ? "true" : "false");
       orphanToggle.addEventListener("click", () => {
         this.showOrphanOnly = !this.showOrphanOnly;
         orphanToggle.classList.toggle("active", this.showOrphanOnly);
+        orphanToggle.setAttribute("aria-pressed", this.showOrphanOnly ? "true" : "false");
         this.filterDiseases();
         this.renderSearchStatus();
         this.app.updateActiveFiltersBar();
@@ -90,6 +92,12 @@ class DiseasePanel {
         this.clearDiseaseFilter();
       });
     }
+
+    const searchInput = document.getElementById("disease-search-input");
+    if (searchInput) {
+      searchInput.addEventListener("input", (event) => this.handleSearchInput(event));
+      searchInput.addEventListener("keydown", (event) => this.handleSearchKeydown(event));
+    }
   }
 
   /**
@@ -101,7 +109,22 @@ class DiseasePanel {
         return false;
       }
 
-      return true;
+      if (!this.searchQuery) {
+        return true;
+      }
+
+      const haystack = [
+        disease.canonical_name,
+        disease.display_name,
+        disease.name,
+        disease.body_region,
+        ...(Array.isArray(disease.synonyms) ? disease.synonyms : []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(this.searchQuery);
     });
   }
 
@@ -177,6 +200,14 @@ class DiseasePanel {
     this.searchQuery = "";
     this.filterDiseases();
 
+    const input = document.getElementById("disease-search-input");
+    if (input) {
+      input.value = "";
+      if (blur) {
+        input.blur();
+      }
+    }
+
     this.renderSearchStatus();
   }
 
@@ -193,15 +224,44 @@ class DiseasePanel {
     if (!event) {
       return;
     }
+
+    this.searchQuery = (event.target.value || "").trim().toLowerCase();
+    this.filterDiseases();
+    this.renderSearchStatus();
   }
 
   handleSearchKeydown(event) {
     if (!event) {
       return;
     }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      this.commitSearchSelection();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      this.clearSearchField();
+    }
   }
 
   commitSearchSelection() {
+    if (!this.searchQuery || this.filteredDiseases.length === 0) {
+      this.renderSearchStatus();
+      return;
+    }
+
+    const exactMatch = this.filteredDiseases.find(
+      (disease) => (disease.canonical_name || "").toLowerCase() === this.searchQuery,
+    );
+    const prefixMatch = this.filteredDiseases.find(
+      (disease) => (disease.canonical_name || "").toLowerCase().startsWith(this.searchQuery),
+    );
+    const selectedDisease = exactMatch || prefixMatch || this.filteredDiseases[0];
+
+    this.selectDisease(selectedDisease.id);
     this.renderSearchStatus();
   }
 
@@ -212,6 +272,7 @@ class DiseasePanel {
     const orphanToggle = document.getElementById("orphan-toggle");
     if (orphanToggle) {
       orphanToggle.classList.toggle("active", this.showOrphanOnly);
+      orphanToggle.setAttribute("aria-pressed", this.showOrphanOnly ? "true" : "false");
     }
 
     this.renderSelectedDisease();
@@ -234,7 +295,7 @@ class DiseasePanel {
         <div class="selected-disease-badge">
           <span class="disease-name">${disease.canonical_name}</span>
           ${disease.orphan_flag ? '<span class="orphan-badge">ORPHAN</span>' : ""}
-          <button class="clear-disease-btn" id="clear-disease-filter" title="Clear disease filter">
+          <button class="clear-disease-btn" id="clear-disease-filter" title="Clear disease filter" aria-label="Clear ${disease.canonical_name} disease filter">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
               <path d="M6 4.586L1.707.293.293 1.707 4.586 6 .293 10.293l1.414 1.414L6 7.414l4.293 4.293 1.414-1.414L7.414 6l4.293-4.293L10.293.293 6 4.586z"/>
             </svg>
@@ -264,9 +325,21 @@ class DiseasePanel {
     }
 
     if (!this.activeDisease) {
+      if (this.searchQuery) {
+        const matchCount = this.filteredDiseases.length;
+        if (matchCount === 0) {
+          container.textContent = "No disease matches. Type a disease name or choose from the graph.";
+          return;
+        }
+
+        const firstMatch = this.filteredDiseases[0];
+        container.textContent = `${matchCount} ${matchCount === 1 ? "match" : "matches"}. Press Enter to select ${firstMatch.canonical_name}.`;
+        return;
+      }
+
       container.textContent = this.showOrphanOnly
-        ? "Orphan-only mode is active. Choose an orphan disease from the graph on the right."
-        : "Choose a disease from the graph on the right, or use the atlas to focus a body region.";
+        ? "Type a disease name or choose an orphan disease from the graph on the right."
+        : "Type a disease name, choose a disease from the graph on the right, or use the atlas to focus a body region.";
       return;
     }
 

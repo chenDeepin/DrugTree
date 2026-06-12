@@ -1,6 +1,6 @@
 # DrugTree Architecture
 
-**Status:** Living document · **Last reviewed:** 2026-06-12 (branch `main`, base commit `34933f0`)
+**Status:** Living document · **Last reviewed:** 2026-06-13 (branch `main`, base commit `34933f0`, current optimization working tree)
 **Audience:** Anyone optimizing or extending the backend, ETL, or data layer.
 **Companion:** [UI-Architecture.md](./UI-Architecture.md) covers the frontend in the same depth.
 
@@ -47,7 +47,7 @@ DrugTree is a **dual-stack monorepo** with two independent runtimes that communi
 |-------|------|-------------|
 | Frontend | Vanilla JS + RDKit.js + D3 | `src/frontend/index.html` |
 | Backend | FastAPI + SQLite | `src/backend/main.py` |
-| ETL | Python (httpx + some legacy `requests`) | `src/backend/run_etl.sh` |
+| ETL | Python (`httpx` for external calls) | `src/backend/run_etl.sh` |
 | Embed build | Python | `scripts/build_frontend_embeds.py` |
 | Tests | pytest + Playwright | `tests/backend/`, `tests/frontend/` |
 
@@ -82,21 +82,22 @@ data layer  ── data/*.json (canonical, via DataSnapshotService)  +  drugtree
 - CORS allow-list: `localhost:8080`, `localhost:8765`, `127.0.0.1` variants, and `https://chendeepin.github.io`.
 - Routers registered under `/api/v1`: `drugs`, `diseases`, `targets`, `admin` (`/api/v1/admin`), `graph` (`/api/v1/graph`).
 - A timing middleware records per-route latency into the singleton `RequestMetricsService` and stamps `X-DrugTree-Request-Ms`.
+- Startup warms `DataSnapshotService` and `GraphIndex` through the FastAPI lifespan hook.
 - `GET /health` returns `{status, version, drugs_count}` where `drugs_count` comes from `DataSnapshotService` (this is the live snapshot, not a stale file — the old audit note about "health reports 61 from drugs-full.json" is **resolved**).
 
 ### 2.2 Routers (the API surface)
 All endpoints are listed in `README.md` and `routers/AGENTS.md`. Patterns worth internalizing:
 - **List endpoints** take `limit`/`offset` and filter params; most cap `limit` (drugs/diseases at 1000, edges at 50000).
 - **Validation** is Pydantic response models on the way out, query-param typing on the way in.
-- **Targets router is the odd one out**: it queries SQLite synchronously with a fresh `sqlite3.connect(DB_PATH)` per request, and `GET /targets/{id}` runs three separate SELECTs (drug edges, disease edges, xrefs). See §6 for why this matters.
+- **Targets router uses SQLite only for target tables**, but the blocking `sqlite3` work is isolated behind `run_in_threadpool()`. `GET /targets/{id}` uses one compound query to return the target, drug edges, disease edges, and xrefs in the same response shape.
 
 ### 2.3 Services (where the logic lives)
 
 | Service | Responsibility | Caching behavior |
 |---------|----------------|------------------|
 | `data_snapshot.py` | Lazy-load + cache canonical `data/*.json` (drugs, diseases, edges, ontology) | Singleton; 24h TTL + file mtime/size check; SHA256 source hash for versioning; thread-safe (`Lock`) |
-| `graph_index.py` | In-memory adjacency index (nodes, edges, edges-by-drug, adjacency sets, families) | **Loaded once per process; never auto-invalidated.** `refresh()` must be called explicitly |
-| `graph_queries.py` | Neighborhood / subgraph / evidence queries on top of the index | Bucketed cache, 24h TTL, versioned by source hash; hard caps (96 neighbor nodes, 128 subgraph nodes, etc.) |
+| `graph_index.py` | In-memory adjacency index (nodes, edges, edges-by-drug, adjacency sets, families) | Warmed at startup; `refresh()` reloads artifacts; lookup paths auto-refresh when graph source mtime/size changes |
+| `graph_queries.py` | Neighborhood / subgraph / evidence queries on top of the index | Bucketed cache, 24h TTL, versioned by data source hash + graph source version; hard caps (96 neighbor nodes, 128 subgraph nodes, etc.); `refresh()` clears query caches |
 | `tree_builder.py` | Project flat lineage edges → genealogy DAG for the UI | Per-call (threshold-parameterized) |
 | `validation_pipeline.py` | Post-sync data-quality checks (ATC coverage, provenance, duplicates, schema) | On demand; feeds `/admin/health/data-quality` |
 | `change_detector.py` | Hash-based diff + 30-day rollback window | — |
@@ -104,7 +105,7 @@ All endpoints are listed in `README.md` and `routers/AGENTS.md`. Patterns worth 
 | `update_scheduler.py` | APScheduler weekly sync (Sun 02:00 UTC) + manual trigger; per-source rate limits | — |
 | `request_metrics.py` | Per-route latency aggregation | In-memory |
 
-**The graph engine in one paragraph:** `GraphIndex` reads graph artifacts (`data/graph/nodes/*.json`, `edges/lineage.json`) with a fallback to `data/processed/*.json`, and builds five dictionaries for O(1) lookups: `_nodes`, `_edges`, `_edges_by_drug`, `_adjacency`, `_families`. Neighborhood queries are BFS over `_adjacency` bounded by `max_hops` (1–5) and the node/edge caps in `graph_queries.py`. DAG validity is checked with Kahn's algorithm. The index is a process-level singleton, so **data updates require a process restart or an explicit `refresh()`** — this is the single most important staleness gotcha (see §6).
+**The graph engine in one paragraph:** `GraphIndex` reads graph artifacts (`data/graph/nodes/*.json`, `edges/lineage.json`) with a fallback to `data/processed/*.json`, and builds five dictionaries for O(1) lookups: `_nodes`, `_edges`, `_edges_by_drug`, `_adjacency`, `_families`. Neighborhood queries are BFS over `_adjacency` bounded by `max_hops` (1–5) and the node/edge caps in `graph_queries.py`. DAG validity is checked with Kahn's algorithm. The index is a process-level singleton, but public lookup paths now check graph source mtime/size signatures and refresh automatically when source artifacts change; `POST /api/v1/admin/refresh` remains the explicit refresh hook after ETL.
 
 ### 2.4 Models
 Pydantic schemas in `models/`: `Drug`/`DrugSummary` (drug.py), `Disease`/`DrugDiseaseEdge`/`RegionalApproval` (disease.py), `LineageEdge` (lineage.py), `DrugFamily` (drug_family.py), `GraphNodeRef`/`GraphEdgeRef` (graph.py), plus `AuditLog`, `ChangeSet`, `Provenance`, `Override`, `Version`. **Note:** `lineage.rationale_tags` is deprecated in favor of `generation_rationale`.
@@ -112,7 +113,7 @@ Pydantic schemas in `models/`: `Drug`/`DrugSummary` (drug.py), `Disease`/`DrugDi
 ### 2.5 Data layer
 - **Canonical JSON** is read through `DataSnapshotService` — never read `data/*.json` directly from a router.
 - **SQLite (`drugtree.db`)** holds only `targets`, `drug_target_edges`, `target_disease_edges`, `target_xrefs` (schema in `db/schema/002_drugtree_schema.sql`). It is *not* committed (anti-pattern: committing `*.sqlite`).
-- `db/connection.py` has async-capable plumbing (aiosqlite/asyncpg), but the targets router does **not** use it — it opens sync connections. This is a known inconsistency.
+- Target SQLite reads are read-only and run in a threadpool so they do not block the async event loop.
 
 ---
 
@@ -122,8 +123,8 @@ ETL lives in `src/backend/etl/` (~37 files) and is launched via `run_etl.sh`. Gr
 
 | Stage | Output | Key modules |
 |-------|--------|-------------|
-| Drug normalization | `data/drugs.json` | `drug_etl.py` (1102 ln) |
-| ATC enrichment | ATC codes on drugs | `atc_orchestrator.py` (1218 ln), `atc_batch_*`, `classify_remaining_drugs.py` |
+| Drug normalization | `data/drugs.json` | `drug_etl.py` (uses `httpx` for KEGG calls) |
+| ATC enrichment | ATC codes on drugs | `atc_orchestrator.py`, `atc_utils.py`, `atc_batch_*`, `classify_remaining_drugs.py` |
 | Lineage building | `data/processed/lineage_edges.json` | `lineage_builder.py` |
 | Family clustering | `data/processed/drug_families.json` | `family_builder.py` |
 | Disease ETL | `data/diseases.json` | `disease_etl.py` (981 ln), `normalize_diseases.py` |
@@ -132,8 +133,7 @@ ETL lives in `src/backend/etl/` (~37 files) and is launched via `run_etl.sh`. Gr
 | Validation | gate reports | `dag_validator.py` |
 
 **Conventions & gaps:**
-- External calls should use `async def` + `httpx` with try/except + graceful degradation.
-- **Five files still use sync `requests`** (confirmed 2026-06-12): `atc_orchestrator.py`, `drug_etl.py`, `fetch_atc_from_chembl.py`, `fetch_atc_from_kegg.py`, `atc_kegg_api_lookup.py`. Migrating these is the standing ETL tech-debt item.
+- External calls should use `httpx` with try/except + graceful degradation. The five formerly sync-`requests` ATC/KEGG files were migrated to `httpx` on 2026-06-12.
 - After any data change, regenerate embeds: `python3 scripts/build_frontend_embeds.py`.
 
 ---
@@ -155,7 +155,7 @@ ETL (writes) ──► data/*.json (canonical)
 - Runtime must not depend on `drugs-full.json` or `drugs-expanded.json` (legacy).
 - Valid ATC codes are stable; only placeholder `*99XX99` codes are enrichment targets.
 
-Current embed payloads (2026-06-12): `drugs-shell.js` 3.3 MB, `drugs.js` 4.3 MB (lazy), `graph-nodes.js` 1.1 MB, `diseases.js` 85 KB, others small. The shell is loaded eagerly; the full drug records and graph are deferred/lazy. This split is the backbone of frontend startup performance (see UI-Architecture §6).
+Current embed payloads (2026-06-13): `drugs-shell.js` 3.3 MB eager (497.7 KB gzip, 332.3 KB Brotli), `drugs.js` 4.2 MB lazy-loaded on full-detail hydration/file launches (722.4 KB gzip, 480.9 KB Brotli), `graph-nodes.js` 1.1 MB lazy-loaded for graph features (136.0 KB gzip, 108.0 KB Brotli), `diseases.js` 85 KB, others small. Removing eager `drugs.js` cuts ~4.2 MB from the first HTML script payload. `scripts/build_frontend_embeds.py` writes `.gz` and, when `brotli` is installed, `.br` sidecars; `scripts/serve_frontend.py` serves those sidecars for local/test static hosting.
 
 ---
 
@@ -165,7 +165,7 @@ Breaking any of these is a regression, not a refactor:
 
 1. **JSON is canonical at runtime.** Don't make routers read SQLite for drug/disease/edge data.
 2. **DataSnapshotService is the only reader of canonical JSON.** Routers and services go through it.
-3. **Graph index is a singleton.** Treat it as immutable per-process; mutate only via ETL → restart, or `refresh()`.
+3. **Graph index is a singleton with source checks.** Lookup paths auto-refresh when graph artifacts change; `POST /api/v1/admin/refresh` is still the explicit operational hook after ETL.
 4. **API responses are Pydantic-validated** and list endpoints are paginated/capped.
 5. **The frontend embed mirror is generated.** Source edits happen in `data/`.
 6. **CORS allow-list is explicit.** Add new origins deliberately.
@@ -180,16 +180,16 @@ Ranked roughly by leverage. These are the entry points for the "optimize the bac
 
 | # | Issue | Where | Impact | Direction |
 |---|-------|-------|--------|-----------|
-| B1 | **Graph index never auto-invalidates** | `graph_index.py` singleton | Stale graph after ETL until restart | Add mtime/hash check like `DataSnapshotService`, or a `/admin` refresh hook that calls `refresh()` |
-| B2 | **Sync SQLite in async routes** | `routers/targets.py` | Blocks the event loop under load; no pooling | Move to `db/connection.py` async pool (aiosqlite) or run in a threadpool |
-| B3 | **N+1 on target detail** | `GET /targets/{id}` | 3 SELECTs/request | Single JOIN or batched query |
-| B4 | **Unbounded search endpoints** | `/drugs/search`, `/diseases/search/{q}`, `/diseases/region/{r}`, `/diseases/{id}/drugs`, `/drugs/category/{c}` | Large result sets, no limit | Add `limit`/`offset` with sane caps |
-| B5 | **Non-standard `[:20]` slice** | `/tree/disease/{id}` | Silent truncation | Replace with real pagination + a documented cap |
-| B6 | **Sync `requests` in 5 ETL files** | see §3 | Inconsistent, blocks async ETL | Migrate to `httpx` |
-| B7 | **Large modules (>500 ln)** | `atc_orchestrator`, `drug_etl`, `disease_etl`, `validation_pipeline`, `graph_queries`, `audit_logger`, `load_graph_edges` | Hard to test/change | Split by stage; add focused unit tests |
+| B1 | **Graph cache auto-invalidation in place** | `graph_index.py`, `graph_queries.py`, `POST /api/v1/admin/refresh` | Prevents stale graph/snapshot/query caches after ETL or source artifact changes | Keep graph source-version tests with future graph artifact additions |
+| B2 | **Target SQLite isolated from event loop** | `routers/targets.py` | Blocking SQLite work runs in `run_in_threadpool()` | Consider aiosqlite only if write/concurrency needs grow |
+| B3 | **Target detail compound query** | `GET /targets/{id}` | Target, edges, and xrefs resolved through one helper/query path | Keep response shape stable |
+| B4 | **Search/list gaps bounded** | `/drugs/search`, `/diseases/search/{q}`, `/diseases/region/{r}`, `/diseases/{id}/drugs`, `/drugs/category/{c}` | `limit`/`offset` with caps | Keep README endpoint table in sync |
+| B5 | **Disease tree pagination added** | `/tree/disease/{id}` | No silent `[:20]` truncation | `limit` default 20, cap 100 |
+| B6 | **Former sync `requests` files migrated** | see §3 | Uses `httpx` fallback behavior | Keep new ETL integrations on `httpx` |
+| B7 | **Large modules remain** | `atc_orchestrator`, `drug_etl`, `disease_etl`, `validation_pipeline`, `graph_queries`, `audit_logger`, `load_graph_edges` | Hard to test/change | `atc_utils.py` is the first split; continue by stage |
 | B8 | **Duplicate `__all__`** | `services/__init__.py` | Export drift risk | Don't add exports there; `main.py` imports routers directly |
 
-**Performance note:** the in-memory model is fast for reads but assumes the dataset fits in process memory (it does today: ~5.5 MB drugs, ~100 KB diseases). The first request that touches the graph pays a load cost; consider warming `get_graph_index()` and `get_data_snapshot_service()` at startup if cold-start latency matters.
+**Performance note:** the in-memory model is fast for reads but assumes the dataset fits in process memory (it does today: ~5.5 MB drugs, ~100 KB diseases). Snapshot and graph caches are warmed at startup; target SQLite reads are still local file reads, but no longer run on the event loop.
 
 ---
 
@@ -198,7 +198,7 @@ Ranked roughly by leverage. These are the entry points for the "optimize the bac
 - **Add an endpoint:** add a route to the relevant `routers/*.py`, delegate to a service (create one if logic is non-trivial), return a Pydantic model, add pagination if it lists. Document it in `README.md`.
 - **Add a data field:** update ETL to populate it in `data/*.json`, extend the Pydantic model, regenerate embeds, then surface it in the frontend (mode-gated if expert-only — see UI-Architecture §8).
 - **Add a graph relation:** extend the graph artifacts in `data/graph/`, ensure `graph_index.py` indexes it, expose via `graph_queries.py` and `routers/graph.py`.
-- **Change canonical data:** edit `data/` → run validators → `python3 scripts/build_frontend_embeds.py` → restart backend (to refresh the graph singleton).
+- **Change canonical data:** edit `data/` → run validators → `python3 scripts/build_frontend_embeds.py` → `POST /api/v1/admin/refresh` or restart backend.
 
 ---
 

@@ -1,6 +1,6 @@
 # DrugTree Frontend State Model
 
-Complete inventory of frontend state architecture as of current codebase.
+Complete inventory of frontend state architecture as of the 2026-06-13 two-pane workspace, detail-page, and optimization pass.
 
 ## 1. State Buckets
 
@@ -29,6 +29,7 @@ State that survives across user interactions and is initialized during app start
 - `this.graphStore` — GraphStore instance (drug genealogy and disease hierarchy)
 - `this.selectionStore` — SelectionStore instance (selection IDs and view modes)
 - `this.diseasePanel` — DiseasePanel instance (disease search and filtering)
+- `this.drugGridRenderer` — DrugGridRenderer instance (incremental card-grid reconciliation)
 - `this.diseaseView` — DiseaseView instance (body→disease→drug tree visualization)
 - `this.genealogyView` — GenealogyView instance (drug lineage tree visualization)
 
@@ -132,7 +133,7 @@ State computed on demand from other state, not stored directly.
 | `regionMetaById` | DrugTreeApp | Region metadata for display |
 | `regionElementsById` | DrugTreeApp | DOM element cache for body regions |
 | `filteredDrugs` | DrugTreeApp | Computed result of applyFilters() |
-| `selectedDrug` | DrugTreeApp | Full drug object for modal rendering |
+| `selectedDrug` | DrugTreeApp | Full drug object for detail-page rendering |
 | `activeCategory` | DrugTreeApp | Current ATC filter selection |
 | `activeBodyRegion` | DrugTreeApp | Currently clicked body region |
 | `activeDisease` | DrugTreeApp, DiseasePanel | Full disease object for filtering |
@@ -186,7 +187,7 @@ SelectionStore.setSelectedDrug(drugId, drugData)
 DrugTreeApp.handleDrugSelected({drugId, previousDrugId, drugData})
   ↓
 this.selectDrug(drug, cardElement)  // card highlighting
-this.showDrugModal(drug)
+this.showDrugModal(drug)  // legacy method name; delegates to detail-page render/open
 ```
 
 ### Disease Selection Pipeline
@@ -232,7 +233,6 @@ if (nextRegionId !== previousRegionId && this.activeDisease):
   SelectionStore.setSelectedDisease(null, null) or clear via app
 this.hoveredRegion = null
 this.removePreview(".body-preview")
-this.updateBodyMapState()
 this.updateBodyRegionLabel()
 this.updateActiveFiltersBar()
 this.applyFilters()
@@ -259,9 +259,9 @@ DrugTreeApp.switchMode(mode)
 this.mode = mode
 document.body.classList.remove("mode-public", "mode-scientist")
 document.body.classList.add(`mode-${mode}`)
-this.renderDrugList()
-if (this.selectedDrug):
-  this.showDrugModal(this.selectedDrug)
+if (this.selectedDrug and detail page is open):
+  this.renderDrugDetail(this.selectedDrug)
+this.updateWorkspaceContext()
 ```
 
 ### Clear Filters Pipeline
@@ -308,7 +308,8 @@ search input event
 DrugTreeApp:
   this.searchQuery = event.target.value.toLowerCase()
   this.updateActiveFiltersBar()
-  this.applyFilters()
+  debounce 40ms
+  this.applyFilters({ updateBodyMap: false })
 DiseasePanel:
   this.searchQuery = event.target.value.toLowerCase()
   this.filterDiseases()
@@ -351,7 +352,7 @@ Several pieces of state are mirrored across different owners. These duplications
 ### Drug Object Duplication
 - `SelectionStore.selectedDrugId` (string ID)
 - `DrugTreeApp.selectedDrug` (full object with id, name, smiles, etc.)
-- **Rationale**: SelectionStore is the source of truth for selection IDs. DrugTreeApp caches the full object for modal rendering and card highlighting to avoid repeated lookups.
+- **Rationale**: SelectionStore is the source of truth for selection IDs. DrugTreeApp caches the full object for detail-page rendering and card highlighting to avoid repeated lookups.
 
 ### View Mode Duplication
 - `SelectionStore.viewMode`
@@ -525,17 +526,17 @@ Defines discrete render surfaces, their current coupling problems, and the targe
 | **Targeted Scope** | Current scope is acceptable. Could cache the count if region+category haven't changed since last computation. |
 | **Priority** | **LOW** — Single DOM element, narrow scope already |
 
-#### B6 — Drug Modal
+#### B6 — Drug Detail Page
 
 | Property | Values |
 |----------|--------|
-| **Boundary Name** | Drug Modal |
-| **Current Trigger** | `handleDrugSelected()` → `showDrugModal()`, `switchMode()` (re-shows modal if drug selected) |
+| **Boundary Name** | Drug Detail Page |
+| **Current Trigger** | `handleDrugSelected()` → `showDrugModal()` (legacy name) → `renderDrugDetail()`/`openDrugDetail()`, `switchMode()` (re-renders detail fields only if detail is open) |
 | **Data Consumed** | `this.selectedDrug` (full object), `this.mode`, `this.drugs` (for genealogy lookups), `this.regionMetaById`, `this.structureViewer` |
-| **DOM Owned** | `#modal-overlay` (classList `active`), `#modal-title`, `#modal-summary`, `#modal-region`, `#modal-atc-code`, `#modal-class`, `#modal-mw`, `#modal-phase`, `#modal-year`, `#modal-company`, `#modal-indication`, `#modal-targets`, `#modal-synonyms`, `#modal-inchikey`, `#modal-smiles`, `#modal-parents`, `#modal-successors`, `#modal-generation`, `#modal-structure`, `#genealogy-tree-container`, all `.scientist-only` elements |
-| **Current Scope Problem** | Modal opening is inherently a one-shot render — all fields update at once. `switchMode()` re-renders entire modal just to toggle `.scientist-only` visibility, which could be a CSS-only change. Genealogy tree render (`renderGenealogyTree()`) does full SVG rebuild inside modal. |
-| **Targeted Scope** | Mode switch should toggle `body` class only; `.scientist-only` visibility is already CSS-driven. Genealogy tree in modal could use D3 update pattern instead of full SVG rebuild. Modal open is correctly scoped as one-shot. |
-| **Priority** | **MEDIUM** — Mode switch modal re-render is wasteful; modal open is acceptable |
+| **DOM Owned** | `#drug-detail-page` (classList `active`/positioning), `#drug-detail-scrim`, `#drug-detail-back`, `#modal-title`, `#modal-summary`, `#modal-region`, `#modal-atc-code`, `#modal-class`, `#modal-mw`, `#modal-phase`, `#modal-year`, `#modal-company`, `#modal-indication`, `#modal-targets`, `#modal-synonyms`, `#modal-inchikey`, `#modal-smiles`, `#modal-parents`, `#modal-successors`, `#modal-generation`, `#modal-structure`, `#genealogy-tree-container`, all `.scientist-only` elements |
+| **Current Scope Problem** | Detail opening is a one-shot render plus deferred full-record hydration and optional lineage render. `switchMode()` no longer rebuilds the grid, but it still re-renders detail fields when the detail page is open. Genealogy tree render (`renderGenealogyTree()`) does full SVG rebuild inside the detail page. |
+| **Targeted Scope** | Detail open is acceptable as a one-shot render. Future work should split a `DetailController`, keep mode changes mostly CSS-driven, and use more targeted genealogy updates if inline lineage becomes frequent. |
+| **Priority** | **MEDIUM** — Detail surface is large and coupled, but user-triggered |
 
 #### B7 — Disease Panel
 
@@ -561,17 +562,17 @@ Defines discrete render surfaces, their current coupling problems, and the targe
 | **Targeted Scope** | `render()` should diff against `currentRegionId`/`currentDiseaseId` and skip if unchanged. Region click that doesn't change the active disease within the same region should only update node highlighting, not rebuild the entire tree. |
 | **Priority** | **HIGH** — Full D3 SVG rebuild is expensive; region clicks in disease view trigger unnecessary complete redraws |
 
-#### B9 — Genealogy View (D3 Tree in Modal)
+#### B9 — Genealogy View (D3 Tree in Detail Page)
 
 | Property | Values |
 |----------|--------|
-| **Boundary Name** | Genealogy View (D3 Tree in Modal) |
-| **Current Trigger** | `showDrugModal()` → `renderGenealogyTree()` |
+| **Boundary Name** | Genealogy View (D3 Tree in Detail Page) |
+| **Current Trigger** | `showDrugModal()`/`renderDrugDetail()` deferred render → `renderGenealogyTree()` |
 | **Data Consumed** | `drug` (id, name, generation, parent_drugs), `this.drugs` (for successor lookup), `this.isScientistMode` |
 | **DOM Owned** | `#genealogy-tree-container` → SVG → `g` groups for nodes, links, cross-links, zoom controls |
-| **Current Scope Problem** | Full SVG rebuild on every modal open. Acceptable because modal is one-shot (user opens one drug at a time). Cross-links rendered but limited to 3 per target. Node positions cached in `_nodePositions`. |
-| **Targeted Scope** | Current scope is acceptable for modal use case. If genealogy were ever shown inline (not in modal), would need incremental D3 update pattern. |
-| **Priority** | **LOW** — Modal-scoped, user-triggered, acceptable cost |
+| **Current Scope Problem** | Full SVG rebuild on every detail open and lineage hydration. Acceptable because the detail page is user-triggered and hidden in Public mode. Cross-links rendered but limited to 3 per target. Node positions cached in `_nodePositions`. |
+| **Targeted Scope** | Current scope is acceptable for detail-page use. If genealogy becomes persistent/inline, use an incremental D3 update pattern. |
+| **Priority** | **LOW** — Detail-scoped, user-triggered, acceptable cost |
 
 #### B10 — View Mode Section Toggle
 
@@ -594,13 +595,13 @@ These are the four primary cascading call chains identified in the current codeb
 ```
 applyFilters()
 ├── compute this.filteredDrugs from drugs + category + region + disease + search
-├── updateBodyMapState()                    ← B2: iterates ALL 14 regions, 14× applyDrugFilters()
+├── updateBodyMapState()                    ← B2: optional; skipped by search input
 └── renderDrugList()                        ← B1: full innerHTML rebuild of drug grid
 ```
 
-**Problem**: Every search keystroke triggers both B2 and B1. Search queries do not affect body map visual state (only category/region changes should), yet B2 runs anyway with 14 filter passes.
+**Current state**: `applyFilters({ updateBodyMap = true })` defaults to updating B2, but search input calls it with `updateBodyMap: false` after a 40 ms debounce. Category/region/disease paths still use the default when map state or disease highlights can change.
 
-**Targeted decomposition**:
+**Remaining targeted decomposition**:
 ```
 applyFilters()
 ├── compute this.filteredDrugs
@@ -636,16 +637,15 @@ handleRegionSelected(detail)
 ├── clear disease if region changed          ← B7 partial
 ├── this.hoveredRegion = null
 ├── removePreview(".body-preview")
-├── updateBodyMapState()                    ← B2
 ├── updateBodyRegionLabel()                 ← B5
 ├── updateActiveFiltersBar()                ← B4
-├── applyFilters()                          ← Chain 1 (B2 + B1) ← B2 runs TWICE
+├── applyFilters()                          ← Chain 1 (B2 + B1) ← B2 runs once
 └── diseaseView.render(regionId, null)      ← B8
 ```
 
-**Problem**: B2 runs **twice** — once explicitly via `updateBodyMapState()` and once inside `applyFilters()`. The second run is redundant because the region hasn't changed between the two calls.
+**Current state**: the duplicate explicit B2 update was removed; region selection relies on the `applyFilters()` default to update the body map once.
 
-**Targeted decomposition**: Remove `updateBodyMapState()` from `applyFilters()`. Keep the explicit call in `handleRegionSelected()`.
+**Targeted decomposition**: Keep this path to one B2 update. If `applyFilters()` is narrowed further, add an explicit body-map update back only on region/category paths.
 
 #### Chain 4: `clearFilters()` → `handleSelectionCleared()` Cascade
 
@@ -686,26 +686,26 @@ clearFilters()
 | B3 ATC Tags | `updateATCTagsState()` | `filterByCategory()`, `handleDiseaseSelected()`, `clearFilters()` | No (leaf boundary) |
 | B4 Filter Chips | `updateActiveFiltersBar()` | Every filter change path | No (leaf boundary) |
 | B5 Region Label | `updateBodyRegionLabel()` | Region selection, clear, hover/leave | No (leaf boundary) |
-| B6 Modal | `showDrugModal()` | Drug selection, mode switch | Calls B9 (genealogy tree) |
+| B6 Detail Page | `showDrugModal()`/`renderDrugDetail()` | Drug selection, mode switch when detail open | Calls B9 (genealogy tree) |
 | B7 Disease Panel | `DiseasePanel.render()` | Disease selection, clear, orphan toggle | No (leaf boundary) |
 | B8 Disease View | `diseaseView.render()` | View switch, region/disease selection, clear | No (leaf boundary) |
-| B9 Genealogy Tree | `renderGenealogyTree()` | Modal open (via `showDrugModal()`) | No (leaf boundary) |
+| B9 Genealogy Tree | `renderGenealogyTree()` | Detail open/hydration (via `showDrugModal()`/`renderDrugDetail()`) | No (leaf boundary) |
 | B10 View Toggle | `_applyViewModeUI()` | View mode switch | Calls B8 (disease view render) |
 
 ### 7.4 Optimization Priority Summary
 
 | Priority | Boundary | Rationale | Estimated Impact |
 |----------|----------|-----------|-----------------|
-| **HIGH** | B2 Body Map | Decouple from `applyFilters()` — eliminate 14× O(n) filter passes on every search keystroke | Eliminates ~90% of unnecessary body map recomputes |
-| **HIGH** | B1 Drug Grid | Incremental card updates instead of full innerHTML rebuild; defer structure rendering | Reduces per-keystroke DOM work from 120 card creates to 0–10 diffs |
-| **HIGH** | B8 Disease View | Diff `currentRegionId`/`currentDiseaseId` before full D3 rebuild | Eliminates full SVG rebuilds when region/disease hasn't changed |
+| **RESOLVED** | B2 Body Map / search | Search calls `applyFilters({ updateBodyMap: false })` | Eliminates body-map recompute on text search |
+| **RESOLVED** | B1 Drug Grid | `DrugGridRenderer` does keyed incremental card reconciliation; structure rendering remains lazy | Reduces broad card recreation on filter/search changes |
+| **RESOLVED** | B8 Disease View | `render()` uses a highlight-only path when signatures are unchanged | Eliminates D3 update/rebuild work for same region/disease render inputs |
 | **MEDIUM** | B4 Filter Chips | Diff-based chip add/remove; eliminate double-rebuild on chip remove | Reduces small but unnecessary innerHTML rebuilds |
-| **MEDIUM** | B6 Modal | Mode switch should not re-render modal content | Eliminates modal rebuild on mode toggle |
+| **MEDIUM** | B6 Detail Page | Split detail controller and avoid field re-render where CSS can handle mode visibility | Reduces detail-page work on mode toggle |
 | **MEDIUM** | B7 Disease Panel | Keyboard navigation should update class only, not rebuild list | Eliminates list flicker during arrow-key navigation |
-| **MEDIUM** | Chain 4 | Deduplicate `clearFilters()` and `handleSelectionCleared()` calls | Eliminates 100% redundant double-render of 5 boundaries |
+| **PARTIAL** | Chain 4 | Store-backed `clearFilters()` now exits after `handleSelectionCleared()`; chip-specific diffing remains future work | Removes the main redundant clear cascade |
 | **LOW** | B3 ATC Tags | Add dirty check for unchanged `activeCategory` | Minor: skips 14 classList toggles |
 | **LOW** | B5 Region Label | Cache region drug count | Minor: skips one `applyDrugFilters()` call |
-| **LOW** | B9 Genealogy Tree | Acceptable as-is for modal use case | None needed |
+| **LOW** | B9 Genealogy Tree | Acceptable as-is for detail-page use case | None needed |
 | **LOW** | B10 View Toggle | Already narrow scope | None needed |
 
 ---
@@ -718,18 +718,18 @@ Analysis of the 1,533-line `DrugTreeApp` class identifying safe seams for extrac
 
 Recommended extraction sequence from lowest risk to highest risk:
 
-1. **DataLoader** (pure IO, zero DOM) → 2. **DrugGridRenderer** (rendering only) → 3. **PreviewController** (self-contained tooltip layer) → 4. **FilterController** (reads+writes app state) → 5. **AtlasController** (SVG+DOM heavy) → 6. **ModalController** (deepest coupling to stores + drug data)
+1. **DataLoader** (`js/data-loader.js`, partially extracted) → 2. **DrugGridRenderer** (`js/components/drug-grid-renderer.js`, extracted DOM reconciler) → 3. **PreviewController** (self-contained tooltip layer) → 4. **FilterController** (reads+writes app state) → 5. **AtlasController** (SVG+DOM heavy) → 6. **DetailController** (deepest coupling to stores + drug data)
 
 ### 8.2 Module Responsibility Matrix
 
 | Module | Primary Responsibility | Methods to Extract (app.js lines) | State Dependencies (reads/writes on `this.`) | Store Dependencies | DOM Dependencies | Risk | Seam Safety |
 |--------|----------------------|-----------------------------------|-----------------------------------------------|-------------------|-----------------|------|-------------|
-| **DataLoader** | Load drug, disease, edge, and ontology data from API/embedded/fallback sources | `loadDrugData()` L321-393, `loadDiseaseData()` L395-438, `loadDiseaseDrugEdges()` L440-486, `loadBodyOntology()` L500-524, `rebuildDiseaseEdgeIndex()` L488-498, `fetchJsonWithTimeout()` L45-54 (top-level) | **Writes**: `drugs`, `filteredDrugs`, `diseases`, `diseaseDrugEdges`, `diseaseDrugIdsByDiseaseId`, `bodyOntology`, `regionMetaById`. **Reads**: none beyond embedded globals | None | `#drug-grid` (loading spinner in `loadDrugData` only) | **Low** | Purest seam. All methods are async data-fetch + fallback chains that write to app state. Only `loadDrugData` touches DOM for a loading spinner (trivial to move). No store interaction. Can be extracted as a standalone service that returns data objects, letting `init()` assign them. |
-| **DrugGridRenderer** | Render drug cards into the grid and manage empty-state display | `renderDrugList()` L1057-1095, `createDrugCard()` L1142-1213, `buildEmptyState()` L1097-1140, `getRenderableDrugs()` L1050-1055 | **Reads**: `filteredDrugs`, `drugs`, `activeCategory`, `activeBodyRegion`, `activeDisease`, `searchQuery`, `selectedDrug`, `mode`, `regionMetaById`, `structureViewer`, `selectionStore`. **Writes**: none (rendering only) | `SelectionStore` (calls `setSelectedDrug` on card click) | `#drug-grid`, `#drug-count`, `#results-note` | **Low** | Rendering-only methods that read state but don't mutate it (except delegating selection to store). Card click handler delegates to `selectionStore.setSelectedDrug()`, not to app state directly. Pass required state as arguments to decouple. |
+| **DataLoader** | Load drug, disease, edge, and ontology data from API/embedded/fallback sources | `js/data-loader.js` helpers plus `loadDrugData()`, `loadDiseaseData()`, `loadDiseaseDrugEdges()`, `loadBodyOntology()`, `rebuildDiseaseEdgeIndex()` in `app.js` | **Writes**: `drugs`, `filteredDrugs`, `diseases`, `diseaseDrugEdges`, `diseaseDrugIdsByDiseaseId`, `bodyOntology`, `regionMetaById`. **Reads**: embedded globals and API responses | None | `#drug-grid` (loading spinner in `loadDrugData` only) | **Low** | First extraction exists for shared helper functions. Next step is moving the async load methods behind a service that returns data objects, letting `init()` assign them. |
+| **DrugGridRenderer** | Render drug cards into the grid and manage empty-state display | Extracted in `js/components/drug-grid-renderer.js`; `app.js` still owns `createDrugCard()`, `buildEmptyState()`, and `getRenderableDrugs()` | **Reads**: `filteredDrugs`, `drugs`, `activeCategory`, `activeBodyRegion`, `activeDisease`, `searchQuery`, `selectedDrug`, `mode`, `regionMetaById`, `structureViewer`, `selectionStore`. **Writes**: none (rendering only) | Card click still delegates through app/SelectionStore | `#drug-grid`, `#drug-count`, `#results-note` | **Low** | First renderer extraction is complete. Next step is moving card factory/empty-state construction behind a narrower renderer interface or data-only view model. |
 | **PreviewController** | Manage hover-triggered tooltip popups (ATC tag previews and body region previews) with viewport clamping | `showATCTagPreview()` L689-715, `showBodyPreview()` L778-802, `handleATCTagHover()` L676-681, `handleATCTagLeave()` L683-687, `removePreview()` L1503-1508, `clampToViewport()` L1489-1495, `clearHoverTimeout()` L1482-1487, `clearTransientPreviews()` L1497-1501 | **Reads**: `drugs`, `activeCategory`, `activeBodyRegion`, `searchQuery`, `regionMetaById`, `hoverDelay`. **Writes**: `hoverTimeout` | None | Creates/removes `.atc-preview` and `.body-preview` divs appended to `document.body` | **Low** | Self-contained tooltip layer. All preview divs are transient DOM elements with a fixed lifecycle (create → show → remove). The only shared mutable state is `hoverTimeout` which could be internalized. Reads `applyDrugFilters` for counts but that's a pure function from `DrugTreeState`. |
 | **FilterController** | Manage ATC category filtering, search input, clear button, filter bar rendering, and filter application | `filterByCategory()` L804-809, `applyFilters()` L1029-1048, `updateActiveFiltersBar()` L866-940, `getRenderableDrugs()` L1050-1055, `clearFilters()` L811-832, `setupSearch()` L613-624, `setupClearButton()` L669-674, `setupATCTags()` L595-611, `updateATCTagsState()` L849-864 | **Reads**: `drugs`, `activeCategory`, `activeBodyRegion`, `activeDisease`, `searchQuery`, `diseaseDrugIdsByDiseaseId`. **Writes**: `activeCategory`, `filteredDrugs`, `searchQuery`, `hoveredRegion` | `SelectionStore` (calls `clear()` from `clearFilters`) | `#search-input`, `#clear-filters`, `.atc-tag`, `#filter-chips`, `#active-filters` | **Medium** | Reads and writes core filter state. `applyFilters()` triggers both `updateBodyMapState()` (cross-cut) and `renderDrugList()` (rendering). Extraction requires either a callback/event pattern for these downstream calls, or keeping `applyFilters` as an orchestrator in DrugTreeApp. The filter bar rendering (`updateActiveFiltersBar`) is self-contained DOM work. |
 | **AtlasController** | Manage SVG body map initialization, region click/hover/leave interaction, visual state classes, and region labels | `initBodyMap()` L526-571, `handleBodyRegionClick()` L717-743, `handleBodyRegionHover()` L745-763, `handleBodyRegionLeave()` L765-776, `updateBodyMapState()` L942-971, `clearBodyMapHighlight()` L973-986, `updateBodyRegionLabel()` L988-1013, `getRegionMeta()` L1015-1023, `clearTransientPreviews()` L1497-1501, `updateAtlasSummary()` L572-584 | **Reads**: `drugs`, `activeCategory`, `activeBodyRegion`, `activeDisease`, `hoveredRegion`, `searchQuery`, `bodyOntology`, `regionMetaById`, `regionElementsById`, `diseaseHighlightedRegions`. **Writes**: `activeBodyRegion`, `hoveredRegion`, `regionElementsById` | `SelectionStore` (calls `setSelectedRegion` from `handleBodyRegionClick`) | `#body-map`, `#body-region-label`, `#atlas-summary`, SVG `[data-region]` elements | **Medium** | Heavy DOM coupling via SVG element caching in `regionElementsById`. `handleBodyRegionClick` cascades to filters + body label + disease view, making it an orchestrator method. `updateBodyMapState()` reads `applyDrugFilters` for per-region drug counts — requires passing drug data or a count function. `initBodyMap` attaches event listeners on SVG elements that call back into `this`. Seam is safe if the controller receives a reference to the app or uses a lightweight event bus for cascade calls. |
-| **ModalController** | Show/close drug detail modal, render genealogy tree, handle SMILES copy | `showDrugModal()` L1225-1289, `closeModal()` L1452-1458, `copySmiles()` L1460-1480, `setupModal()` L626-640, `updateGenealogy()` L1291-1354, `renderGenealogyTree()` L1356-1378, `_buildGenealogyTreeData()` L1380-1450 | **Reads**: `drugs`, `selectedDrug`, `mode`, `regionMetaById`, `structureViewer`. **Writes**: none directly (modal state is DOM-only) | None directly (reads `selectedDrug` which is kept in sync by SelectionStore events) | `#modal-overlay`, `#modal-title`, `#modal-summary`, `#modal-region`, `#modal-atc-code`, `#modal-class`, `#modal-mw`, `#modal-phase`, `#modal-year`, `#modal-company`, `#modal-indication`, `#modal-targets`, `#modal-synonyms`, `#modal-inchikey`, `#modal-smiles`, `#modal-structure`, `#copy-smiles`, `.modal-close`, `.scientist-only`, `#genealogy-tree-container`, `#modal-parents`, `#modal-successors`, `#modal-generation` | **Medium-High** | Deepest DOM surface area (20+ element IDs). `showDrugModal` calls `updateGenealogy` → `renderGenealogyTree` → `_buildGenealogyTreeData` which traverses `this.drugs` for parent/successor lookups. Also calls `structureViewer.renderModalStructure()`. The genealogy chain is self-contained but reads the full `drugs` array. Modal also calls `filterByCategory` via ATC code click-back (cross-cutting). Extraction is safe if the controller receives `drugs` array and `regionMetaById` as constructor args, plus a callback for category filter navigation. |
+| **DetailController** | Show/close anchored drug detail page, render genealogy tree, manage focus, handle SMILES copy | `renderDrugDetail()`, `showDrugModal()` wrapper, `openDrugDetail()`, `closeDrugDetail()`, `closeModal()` wrapper, `copySmiles()`, `setupModal()` (legacy name), `populateDrugDetailFields()`, `updateGenealogy()`, `renderGenealogyTree()`, `_buildGenealogyTreeData()` | **Reads**: `drugs`, `selectedDrug`, `mode`, `regionMetaById`, `structureViewer`, route hash. **Writes**: detail positioning/focus state and DOM-only active state | None directly (reads `selectedDrug` which is kept in sync by SelectionStore events) | `#drug-detail-page`, `#drug-detail-scrim`, `#drug-detail-back`, `#modal-title`, `#modal-summary`, `#modal-region`, `#modal-atc-code`, `#modal-class`, `#modal-mw`, `#modal-phase`, `#modal-year`, `#modal-company`, `#modal-indication`, `#modal-targets`, `#modal-synonyms`, `#modal-inchikey`, `#modal-smiles`, `#modal-structure`, `#copy-smiles`, `.scientist-only`, `#genealogy-tree-container`, `#modal-parents`, `#modal-successors`, `#modal-generation` | **Medium-High** | Deepest DOM surface area (20+ element IDs) plus routing/focus/positioning. The legacy names hide an anchored detail-page contract, so extraction should rename the controller even if wrappers remain for compatibility. |
 
 ### 8.3 Cross-Cutting Call Graph
 
@@ -750,14 +750,14 @@ AtlasController ──(calls)──→ FilterController.applyFilters()
 PreviewController ──(calls)──→ DrugTreeState.applyDrugFilters()  [pure fn, no module]
                      └──→ AtlasController.getRegionMeta()
 
-ModalController ──(calls)──→ DrugTreeState.*  [pure fns, no module]
+DetailController ──(calls)──→ DrugTreeState.*  [pure fns, no module]
                   ├──→ StructureViewer.renderModalStructure()
                   ├──→ FilterController.filterByCategory()  [via ATC code click]
                   └──→ reads DrugTreeApp.drugs  [for genealogy traversal]
 
-DrugGridRenderer ──(calls)──→ SelectionStore.setSelectedDrug()
-                     ├──→ StructureViewer.renderStructure()
-                     └──→ DrugTreeState.*  [pure fns]
+DrugGridRenderer ──(calls)──→ DrugTreeApp.createDrugCard() for new cards
+                     ├──→ DrugTreeApp.syncWorkspaceScrollControls()
+                     └──→ keeps selection classes in sync for existing cards
 ```
 
 ### 8.4 Shared State Conflict Map
@@ -772,7 +772,7 @@ State fields that are read or written by multiple proposed modules simultaneousl
 | `this.hoverTimeout` | PreviewController (writes) | AtlasController (clears via `clearTransientPreviews`) | Internalize into PreviewController |
 | `this.hoveredRegion` | AtlasController (writes), FilterController (clears) | AtlasController (reads) | AtlasController owns; FilterController clears via event |
 | `this.regionElementsById` | AtlasController (writes+reads) | PreviewController (reads for anchor element) | AtlasController owns; expose getter |
-| `this.regionMetaById` | DataLoader (writes) | AtlasController, ModalController, DrugGridRenderer (reads) | DataLoader writes once at init; others read via getter |
+| `this.regionMetaById` | DataLoader (writes) | AtlasController, DetailController, DrugGridRenderer (reads) | DataLoader writes once at init; others read via getter |
 
 ### 8.5 Recommended Extraction Contract
 
@@ -809,16 +809,16 @@ The following modules have already been extracted from DrugTreeApp and are NOT c
 
 | Module | Total Lines | Approx % of app.js |
 |--------|-----------|-------------------|
-| DataLoader | ~195 lines (L45-54, L158-167, L321-524) | 12.7% |
-| DrugGridRenderer | ~165 lines (L1050-1213) | 10.8% |
+| DataLoader | 62-line helper file plus app load methods | first helper extraction complete |
+| DrugGridRenderer | 142-line extracted renderer plus app card factory/empty-state methods | first renderer extraction complete |
 | PreviewController | ~140 lines (L676-715, L778-802, L1482-1508) | 9.1% |
 | FilterController | ~235 lines (L595-624, L669-674, L804-864, L866-940, L1029-1055) | 15.3% |
 | AtlasController | ~260 lines (L526-584, L717-776, L942-1023, L1497-1501) | 17.0% |
-| ModalController | ~330 lines (L626-640, L1215-1289, L1291-1480) | 21.5% |
+| DetailController | detail render/open/close/focus/genealogy methods | largest remaining extraction |
 | **Total extractable** | **~1,325 lines** | **86.5%** |
 | Remaining in DrugTreeApp (orchestration, lifecycle, handlers) | ~208 lines | 13.5% |
 
-Successful extraction of all six modules would reduce DrugTreeApp from 1,533 lines to approximately 208 lines of orchestration code: `constructor()`, `init()`, `initStores()`, store event handlers (`handleDrugSelected`, `handleDiseaseSelected`, `handleRegionSelected`, `handleSelectionCleared`, `handleViewChanged`), `setupEventListeners()`, `setupViewToggle()`, `setViewMode()`, `_applyViewUI()`, `switchMode()`, `showError()`, and `reset()`.
+Successful extraction of the remaining modules would reduce DrugTreeApp from its current 2,586 lines toward a smaller orchestration shell: `constructor()`, `init()`, `initStores()`, store event handlers (`handleDrugSelected`, `handleDiseaseSelected`, `handleRegionSelected`, `handleSelectionCleared`, `handleViewChanged`), `setupEventListeners()`, `setupViewToggle()`, `setViewMode()`, `_applyViewUI()`, `switchMode()`, `showError()`, and `reset()`.
 
 ---
 
@@ -833,9 +833,9 @@ Authoritative event pipeline definition synthesizing the render boundary map (Se
 | Property | Value |
 |----------|-------|
 | **Action** | User clicks a drug card in the grid |
-| **Canonical Path** | `selectionStore.setSelectedDrug(id, drug)` → `'drug:selected'` event → `handleDrugSelected()` → `selectDrug()` (card highlight) + `showDrugModal()` (B6 modal open + B9 genealogy tree) |
+| **Canonical Path** | `selectionStore.setSelectedDrug(id, drug)` → `'drug:selected'` event → `handleDrugSelected()` → `selectDrug()` (card highlight) + `showDrugModal()` wrapper → `renderDrugDetail()`/`openDrugDetail()` (B6 detail open + B9 genealogy tree) |
 | **Current Problem** | None after T2 fix. Card click routes through SelectionStore. |
-| **Target Boundaries** | B6 (Drug Modal), B9 (Genealogy Tree) |
+| **Target Boundaries** | B6 (Drug Detail Page), B9 (Genealogy Tree) |
 
 #### A2: Click body region
 
@@ -843,7 +843,7 @@ Authoritative event pipeline definition synthesizing the render boundary map (Se
 |----------|-------|
 | **Action** | User clicks an SVG body region on the atlas |
 | **Canonical Path** | `selectionStore.setSelectedRegion(regionId, meta)` → `'region:selected'` event → `handleRegionSelected()` → clears disease if region changed → B2 (body map) + B5 (region label) + B4 (filter chips) + B1 (drug grid) + B8 (disease view) |
-| **Current Problem** | `handleRegionSelected()` triggers the full `applyFilters()` cascade (B2 + B1), meaning body map (B2) runs redundantly after its own explicit `updateBodyMapState()` call. See Section 7.2 Chain 3. |
+| **Current Problem** | Resolved for the duplicate B2 call: `handleRegionSelected()` relies on the `applyFilters()` path for body-map state once. |
 | **Target Boundaries** | B2, B4, B5, B1, B8 (but B2 should NOT run via `applyFilters()`) |
 
 #### A3: Click ATC tag
@@ -861,7 +861,7 @@ Authoritative event pipeline definition synthesizing the render boundary map (Se
 |----------|-------|
 | **Action** | User types in the search box |
 | **Canonical Path** | Input event handler → `this.searchQuery = value` → B4 (filter chips) + B1 (drug grid) via `applyFilters()` |
-| **Current Problem** | Search query is set directly on `this.searchQuery` without going through SelectionStore. No event emitted. `applyFilters()` cascade includes B2 (body map) which is unnecessary for text search. See Section 7.2 Chain 1. |
+| **Current Problem** | Search query is set directly on `this.searchQuery` without going through SelectionStore. No event emitted. The body-map coupling has been fixed for text search by calling `applyFilters({ updateBodyMap: false })` after debounce. |
 | **Target Boundaries** | B4, B1 (NOT B2 — body map doesn't change on search) |
 
 #### A5: Select disease (from panel)
@@ -869,9 +869,9 @@ Authoritative event pipeline definition synthesizing the render boundary map (Se
 | Property | Value |
 |----------|-------|
 | **Action** | User selects a disease from the disease panel dropdown |
-| **Canonical Path** | `selectionStore.setSelectedDisease(id, disease)` → `'disease:selected'` event → `handleDiseaseSelected()` → resets `activeCategory` to "all" → B7 (disease panel) + B2 partial (disease highlights) + B3 (ATC tags) + B4 (filter chips) + B1 (drug grid via `applyFilters()`) + B8 (disease view) |
-| **Current Problem** | `applyFilters()` cascade includes B2 body map update which is unnecessary for disease selection (disease doesn't change category/region filter). ATC tags are reset even if already "all". |
-| **Target Boundaries** | B7, B2 (partial — highlights only), B4, B1, B8 (NOT B3 if already "all") |
+| **Canonical Path** | `selectionStore.setSelectedDisease(id, disease)` → `'disease:selected'` event → `handleDiseaseSelected()` → preserve `activeCategory` → B7 (disease panel) + B2 partial (disease highlights) + B4 (filter chips) + B1 (drug grid via `applyFilters()`) + B8 (disease view) |
+| **Current Problem** | Disease selection still touches several boundaries, but it no longer clears ATC state as a side effect. |
+| **Target Boundaries** | B7, B2 (partial — highlights only), B4, B1, B8 |
 
 #### A6: Remove disease filter chip
 
@@ -915,7 +915,7 @@ Authoritative event pipeline definition synthesizing the render boundary map (Se
 |----------|-------|
 | **Action** | User clicks the "Clear" button in the topbar |
 | **Canonical Path** | `clearFilters()` → `selectionStore.clear()` → `'selection:cleared'` event → `handleSelectionCleared()` → resets all state → B2 (clear highlights) + B7 (disease panel) + B5 (region label) + B4 (filter chips) + B1 (drug grid) + B8 (disease view) |
-| **Current Problem** | **Double cascade**: `clearFilters()` calls B3, B4, B1, B5, B8 directly BEFORE calling `SelectionStore.clear()`, which triggers `handleSelectionCleared()` that calls the SAME five boundaries again. See Section 7.2 Chain 4. Every clear action double-renders 5 boundaries. |
+| **Current Problem** | Main store-backed double cascade resolved: when `SelectionStore` has active selection, `clearFilters()` clears local filter state, calls `selectionStore.clear()`, and returns after `handleSelectionCleared()` performs the render path. No-selection clear and individual chip callbacks still use direct local updates. |
 | **Target Boundaries** | B2, B7, B5, B4, B1, B8 (each once only) |
 
 #### A11: Switch view mode (genealogy ↔ disease)
@@ -933,25 +933,25 @@ Authoritative event pipeline definition synthesizing the render boundary map (Se
 |----------|-------|
 | **Action** | User clicks the Public or Scientist mode button |
 | **Canonical Path** | `switchMode(mode)` → `this.mode = mode` → body class toggle → B1 (drug grid) → B6 (re-render modal if open) |
-| **Current Problem** | Mode is set directly on `this.mode` without store event. `renderDrugList()` rebuilds entire grid just to toggle card metadata visibility — should be CSS-only (card classes already respond to `mode-scientist` body class). Modal re-render via `showDrugModal()` is wasteful. |
-| **Target Boundaries** | B1 (CSS toggle only), B6 (CSS toggle only if open) |
+| **Current Problem** | Mode is set directly on `this.mode` without store event. Card DOM is preserved and mode visibility is CSS-driven; detail fields are re-rendered only if the detail page is open. |
+| **Target Boundaries** | B1 (CSS toggle only), B6 (detail field update only if open) |
 
-#### A13: Open drug modal
+#### A13: Open drug detail page
 
 | Property | Value |
 |----------|-------|
 | **Action** | User action that triggers `handleDrugSelected()` (see A1) |
-| **Canonical Path** | (same as A1 — opening modal is part of the drug selection flow) |
-| **Current Problem** | None. Modal is correctly rendered as one-shot. |
+| **Canonical Path** | (same as A1 — opening detail is part of the drug selection flow) |
+| **Current Problem** | None. Detail is correctly rendered as one-shot plus deferred hydration. |
 | **Target Boundaries** | B6, B9 |
 
-#### A14: Close drug modal
+#### A14: Close drug detail page
 
 | Property | Value |
 |----------|-------|
-| **Action** | User clicks modal overlay, close button, or presses Escape |
-| **Canonical Path** | Overlay click → `closeModal()`. Close button → `closeModal()`. Escape → `closeModal()` + `clearTransientPreviews()`. |
-| **Current Problem** | None. Modal close is self-contained. |
+| **Action** | User clicks the detail scrim/back button or presses Escape |
+| **Canonical Path** | Scrim/back click → `closeDrugDetail()`/`closeModal()` wrapper. Escape → `closeDrugDetail()` + `clearTransientPreviews()`. |
+| **Current Problem** | None. Detail close restores focus to the opener when possible. |
 | **Target Boundaries** | B6 (remove `.active` class) |
 
 ### 9.2 Direct State Mutation Exceptions
@@ -963,7 +963,7 @@ Every location in `app.js` where state is mutated without going through Selectio
 | D1 | `filterByCategory()` | L804-809 | `this.activeCategory` | **To fix** — should route through store or emit event | Medium | Breaks audit trail for ATC changes |
 | D2 | `setupSearch()` input handler | L619-622 | `this.searchQuery` | **To fix** — should route through store or emit event | Medium | Breaks audit trail for search changes |
 | D3 | `switchMode()` | L834-847 | `this.mode` | **To fix** — should route through store or emit event | Low | Display mode is not currently tracked by any consumer |
-| D4 | `clearFilters()` pre-store calls | L811-813 | `this.activeCategory`, `this.hoveredRegion`, `this.searchQuery` | **To fix** — these three mutations should happen inside `handleSelectionCleared()` only (eliminates double cascade) | High | Causes Section 7.2 Chain 4 double-render |
+| D4 | `clearFilters()` pre-store calls | current `clearFilters()` | `this.activeCategory`, `this.hoveredRegion`, `this.searchQuery` | **Partly accepted** — these mutations happen before `selectionStore.clear()` so the clear event sees final filter state; function returns early when a store selection existed | Medium | No longer causes the main store-backed double cascade |
 | D5 | `clearFilters()` search input clear | L816-818 | `searchInput.value = ""` | **Acceptable** — DOM sync for input element | None | Input must reflect empty state immediately |
 | D6 | `handleBodyRegionClick()` fallback | L724-742 | `this.activeDisease`, `this.activeBodyRegion`, `this.hoveredRegion` | **Legacy guard** — only runs when `selectionStore` is null (should never happen after init) | Low | Dead code path; SelectionStore is always initialized |
 | D7 | `updateActiveFiltersBar()` chip onRemove for ATC | L893-897 | `this.activeCategory` | **To fix** — should route through store | Low | Minor: causes correct render but no audit trail |
@@ -974,22 +974,17 @@ Every location in `app.js` where state is mutated without going through Selectio
 
 Priority-ordered list of changes needed to move from current broad rerenders to targeted event-driven renders:
 
-**1. Decouple `updateBodyMapState()` from `applyFilters()` (HIGH)**
-- `applyFilters()` currently calls `updateBodyMapState()` at L1046, meaning every search keystroke, disease selection, and ATC change triggers a 14-region O(n) body map recomputation.
-- Remove the `updateBodyMapState()` call from `applyFilters()`.
-- Call `updateBodyMapState()` explicitly only from: `handleRegionSelected()`, `handleDiseaseSelected()` (via highlight changes), `handleSelectionCleared()`, and `filterByCategory()`.
-- Eliminates B2 from Chain 1 (search) and reduces B2 calls in Chain 2 (disease).
+**1. Keep body-map recomputation explicit (DONE for search)**
+- `applyFilters()` accepts `updateBodyMap`; search passes `false`, so text input does not trigger the 14-region O(n) body-map pass.
+- Region/category/disease paths still update the map when the visual body state can change.
 
-**2. Eliminate double-render cascade in `clearFilters()` (HIGH)**
-- `clearFilters()` calls B3, B4, B1, B5, B8 directly, then `SelectionStore.clear()` triggers `handleSelectionCleared()` which calls the same 5 boundaries again.
-- Move all state mutations (`activeCategory = "all"`, `hoveredRegion = null`, `searchQuery = ""`) into `handleSelectionCleared()` only.
-- `clearFilters()` becomes a thin wrapper: reset search input, call `SelectionStore.clear()`.
-- Eliminates 100% of redundant double-render in Chain 4.
+**2. Eliminate double-render cascade in `clearFilters()` (PARTIAL)**
+- Store-backed clear now returns after `SelectionStore.clear()` dispatches `selection:cleared`.
+- Remaining work is chip-specific diffing and deciding whether ATC/search should be moved to a dedicated filter store.
 
-**3. Add view-mode change guard to `applyFilters()` (MEDIUM)**
-- `applyFilters()` always calls `renderDrugList()` regardless of whether the filter result actually changed.
-- Add a shallow-equal check: if new `filteredDrugs` array is the same length as current and mode/disease/category/region haven't changed, skip `renderDrugList()`.
-- Reduces unnecessary B1 grid rebuilds.
+**3. Keep grid rendering signature-based (DONE for DOM reconciliation)**
+- `DrugGridRenderer` skips no-op signatures and reuses/moves existing cards.
+- Future work is virtualizing large visible sets, not broad `innerHTML` replacement.
 
 **4. Route ATC category and search through a FilterStore or SelectionStore (MEDIUM)**
 - Currently `filterByCategory()` and `setupSearch()` directly mutate `this.activeCategory` and `this.searchQuery`.

@@ -5,7 +5,7 @@ REST API endpoints for drug data, lineage, and disease hierarchy.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from pathlib import Path
 
@@ -109,6 +109,9 @@ class DiseaseTreeResponse(BaseModel):
     drugs: List[Dict[str, Any]] = Field(
         default_factory=list, description="Drugs for this disease"
     )
+    total: int = Field(0, description="Total matching drugs before pagination")
+    limit: int = Field(20, description="Requested result limit")
+    offset: int = Field(0, description="Requested result offset")
 
 
 def load_drugs() -> List[Drug]:
@@ -152,6 +155,14 @@ def matches_drug_search(drug: Any, query: str) -> bool:
     )
 
 
+def get_drug_atc_category(drug: Any) -> Optional[str]:
+    if isinstance(drug, dict):
+        category = drug.get("atc_category")
+    else:
+        category = drug.atc_category
+    return str(category) if category else None
+
+
 def save_drugs(drugs: List[Drug]):
     """Save drugs to JSON file"""
     try:
@@ -171,8 +182,8 @@ async def list_drugs(
     category: Optional[str] = None,
     search: Optional[str] = None,
     phase: Optional[str] = None,
-    limit: int = 100,
-    offset: int = 0,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
 ):
     """
     List all drugs with optional filtering.
@@ -207,19 +218,25 @@ async def list_drugs(
 
 
 @router.get("/drugs/search", response_model=DrugListResponse)
-async def search_drugs(q: str = Query(..., description="Search query text")):
+async def search_drugs(
+    q: Annotated[str, Query(description="Search query text")],
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
+):
     """
     Search drugs by name, target, class, or synonyms.
 
     - **q**: Search query string
+    - **limit**: Max results to return (default 100)
+    - **offset**: Pagination offset (default 0)
     """
     drugs = load_drugs()
     filtered = [d for d in drugs if matches_drug_search(d, q)]
-    return DrugListResponse(total=len(filtered), drugs=filtered)
+    return DrugListResponse(total=len(filtered), drugs=filtered[offset : offset + limit])
 
 
-async def search_drugs_query(q: str):
-    return await search_drugs(q=q)
+async def search_drugs_query(q: str, limit: int = 100, offset: int = 0):
+    return await search_drugs(q=q, limit=limit, offset=offset)
 
 
 @router.get("/drugs/{drug_id}", response_model=Drug)
@@ -239,16 +256,22 @@ async def get_drug(drug_id: str):
 
 
 @router.get("/drugs/category/{category}", response_model=DrugListResponse)
-async def get_drugs_by_category(category: str):
+async def get_drugs_by_category(
+    category: str,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
+):
     """
     Get all drugs in a specific ATC category.
 
     - **category**: ATC category code (A-V)
+    - **limit**: Max results to return (default 100)
+    - **offset**: Pagination offset (default 0)
     """
     drugs = load_drugs()
-    filtered = [d for d in drugs if d.atc_category == category.upper()]
+    filtered = [d for d in drugs if get_drug_atc_category(d) == category.upper()]
 
-    return DrugListResponse(total=len(filtered), drugs=filtered)
+    return DrugListResponse(total=len(filtered), drugs=filtered[offset : offset + limit])
 
 
 @router.get("/lineage/{drug_id}", response_model=LineageResponse)
@@ -336,7 +359,13 @@ async def get_drug_lineage(drug_id: str, threshold: float = 0.5):
 
 
 @router.get("/tree/disease/{disease_id}", response_model=DiseaseTreeResponse)
-async def get_disease_tree(disease_id: str):
+async def get_disease_tree(
+    disease_id: str,
+    limit: Annotated[
+        int, Query(ge=1, le=100, description="Max associated drugs to return")
+    ] = 20,
+    offset: Annotated[int, Query(ge=0, description="Associated drug offset")] = 0,
+):
     """
     Get body region and drugs for a specific disease.
 
@@ -344,6 +373,8 @@ async def get_disease_tree(disease_id: str):
     that treat conditions related to this disease.
 
     - **disease_id**: Disease identifier (e.g., 'hypertension', 'type_2_diabetes')
+    - **limit**: Max associated drugs to return (default 20, capped at 100)
+    - **offset**: Associated drug offset (default 0)
     """
     ontology = load_body_ontology()
 
@@ -415,7 +446,10 @@ async def get_disease_tree(disease_id: str):
         disease_id=disease_id,
         disease=disease_response,
         region=region_response,
-        drugs=matching_drugs[:20],
+        drugs=matching_drugs[offset : offset + limit],
+        total=len(matching_drugs),
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -444,8 +478,8 @@ async def list_body_regions():
 
 @router.get("/families", response_model=DrugFamilyListResponse)
 async def list_families(
-    limit: int = 100,
-    offset: int = 0,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
 ):
     """
     List all drug families from the graph index.
@@ -491,8 +525,8 @@ async def get_family(family_id: str):
 async def list_lineages(
     drug_id: Optional[str] = None,
     edge_type: Optional[str] = None,
-    limit: int = 100,
-    offset: int = 0,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max results")] = 100,
+    offset: Annotated[int, Query(ge=0, description="Pagination offset")] = 0,
 ):
     """
     List all lineage edges from the graph index.

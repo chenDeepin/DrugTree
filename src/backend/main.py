@@ -3,6 +3,8 @@
 Main FastAPI application entry point.
 """
 
+import logging
+from contextlib import asynccontextmanager
 from typing import Any, Optional
 import os
 from time import perf_counter
@@ -18,7 +20,25 @@ from .routers.targets import router as targets_router
 from .routers.admin import router as admin_router
 from .routers.graph import router as graph_router
 from .services.data_snapshot import get_data_snapshot_service
+from .services.graph_index import get_graph_index
 from .services.request_metrics import get_request_metrics_service
+
+logger = logging.getLogger(__name__)
+
+
+def _warm_runtime_caches() -> None:
+    try:
+        get_data_snapshot_service().get_snapshot()
+        get_graph_index().load()
+    except Exception:
+        logger.exception("Failed to warm runtime caches")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    _warm_runtime_caches()
+    yield
+
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -27,6 +47,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Enable CORS for frontend access

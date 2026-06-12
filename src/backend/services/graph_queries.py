@@ -85,6 +85,16 @@ class GraphQueryService:
             for bucket in sorted(set(self._cache_hits) | set(self._cache_misses))
         }
 
+    def refresh(self) -> None:
+        self._cache.clear()
+        self._target_cache.clear()
+        self._dt_edges_cache.clear()
+        self._processed_cache_version = None
+        for bucket in self._cache_hits:
+            self._cache_hits[bucket] = 0
+        for bucket in self._cache_misses:
+            self._cache_misses[bucket] = 0
+
     def _parse_node_id(self, node_id: str) -> Optional[Tuple[str, str]]:
         if ":" not in node_id:
             return None
@@ -140,7 +150,12 @@ class GraphQueryService:
 
     def _cache_version(self) -> str:
         snapshot = self.snapshot_service.get_snapshot()
-        return f"{snapshot.source_hash}|{self._processed_artifact_version()}"
+        graph_version = (
+            self.graph_index.source_version()
+            if hasattr(self.graph_index, "source_version")
+            else "graph:unknown"
+        )
+        return f"{snapshot.source_hash}|{self._processed_artifact_version()}|{graph_version}"
 
     def _invalidate_processed_caches_if_needed(self) -> None:
         current_version = self._processed_artifact_version()

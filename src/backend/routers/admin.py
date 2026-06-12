@@ -28,6 +28,8 @@ from ..models.change import (
 )
 from ..services.audit_logger import get_audit_logger
 from ..services.change_detector import get_change_detector
+from ..services.data_snapshot import get_data_snapshot_service
+from ..services.graph_index import get_graph_index
 from ..services.graph_queries import get_graph_query_service
 from ..services.request_metrics import get_request_metrics_service
 from ..services.update_scheduler import get_scheduler
@@ -104,6 +106,11 @@ class PerformanceMetricsResponse(BaseModel):
     request_metrics: Mapping[str, object]
     snapshot_cache: Mapping[str, object]
     graph_query_cache: Mapping[str, object]
+
+
+class RefreshCachesResponse(BaseModel):
+    success: bool
+    refreshed: List[str]
 
 
 # Endpoints
@@ -394,8 +401,6 @@ async def get_data_quality_health() -> DataQualityHealthResponse:
 
 @router.get("/performance", response_model=PerformanceMetricsResponse)
 async def get_performance_metrics() -> PerformanceMetricsResponse:
-    from ..services.data_snapshot import get_data_snapshot_service
-
     snapshot = get_data_snapshot_service().get_snapshot()
     metrics = get_request_metrics_service().summarize()
     snapshot_cache = get_data_snapshot_service().cache_stats()
@@ -406,4 +411,15 @@ async def get_performance_metrics() -> PerformanceMetricsResponse:
         request_metrics=metrics,
         snapshot_cache=snapshot_cache,
         graph_query_cache=graph_query_cache,
+    )
+
+
+@router.post("/refresh", response_model=RefreshCachesResponse)
+async def refresh_runtime_caches() -> RefreshCachesResponse:
+    get_data_snapshot_service().refresh()
+    get_graph_index().refresh()
+    get_graph_query_service().refresh()
+    return RefreshCachesResponse(
+        success=True,
+        refreshed=["data_snapshot", "graph_index", "graph_query_cache"],
     )

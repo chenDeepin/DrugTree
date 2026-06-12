@@ -260,3 +260,6 @@ const approvalChips = new ApprovalChips();
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { ApprovalChips, approvalChips };
 }
+
+window.ApprovalChips = ApprovalChips;
+window.approvalChips = approvalChips;

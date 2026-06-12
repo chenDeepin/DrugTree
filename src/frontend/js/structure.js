@@ -73,8 +73,9 @@ class StructureViewer {
 
   createFallbackMarkup(smiles, { detail = false } = {}) {
     const safeSmiles = String(smiles || 'Structure unavailable');
+    const canExposeSmiles = detail && document.body.classList.contains('mode-scientist');
 
-    if (detail) {
+    if (canExposeSmiles) {
       return `
         <div class="placeholder">
           <div style="font-size: 4rem; margin-bottom: 1rem;">💊</div>
@@ -91,8 +92,8 @@ class StructureViewer {
     return `
       <div class="placeholder" style="text-align: center; padding: 1rem;">
         <div style="font-size: 2rem; margin-bottom: 0.5rem;">💊</div>
-        <div style="font-family: monospace; font-size: 0.7rem; word-break: break-all; color: #666;">
-          ${safeSmiles.length > 50 ? `${safeSmiles.substring(0, 50)}...` : safeSmiles}
+        <div style="font-size: 0.78rem; color: #7f8ea3;">
+          ${safeSmiles === 'Structure unavailable' ? safeSmiles : 'Structure preview unavailable'}
         </div>
       </div>
     `;

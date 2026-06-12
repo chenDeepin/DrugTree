@@ -10,14 +10,14 @@ Usage:
 
 import json
 import re
-import time
+import asyncio
 from collections import defaultdict
 from pathlib import Path
 import argparse
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import requests
+import httpx
 from tqdm import tqdm
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -101,14 +101,15 @@ class KEGGDrugClient:
             with open(cache_file, "r") as f:
                 self.cache = json.load(f)
 
-    def get_drug_info(self, kegg_drug_id: str) -> Optional[Dict[str, Any]]:
+    async def get_drug_info_async(self, kegg_drug_id: str) -> Optional[Dict[str, Any]]:
         """Fetch drug information from KEGG Drug API"""
         if kegg_drug_id in self.cache:
             return self.cache[kegg_drug_id]
 
         try:
             url = f"{self.BASE_URL}/get/{kegg_drug_id}"
-            response = requests.get(url, timeout=10)
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(url)
             response.raise_for_status()
 
             # Parse KEGG flat file format
@@ -118,12 +119,16 @@ class KEGGDrugClient:
             self.cache[kegg_drug_id] = info
 
             # Rate limiting
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
 
             return info
         except Exception as e:
             print(f"Error fetching {kegg_drug_id}: {e}")
             return None
+
+    def get_drug_info(self, kegg_drug_id: str) -> Optional[Dict[str, Any]]:
+        """Compatibility wrapper for legacy synchronous ETL call sites."""
+        return asyncio.run(self.get_drug_info_async(kegg_drug_id))
 
     def _parse_kegg_entry(self, entry_text: str) -> Dict[str, Any]:
         info: Dict[str, Any] = {

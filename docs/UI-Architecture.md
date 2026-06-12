@@ -1,10 +1,10 @@
 # DrugTree UI Architecture
 
-**Status:** Living document · **Last reviewed:** 2026-06-12 (branch `main`, base commit `34933f0`, with uncommitted two-pane refactor in the working tree)
+**Status:** Living document · **Last reviewed:** 2026-06-13 (branch `main`, base commit `34933f0`, with current working-tree UI optimization pass)
 **Audience:** Anyone optimizing or extending the frontend.
-**Companion:** [Architecture.md](./Architecture.md) covers the backend/data layer. For an exhaustive state inventory see [frontend-state-model.md](./ui/frontend-state-model.md) (note: its "Drug Modal / B6" sections predate the current anchored detail-page surface — see §7 below).
+**Companion:** [Architecture.md](./Architecture.md) covers the backend/data layer. For an exhaustive state inventory see [frontend-state-model.md](./ui/frontend-state-model.md).
 
-This document is the frontend map: the shell, the module graph, the state model, the render pipeline, and the seams to optimize. It reflects the **in-progress two-pane workspace refactor** currently in the working tree.
+This document is the frontend map: the shell, the module graph, the state model, the render pipeline, and the seams to optimize. It reflects the **two-pane workspace + anchored detail-page** surface currently in the working tree.
 
 ---
 
@@ -45,10 +45,9 @@ Key DOM landmarks (in `index.html`):
 - `#workspace-scroll-up / -slider / -down` — custom scroll controls synced by `syncWorkspaceScrollControls()`.
 - `#drug-grid` — the card grid.
 - `#disease-view-section` — D3 disease tree (shown in disease view mode).
-- `#drug-detail-page` — the **anchored detail surface** (replaces the old full-screen modal).
-- `#modal-overlay` (index.html:347) — **legacy modal, now vestigial**; slated for removal once the detail page fully supersedes it.
+- `#drug-detail-page` — the **anchored detail surface**. It is labelled as a dialog, traps focus while open, and restores focus to the opener when closed.
 
-**Script load order** (from `index.html`): `style.css` → D3 (CDN) → `structure.js` → `stores/graphStore.js` → `stores/selectionStore.js` → `views/genealogyView.js` → `views/diseaseView.js` → data embeds → `assets/human-body-svg.js` → `app-state.js` → `components/disease-panel.js` → `app.js`.
+**Script load order** (from `index.html`): `style.css` → D3 (CDN) → `structure.js` → `stores/graphStore.js` → `stores/selectionStore.js` → `views/genealogyView.js` → `views/diseaseView.js` → shell/data embeds (not `drugs.js`, not graph bundles) → `assets/human-body-svg.js` → `app-state.js` → `js/data-loader.js` → `components/approval-chips.js` → `components/mechanism-card.js` → `components/orphan-badge.js` → `components/disease-panel.js` → `components/drug-grid-renderer.js` → `app.js`.
 
 ---
 
@@ -56,19 +55,19 @@ Key DOM landmarks (in `index.html`):
 
 | File | Lines | Role |
 |------|------:|------|
-| `js/app.js` | ~2,760* | `DrugTreeApp` — boot, data loading, routing, filtering, rendering, detail surface. The orchestrator / god object. |
+| `js/app.js` | 2,586 | `DrugTreeApp` — boot, routing, filtering, detail surface, and orchestration around extracted helpers. Still the largest frontend module. |
+| `js/data-loader.js` | 62 | Shared data-loading helpers: dataset normalization, full-record merge, lazy script loading, API fetch timeout, and next-paint scheduling. |
+| `js/components/drug-grid-renderer.js` | 142 | Incremental drug-grid DOM reconciliation, count/note updates, empty state rendering, and card selection sync. |
 | `js/app-state.js` | ~361 | `DrugTreeState` — **stateless** utilities: `buildDrugIndexes`, `selectDrugIds`, label/summary builders, `getModePresentation`, toggles, `ATC_TO_BODY_REGIONS`. |
 | `js/stores/graphStore.js` | ~423 | Drug/disease/region topology (families, edges, nodes, hierarchy); lineage fetch + cache. |
 | `js/stores/selectionStore.js` | ~130 | `EventTarget` pub/sub for selection IDs + view mode. Single source of truth for *what is selected*. |
-| `js/views/diseaseView.js` | ~825 | D3 body→disease→drug tree; pruning of childless branches; resize handling. |
-| `js/views/genealogyView.js` | ~542 | D3 zoomable lineage tree with zoom controls; edge colored by type. |
+| `js/views/diseaseView.js` | 913 | D3 body→disease→drug tree; pruning of childless branches; highlight-only path for unchanged signatures; keyboard-accessible tree nodes; resize handling. |
+| `js/views/genealogyView.js` | 570 | D3 zoomable lineage tree with zoom controls, edge colors, tree roles, and keyboard-activatable nodes. |
 | `js/components/disease-panel.js` | ~311 | Disease search/select + orphan-only toggle (footer of right pane). |
 | `js/components/approval-chips.js` | ~262 | FDA approval status badges. |
 | `js/components/mechanism-card.js` | ~247 | Mechanism-of-action card (scientist detail). |
 | `js/components/orphan-badge.js` | ~301 | Orphan/rare indication badges. |
 | `js/structure.js` | ~304 | `StructureViewer` — RDKit.js SMILES→2D SVG with LRU cache + IntersectionObserver lazy render. |
-
-\* `app.js` grew ~324 lines in the working-tree refactor (orphan filtering, workspace context, scroll controls, anchored overlay positioning).
 
 ---
 
@@ -89,12 +88,12 @@ Full inventory: [frontend-state-model.md](./ui/frontend-state-model.md). The ess
 
 ## 5. Render Pipeline & Boundaries
 
-`applyFilters()` is the central render orchestrator. The codebase already has a documented **render-boundary map** (`ui/frontend-state-model.md` §7) identifying 10 surfaces (B1 Drug Grid, B2 Body Map, B3 ATC Tags, B4 Filter Chips, B5 Region Label, B6 Detail/Modal, B7 Disease Panel, B8 Disease View, B9 Genealogy, B10 View Toggle). The high-value problems it flags are still live:
+`applyFilters()` is the central render orchestrator. The codebase has a documented **render-boundary map** (`ui/frontend-state-model.md` §7) identifying 10 surfaces (B1 Drug Grid, B2 Body Map, B3 ATC Tags, B4 Filter Chips, B5 Region Label, B6 Detail Page, B7 Disease Panel, B8 Disease View, B9 Genealogy, B10 View Toggle). Several high-value issues have been narrowed in the current pass:
 
-- **B1 Drug Grid** rebuilds the whole grid (`innerHTML`) on every filter keystroke, recreating up to ~120 cards including RDKit render scheduling.
-- **B2 Body Map** is coupled into `applyFilters()`, recomputing per-region drug counts (14 × O(n)) on *every* search keystroke even though search doesn't change the body map.
-- **B8 Disease View** does a full D3 SVG rebuild on region/disease changes even when the region is unchanged.
-- **Duplicate cascades:** `clearFilters()` and `handleSelectionCleared()` double-fire several boundaries; `handleRegionSelected()` runs the body map update twice.
+- **B1 Drug Grid** is delegated to `DrugGridRenderer`, which reuses/moves existing `.drug-card` nodes by `data-drug-id` and skips no-op signatures.
+- **B2 Body Map** is decoupled from text-search filtering; search no longer recomputes per-region drug counts.
+- **B8 Disease View** skips D3 update work when the render signature is unchanged and refreshes node highlight classes only.
+- **Duplicate cascades:** `handleRegionSelected()` no longer runs the body map update twice, and `clearFilters()` routes store-backed clears through `handleSelectionCleared()` once.
 
 These are the backbone of the "optimize the UI rendering" track — see §9.
 
@@ -105,22 +104,23 @@ These are the backbone of the "optimize the UI rendering" track — see §9.
 Startup is tuned around payload size (embeds total ~9 MB of JS):
 
 1. **Shell first (eager):** `drugs-shell.js` (3.3 MB) gives every drug a light record (id, name, smiles, atc, phase, generation, class, target preview, body regions, search_text) → enough to render cards and filter immediately.
-2. **Full records (lazy):** `ensureFullDrugEmbedLoaded()` injects `drugs.js` (4.3 MB) as a `<script>` only when full detail is needed; the API (`/api/v1/drugs`) is tried first.
-3. **Graph (deferred):** `scheduleGraphLoad()` loads `graph-nodes.js` (1.1 MB) after first paint.
+2. **Full records (lazy):** `ensureFullDrugEmbedLoaded()` injects `drugs.js` (4.2 MB) as a `<script>` only when full detail is needed or file-based tests need complete data; the API (`/api/v1/drugs`) is tried first.
+3. **Graph (lazy/deferred):** `loadGraphData()` injects `graph-meta.js`, `graph-nodes.js`, and `graph-edges.js` with `loadScriptOnce()` only when graph features initialize; those bundles are no longer eager in `index.html`.
 4. **Structures (on-scroll):** `StructureViewer` renders SMILES→SVG only for cards entering the viewport, max 2 concurrent, LRU-cached (~400 SVGs).
 
-This shell + lazy-hydration + deferred-graph split is deliberate and should be preserved; optimizations should reduce payloads further (compression, code-split, trimming shell fields), not collapse the tiers.
+This shell + lazy-hydration + lazy-graph split is deliberate and should be preserved. Generated `.gz`/`.br` sidecars are written by `scripts/build_frontend_embeds.py` and served by `scripts/serve_frontend.py` in local/test static hosting.
 
 ---
 
 ## 7. Detail Surface (current refactor)
 
-The drug detail view is migrating from a **full-screen modal** to an **anchored in-panel page** (`#drug-detail-page`):
+The drug detail view is an **anchored in-panel page** (`#drug-detail-page`). The implementation still uses some legacy method names (`showDrugModal()`, `closeModal()`), but the DOM surface is the detail page:
 - `resolveDrugAnchorRect()` captures the clicked card's rect; `positionDrugDetailOverlay()` positions the detail shell relative to `#workspace-panel` with a gutter, so detail opens *in context* rather than as a blocking overlay.
 - `lastDetailAnchorRect` + `boundDetailOverlayPositioner` keep it positioned across scroll/resize.
 - Routing is still hash-based: `#drug/{id}` via `parseDrugDetailHash()` / `handleHashChange()`, with back-button restore via `lastNonDetailHash`.
+- `#drug-detail-page` has dialog semantics, `aria-labelledby`/`aria-describedby`, focus trapping, and focus restoration.
 
-**Consequence for docs/code:** the modal-centric descriptions in older docs (and the lingering `#modal-overlay` element) are legacy. New work should target `#drug-detail-page`. Removing the dead modal path is a cleanup item.
+New work should target `#drug-detail-page`; do not reintroduce `#modal-overlay`.
 
 ---
 
@@ -128,9 +128,9 @@ The drug detail view is migrating from a **full-screen modal** to an **anchored 
 
 A single dataset, gated by `getModePresentation(mode)` and `body.mode-public`/`mode-scientist` classes (`.scientist-only` is CSS-driven). Per `product/project-plan.md`:
 - **Public:** name, synonyms, indication, ATC label, body location, brief summary, approval year, small structure thumbnail.
-- **Scientist:** the above plus SMILES/InChIKey, descriptors (MW, cLogP, TPSA, HBA/HBD), targets, mechanism, lineage/genealogy, provenance.
+- **Scientist:** the above plus SMILES/InChIKey, available descriptors (currently MW in canonical data), targets, mechanism where curated, lineage/genealogy, and provenance when the canonical data adds it.
 
-The prior audit flagged that cards/detail were not yet *meaningfully* different between modes (e.g., SMILES showing in public). Deepening the mode split is an open product/UI task.
+The current pass removes raw SMILES from public card attributes/fallbacks, keeps expert snippets behind `.scientist-only`, loads the approval/mechanism/orphan component scripts, and renders approval chips on drug cards. Deeper descriptor/provenance disclosure depends on adding those fields to canonical data first.
 
 ---
 
@@ -140,16 +140,16 @@ Ranked by leverage. Entry points for the "optimize the UI" track.
 
 | # | Issue | Where | Impact | Direction |
 |---|-------|-------|--------|-----------|
-| U1 | **Body map recomputed on every keystroke** | `applyFilters()` → `updateBodyMapState()` (B2) | 14×O(n) filter passes per keystroke | Decouple B2; only recompute on category/region change; cache region counts |
-| U2 | **Full grid rebuild per filter change** | `renderDrugList()` (B1) | Destroys/recreates ~120 cards + RDKit scheduling | Incremental card diffing; debounce search; mode switch = class toggle, not rebuild |
+| U1 | **Body map search coupling resolved** | `applyFilters({ updateBodyMap })` | Search no longer triggers 14×O(n) body-map passes | Keep explicit body-map updates for category/region/disease highlight paths |
+| U2 | **Incremental grid renderer in place** | `DrugGridRenderer` (B1) | Visible result changes reuse/move existing card nodes instead of broad `innerHTML` replacement | Future: virtualized grid for very large visible sets |
 | U3 | **No virtual scrolling** | `#drug-grid` | DOM bloat on large result sets | Windowed rendering / virtualized grid |
-| U4 | **Duplicate render cascades** | `clearFilters()`/`handleSelectionCleared()`, `handleRegionSelected()` | Several boundaries fire twice | Route all downstream updates through the `selection:cleared` handler only |
-| U5 | **Full D3 rebuild on unchanged region** | `diseaseView.render()` (B8) | Expensive SVG rebuilds | Diff `currentRegionId`/`currentDiseaseId`; skip if unchanged |
-| U6 | **~9 MB embed payload** | `src/frontend/data/*.js` | Slow cold load on weak networks | Gzip/Brotli static serving, trim shell fields, split graph further |
-| U7 | **Accessibility gaps** | shell + detail page + D3 trees | No focus trap on detail, sparse aria, no keyboard nav, D3 trees not in a11y tree | Add `aria-modal`/focus management to detail page, `role`/`aria-live` on grid/counts, keyboard nav |
-| U8 | **Mobile/touch immaturity** | atlas hover previews, detail anchoring, scroll tools | Hover-only previews and desktop-anchored detail don't translate to touch | Touch-equivalent interactions; responsive detail placement |
-| U9 | **`app.js` god object (~2,760 ln)** | `js/app.js` | Hard to test/change | Extract per the seams in `ui/frontend-state-model.md` §8 (DataLoader → DrugGridRenderer → PreviewController → FilterController → AtlasController → DetailController) |
-| U10 | **Dead/legacy code** | `#modal-overlay`, any `body-map.js` remnants | Confusion, drift | Remove once detail-page migration lands |
+| U4 | **Duplicate render cascades narrowed** | `handleRegionSelected()`, `clearFilters()` | Region and clear paths no longer double-render core boundaries | Continue chip-specific diffing later |
+| U5 | **Disease highlight-only path in place** | `diseaseView.render()` (B8) | Same signature updates node highlight classes only; filter changes still prune branches | Keep D3 accessibility and resize tests with future edits |
+| U6 | **Initial payload + transfer size reduced** | `src/frontend/data/*.js`, `scripts/serve_frontend.py` | `drugs.js` and graph bundles are lazy; generated `.gz`/`.br` sidecars cut transferred bytes | Future: trim shell fields further |
+| U7 | **Core + D3 a11y improved** | shell, detail page, D3 views | Detail focus trap/restore, grid/list semantics, live count, keyboard cards, tree roles/keyboard nodes | Future: broader axe pass |
+| U8 | **Touch/mobile pass improved** | atlas previews, detail page, topbar | Touch dwell opens previews; mobile detail is fixed within viewport; topbar no longer causes horizontal overflow | Continue full phone-flow UX polish |
+| U9 | **`app.js` god object (2,586 ln)** | `js/app.js` | Hard to test/change; `js/data-loader.js` and `DrugGridRenderer` are first extractions | Continue per `ui/frontend-state-model.md` §8 (PreviewController → FilterController → AtlasController → DetailController) |
+| U10 | **Legacy modal DOM removed** | `#drug-detail-page` | `#modal-overlay` no longer exists | Keep code/docs on the anchored detail-page contract |
 
 ---
 

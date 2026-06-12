@@ -192,6 +192,14 @@ class TestDiseaseEndpoints:
             response = run_async(get_diseases_by_region("brain_cns"))
             assert response.total == 2
 
+    def test_get_diseases_by_region_paginates(self, sample_diseases):
+        with patch(
+            "src.backend.routers.diseases.load_diseases", return_value=sample_diseases
+        ):
+            response = run_async(get_diseases_by_region("brain_cns", limit=1, offset=1))
+            assert response.total == 2
+            assert len(response.diseases) == 1
+
     def test_get_orphan_diseases(self, sample_diseases):
         with patch(
             "src.backend.routers.diseases.load_diseases", return_value=sample_diseases
@@ -206,6 +214,14 @@ class TestDiseaseEndpoints:
         ):
             response = run_async(search_diseases("brain"))
             assert response.total == 1
+
+    def test_search_endpoint_paginates(self, sample_diseases):
+        with patch(
+            "src.backend.routers.diseases.load_diseases", return_value=sample_diseases
+        ):
+            response = run_async(search_diseases("i", limit=1, offset=1))
+            assert response.total == 3
+            assert len(response.diseases) == 1
 
     def test_stats_endpoint(self, sample_diseases):
         with patch(
@@ -293,6 +309,13 @@ class TestDiseaseEndpoints:
                 "donepezil-hydrochloride",
                 "memantine",
             }
+
+            paginated = run_async(
+                get_drugs_for_disease("alzheimers_disease", limit=1, offset=1)
+            )
+
+            assert paginated.total == 2
+            assert [drug.id for drug in paginated.drugs] == ["memantine"]
 
     def test_list_disease_drug_edges_uses_canonical_edge_loader(self):
         edges = [

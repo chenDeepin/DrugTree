@@ -352,6 +352,17 @@ test.describe('P0 Regression: Disease search simplification (T1)', () => {
   });
 });
 
+test.describe('Static payload compression', () => {
+  test('serves generated embeds with precompressed encoding', async ({ page }) => {
+    const response = await page.goto('/data/drugs-shell.js');
+    const headers = response?.headers() || {};
+
+    expect(response?.ok()).toBeTruthy();
+    expect(headers['content-encoding']).toMatch(/br|gzip/);
+    expect(Number(headers['content-length'] || 0)).toBeLessThan(900_000);
+  });
+});
+
 test.describe('P0 Regression: Selection source-of-truth (T2)', () => {
 
   test.beforeEach(async ({ page }) => {
@@ -504,6 +515,25 @@ test.describe('P0 Regression: Drug detail route state (T3/T4)', () => {
     expect(callsAfterScroll).toBeGreaterThan(0);
   });
 
+  test('detail page should trap focus and restore it to the launching card', async ({ page }) => {
+    const firstDrugCard = page.locator('.drug-card').first();
+
+    await firstDrugCard.focus();
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#drug-detail-page')).toBeVisible();
+    await expect(page.locator('#drug-detail-page')).toHaveAttribute('role', 'dialog');
+    await expect(page.locator('#drug-detail-page')).toHaveAttribute('aria-modal', 'true');
+
+    await expect(page.locator('#drug-detail-back')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.locator('#drug-detail-back')).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#drug-detail-page')).toBeHidden();
+    await expect(firstDrugCard).toBeFocused();
+  });
+
   test('browser back should restore the prior non-detail state without a full reload', async ({ page }) => {
     const firstDrugCard = page.locator('.drug-card').first();
     const drugId = await firstDrugCard.getAttribute('data-drug-id');
@@ -652,6 +682,31 @@ test.describe('Next-round rendering seams (Phase 0 / Track A)', () => {
     expect(preserved).toBe(true);
   });
 
+  test('drug grid should expose live result semantics and keyboard-openable cards', async ({ page }) => {
+    const grid = page.locator('#drug-grid');
+    const count = page.locator('#drug-count');
+    const firstCard = page.locator('.drug-card').first();
+    const drugId = await firstCard.getAttribute('data-drug-id');
+
+    expect(drugId).toBeTruthy();
+    await expect(grid).toHaveAttribute('role', 'list');
+    await expect(count).toHaveAttribute('aria-live', 'polite');
+    await expect(firstCard).toHaveAttribute('role', 'listitem');
+    await expect(firstCard).toHaveAttribute('tabindex', '0');
+    await expect(firstCard).toHaveAttribute('aria-label', /Open detail for /);
+
+    await firstCard.focus();
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#drug-detail-page')).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`#drug/${drugId}$`));
+  });
+
+  test('public drug cards should not expose raw SMILES attributes', async ({ page }) => {
+    await expect(page.locator('body')).toHaveClass(/mode-public/);
+    await expect(page.locator('.drug-card .drug-structure').first()).not.toHaveAttribute('data-smiles', /.+/);
+  });
+
   test('region selection should update body-map state once per boundary', async ({ page }) => {
     const updateCount = await page.evaluate(async () => {
       const pageWindow = window as typeof window & {
@@ -722,7 +777,11 @@ test.describe('Next-round rendering seams (Phase 0 / Track A)', () => {
     const rootStable = await page.evaluate(() => {
       const pageWindow = window as typeof window & {
         app?: {
-          diseaseView?: { root?: object | null };
+          diseaseView?: {
+            root?: object | null;
+            update?: (...args: Array<unknown>) => void;
+            updateNodeHighlightState?: () => void;
+          };
           renderActiveDiseaseView: () => void;
         };
       };
@@ -733,11 +792,33 @@ test.describe('Next-round rendering seams (Phase 0 / Track A)', () => {
         throw new Error('Disease view root unavailable');
       }
 
+      let updateCount = 0;
+      let highlightCount = 0;
+      const originalUpdate = app.diseaseView?.update?.bind(app.diseaseView);
+      const originalHighlight = app.diseaseView?.updateNodeHighlightState?.bind(app.diseaseView);
+
+      if (app.diseaseView && originalUpdate && originalHighlight) {
+        app.diseaseView.update = (...args: Array<unknown>) => {
+          updateCount += 1;
+          return originalUpdate(...args);
+        };
+        app.diseaseView.updateNodeHighlightState = () => {
+          highlightCount += 1;
+          return originalHighlight();
+        };
+      }
+
       app.renderActiveDiseaseView();
-      return app.diseaseView?.root === rootBefore;
+      return {
+        rootStable: app.diseaseView?.root === rootBefore,
+        updateCount,
+        highlightCount,
+      };
     });
 
-    expect(rootStable).toBe(true);
+    expect(rootStable.rootStable).toBe(true);
+    expect(rootStable.updateCount).toBe(0);
+    expect(rootStable.highlightCount).toBe(1);
   });
 });
 
@@ -998,6 +1079,30 @@ test.describe('P0 Regression: Tooltip clamping and responsive topbar (T6)', () =
         }
       }
     }
+  });
+
+  test('body region touch dwell should show the same preview as hover', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 812, isMobile: true });
+    await page.waitForTimeout(300);
+
+    const bodyRegion = page.locator('[data-region]').first();
+    await expect(bodyRegion).toBeVisible();
+
+    await bodyRegion.evaluate((element) => {
+      const pageWindow = window as typeof window & {
+        app?: { hoverDelay: number };
+      };
+      if (pageWindow.app) {
+        pageWindow.app.hoverDelay = 20;
+      }
+      element.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        pointerType: 'touch',
+      }));
+    });
+
+    await expect(page.locator('.body-preview')).toBeVisible({ timeout: 1000 });
   });
 });
 

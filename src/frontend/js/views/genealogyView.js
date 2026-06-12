@@ -61,6 +61,10 @@ class GenealogyView {
     this.isScientistMode = isScientistMode;
     this._nodePositions.clear();
 
+    const containerRect = container.getBoundingClientRect();
+    this.width = Math.max(240, Math.round(containerRect.width || this.width));
+    this.height = Math.max(260, Math.round(containerRect.height || this.height));
+
     // Clear existing content
     container.innerHTML = '';
 
@@ -114,7 +118,9 @@ class GenealogyView {
       .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
-      .attr('class', 'genealogy-svg');
+      .attr('class', 'genealogy-svg')
+      .attr('role', 'tree')
+      .attr('aria-label', 'Drug genealogy tree');
 
     // Add background rect for zoom/pan
     this.svg.append('rect')
@@ -215,7 +221,13 @@ class GenealogyView {
       .enter()
       .append('g')
       .attr('class', 'tree-node')
-      .attr('transform', d => `translate(${d.y},${d.x})`);
+      .attr('transform', d => `translate(${d.y},${d.x})`)
+      .attr('role', 'treeitem')
+      .attr('tabindex', 0)
+      .attr('focusable', true)
+      .attr('aria-label', d => this._getNodeAriaLabel(d))
+      .on('click', (event, d) => this._handleNodeClick(event, d.data))
+      .on('keydown', (event, d) => this._handleNodeKeydown(event, d.data));
 
     // Add node circles
     nodes.append('circle')
@@ -224,8 +236,7 @@ class GenealogyView {
       .attr('fill', d => this._getNodeColor(d.data))
       .attr('stroke', '#f1f5f9')
       .attr('stroke-width', 2)
-      .attr('cursor', 'pointer')
-      .on('click', (event, d) => this._handleNodeClick(event, d.data));
+      .attr('cursor', 'pointer');
 
     // Add node labels
     nodes.append('text')
@@ -356,6 +367,23 @@ class GenealogyView {
     if (this.app?.selectionStore) {
       this.app.selectionStore.setSelectedDrug(nodeData.id);
     }
+  }
+
+  _handleNodeKeydown(event, nodeData) {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    this._handleNodeClick(event, nodeData);
+  }
+
+  _getNodeAriaLabel(node) {
+    const name = node.data.name || node.data.id;
+    const generation = node.data.depth || 1;
+    const childCount = node.children?.length || 0;
+    const childText = childCount === 1 ? '1 successor' : `${childCount} successors`;
+    return `${name}, generation ${generation}, ${childText}`;
   }
 
   /**

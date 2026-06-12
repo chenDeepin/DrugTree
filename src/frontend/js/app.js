@@ -1,7 +1,25 @@
 const DrugTreeState = window.DrugTreeState;
+const DrugTreeDataLoader = window.DrugTreeDataLoader;
+const DrugGridRendererComponent = window.DrugGridRenderer;
+const PreviewControllerComponent = window.PreviewController;
+const FilterControllerComponent = window.FilterController;
+const AtlasControllerComponent = window.AtlasController;
+const DetailControllerComponent = window.DetailController;
 
 if (!DrugTreeState) {
   throw new Error("DrugTreeState global missing. Load js/app-state.js before js/app.js.");
+}
+
+if (!DrugTreeDataLoader) {
+  throw new Error("DrugTreeDataLoader global missing. Load js/data-loader.js before js/app.js.");
+}
+
+if (!DrugGridRendererComponent) {
+  throw new Error("DrugGridRenderer global missing. Load js/components/drug-grid-renderer.js before js/app.js.");
+}
+
+if (!PreviewControllerComponent || !FilterControllerComponent || !AtlasControllerComponent || !DetailControllerComponent) {
+  throw new Error("Controller globals missing. Load js/controllers/*.js before js/app.js.");
 }
 
 const {
@@ -16,13 +34,19 @@ const {
   toggleCategory,
 } = DrugTreeState;
 
+const {
+  fetchJsonWithTimeout,
+  getEmbeddedFullDrugData,
+  loadScriptOnce,
+  mergeDrugRecords,
+  normalizeDrugDataset,
+  waitForNextPaint,
+} = DrugTreeDataLoader;
+
 const EMBEDDED_BODY_ONTOLOGY = window.DRUGTREE_BODY_ONTOLOGY || null;
 const EMBEDDED_DRUG_SHELL_DATA = window.DRUGTREE_DRUGS_SHELL_DATA || window.DRUGTREE_DRUGS_DATA || null;
 const EMBEDDED_DISEASE_DATA = window.DRUGTREE_DISEASES_DATA || null;
 const EMBEDDED_DISEASE_DRUG_EDGES = window.DRUGTREE_DISEASE_DRUG_EDGES || null;
-const EMBEDDED_GRAPH_NODES = window.DRUGTREE_GRAPH_NODES || null;
-const EMBEDDED_GRAPH_EDGES = window.DRUGTREE_GRAPH_EDGES || null;
-const EMBEDDED_GRAPH_META = window.DRUGTREE_GRAPH_META || null;
 const EMBEDDED_BODY_SVG = window.DRUGTREE_HUMAN_BODY_SVG || "";
 
 const ATC_CATEGORIES = {
@@ -44,40 +68,11 @@ const ATC_CATEGORIES = {
 
 const DEFAULT_RESULT_LIMIT = 120;
 const STARTER_SET_LIMIT = 72;
-const API_FETCH_TIMEOUT_MS = 1200;
 const DETAIL_PENDING_TEXT = "Loading…";
 
-function normalizeDrugDataset(payload) {
-  return Array.isArray(payload) ? payload : (payload?.drugs || []);
-}
-
-function getEmbeddedFullDrugData() {
-  return window.DRUGTREE_DRUGS_DATA || null;
-}
-
-function mergeDrugRecords(shellDrug, fullDrug) {
-  return {
-    ...(shellDrug || {}),
-    ...(fullDrug || {}),
-  };
-}
-
-function waitForNextPaint() {
-  return new Promise((resolve) => {
-    window.requestAnimationFrame(() => resolve());
-  });
-}
-
-async function fetchJsonWithTimeout(url, timeoutMs = API_FETCH_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    return response;
-  } finally {
-    window.clearTimeout(timeoutId);
-  }
-}
+window.DrugTreeATCCategories = ATC_CATEGORIES;
+window.DrugTreeDefaultResultLimit = DEFAULT_RESULT_LIMIT;
+window.DrugTreeStarterSetLimit = STARTER_SET_LIMIT;
 
 class DrugTreeApp {
   API_BASE_URL = "http://127.0.0.1:8000/api/v1";
@@ -124,6 +119,14 @@ class DrugTreeApp {
     this.detailRenderToken = 0;
     this.lastDetailAnchorRect = null;
     this.boundDetailOverlayPositioner = null;
+    this.searchDebounceTimer = null;
+    this.visibleDrugCountCache = new Map();
+    this.preDetailFocusElement = null;
+    this.previewController = new PreviewControllerComponent(this);
+    this.filterController = new FilterControllerComponent(this);
+    this.atlasController = new AtlasControllerComponent(this, { embeddedBodySvg: EMBEDDED_BODY_SVG });
+    this.detailController = new DetailControllerComponent(this);
+    this.drugGridRenderer = new DrugGridRendererComponent(this);
   }
 
   async init() {
@@ -209,17 +212,27 @@ class DrugTreeApp {
   
   async loadGraphData() {
     if (this.graphStore && this.drugs.length > 0 && this.bodyOntology) {
-      const graphNodes = Array.isArray(EMBEDDED_GRAPH_NODES?.nodes)
-        ? EMBEDDED_GRAPH_NODES.nodes
+      try {
+        await Promise.all([
+          loadScriptOnce("data/graph-meta.js", "DRUGTREE_GRAPH_META"),
+          loadScriptOnce("data/graph-nodes.js", "DRUGTREE_GRAPH_NODES"),
+          loadScriptOnce("data/graph-edges.js", "DRUGTREE_GRAPH_EDGES"),
+        ]);
+      } catch (error) {
+        console.warn("Graph embeds unavailable, falling back to runtime graph assembly:", error);
+      }
+
+      const graphNodes = Array.isArray(window.DRUGTREE_GRAPH_NODES?.nodes)
+        ? window.DRUGTREE_GRAPH_NODES.nodes
         : [];
-      const graphEdges = Array.isArray(EMBEDDED_GRAPH_EDGES?.edges)
-        ? EMBEDDED_GRAPH_EDGES.edges
+      const graphEdges = Array.isArray(window.DRUGTREE_GRAPH_EDGES?.edges)
+        ? window.DRUGTREE_GRAPH_EDGES.edges
         : [];
 
-      if (EMBEDDED_GRAPH_META && graphNodes.length > 0) {
+      if (window.DRUGTREE_GRAPH_META && graphNodes.length > 0) {
         await this.graphStore.loadFromGraph(
           {
-            meta: EMBEDDED_GRAPH_META,
+            meta: window.DRUGTREE_GRAPH_META,
             nodes: graphNodes,
             edges: graphEdges,
           },
@@ -369,6 +382,57 @@ class DrugTreeApp {
     return this.applySpecialDrugFilters(baseDrugIds, { activeDisease, orphanOnly });
   }
 
+  getVisibleDrugCountCacheKey(overrides = {}) {
+    const activeCategory = Object.prototype.hasOwnProperty.call(overrides, 'activeCategory')
+      ? overrides.activeCategory
+      : this.activeCategory;
+    const activeBodyRegion = Object.prototype.hasOwnProperty.call(overrides, 'activeBodyRegion')
+      ? overrides.activeBodyRegion
+      : this.activeBodyRegion;
+    const activeDiseaseId = Object.prototype.hasOwnProperty.call(overrides, 'activeDiseaseId')
+      ? overrides.activeDiseaseId
+      : (this.activeDisease?.id || null);
+    const searchQuery = Object.prototype.hasOwnProperty.call(overrides, 'searchQuery')
+      ? overrides.searchQuery
+      : this.searchQuery;
+    const orphanOnly = Object.prototype.hasOwnProperty.call(overrides, 'showOrphanOnly')
+      ? overrides.showOrphanOnly
+      : this.isOrphanOnlyEnabled();
+
+    return [
+      activeCategory || "all",
+      activeBodyRegion || "",
+      activeDiseaseId || "",
+      searchQuery || "",
+      orphanOnly ? "orphan" : "all",
+    ].join("|");
+  }
+
+  getVisibleDrugCountForSelection(overrides = {}) {
+    const cacheKey = this.getVisibleDrugCountCacheKey(overrides);
+    if (this.visibleDrugCountCache.has(cacheKey)) {
+      return this.visibleDrugCountCache.get(cacheKey);
+    }
+
+    const count = this.getVisibleDrugIdsForSelection(overrides).length;
+    this.visibleDrugCountCache.set(cacheKey, count);
+    return count;
+  }
+
+  clearVisibleDrugCountCache() {
+    this.visibleDrugCountCache.clear();
+  }
+
+  getAtlasCountOverrides(overrides = {}) {
+    return {
+      activeCategory: this.activeCategory,
+      activeDiseaseId: this.activeDisease?.id || null,
+      activeDisease: this.activeDisease,
+      searchQuery: "",
+      ...overrides,
+    };
+  }
+
   syncWorkspaceScrollControls() {
     const scrollArea = document.getElementById('workspace-scroll-area');
     const slider = document.getElementById('workspace-scroll-slider');
@@ -417,6 +481,7 @@ class DrugTreeApp {
   setupViewToggle() {
     const viewButtons = document.querySelectorAll('.view-btn');
     viewButtons.forEach(btn => {
+      btn.setAttribute('aria-pressed', btn.dataset.view === this.viewMode ? 'true' : 'false');
       btn.addEventListener('click', () => {
         const view = btn.dataset.view;
         if (view === 'genealogy' || view === 'disease') {
@@ -434,7 +499,9 @@ class DrugTreeApp {
     }
     
     document.querySelectorAll('.view-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.view === mode);
+      const isActive = btn.dataset.view === mode;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
     
     const diseaseSection = document.getElementById('disease-view-section');
@@ -488,6 +555,8 @@ class DrugTreeApp {
     const normalizedDrugs = (drugs || []).filter((drug) => drug?.id);
     this.drugs = normalizedDrugs;
     this.drugShellsById = new Map(normalizedDrugs.map((drug) => [drug.id, drug]));
+    this.clearVisibleDrugCountCache();
+    this.drugGridRenderer.reset();
     this.syncFilteredDrugsFromIds(normalizedDrugs.map((drug) => drug.id));
   }
 
@@ -502,6 +571,8 @@ class DrugTreeApp {
     this.drugIndexes = buildDrugIndexes(this.drugs, {
       diseaseDrugIdsByDiseaseId: this.diseaseDrugIdsByDiseaseId,
     });
+    this.clearVisibleDrugCountCache();
+    this.drugGridRenderer.reset();
   }
 
   cacheFullDrugRecords(drugs) {
@@ -755,6 +826,12 @@ class DrugTreeApp {
       return;
     }
 
+    if (window.matchMedia("(max-width: 1000px)").matches) {
+      detailPage.style.setProperty("--detail-shell-top", "14px");
+      detailPage.style.setProperty("--detail-shell-max-width", "720px");
+      return;
+    }
+
     const anchorRect = this.resolveDrugAnchorRect(drugId);
     const gutter = 18;
     const preferredShellHeight = Math.min(
@@ -775,6 +852,69 @@ class DrugTreeApp {
 
     detailPage.style.setProperty("--detail-shell-top", `${clampedTop}px`);
     detailPage.style.setProperty("--detail-shell-max-width", `${maxWidth}px`);
+  }
+
+  isDrugDetailOpen() {
+    const detailPage = document.getElementById("drug-detail-page");
+    return Boolean(detailPage && !detailPage.hidden);
+  }
+
+  getDrugDetailFocusableElements() {
+    const detailPage = document.getElementById("drug-detail-page");
+    if (!detailPage || detailPage.hidden) {
+      return [];
+    }
+
+    const focusables = detailPage.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+
+    return Array.from(focusables).filter((element) => {
+      if (!(element instanceof HTMLElement) || element.closest("[hidden]")) {
+        return false;
+      }
+      const style = window.getComputedStyle(element);
+      return style.display !== "none" && style.visibility !== "hidden";
+    });
+  }
+
+  focusDrugDetailPage() {
+    const detailPage = document.getElementById("drug-detail-page");
+    if (!detailPage || detailPage.hidden) {
+      return;
+    }
+
+    const [firstFocusable] = this.getDrugDetailFocusableElements();
+    (firstFocusable || detailPage).focus({ preventScroll: true });
+  }
+
+  trapDrugDetailFocus(event) {
+    if (event.key !== "Tab" || !this.isDrugDetailOpen()) {
+      return;
+    }
+
+    const detailPage = document.getElementById("drug-detail-page");
+    const focusables = this.getDrugDetailFocusableElements();
+    if (!detailPage || focusables.length === 0) {
+      event.preventDefault();
+      detailPage?.focus({ preventScroll: true });
+      return;
+    }
+
+    const firstFocusable = focusables[0];
+    const lastFocusable = focusables[focusables.length - 1];
+    const activeElement = document.activeElement;
+
+    if (event.shiftKey && (activeElement === firstFocusable || !detailPage.contains(activeElement))) {
+      event.preventDefault();
+      lastFocusable.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!event.shiftKey && activeElement === lastFocusable) {
+      event.preventDefault();
+      firstFocusable.focus({ preventScroll: true });
+    }
   }
 
   requestDrugSelection(drug, cardElement = null) {
@@ -856,6 +996,13 @@ class DrugTreeApp {
   hideDrugDetailSurface({ clearSelection = false } = {}) {
     const detailPage = document.getElementById("drug-detail-page");
     const workspacePanel = document.getElementById("workspace-panel");
+    const selectedDrugId = this.selectedDrug?.id || null;
+    const restoreFocusTarget =
+      this.preDetailFocusElement && document.contains(this.preDetailFocusElement)
+        ? this.preDetailFocusElement
+        : selectedDrugId
+          ? document.querySelector(`.drug-card[data-drug-id="${CSS.escape(selectedDrugId)}"]`)
+          : null;
 
     this.detailRenderToken += 1;
 
@@ -874,6 +1021,15 @@ class DrugTreeApp {
     if (clearSelection) {
       this.clearSelectedDrugState();
     }
+
+    if (restoreFocusTarget instanceof HTMLElement) {
+      window.requestAnimationFrame(() => {
+        if (document.contains(restoreFocusTarget)) {
+          restoreFocusTarget.focus({ preventScroll: true });
+        }
+      });
+    }
+    this.preDetailFocusElement = null;
 
     window.requestAnimationFrame(() => this.syncWorkspaceScrollControls());
   }
@@ -958,7 +1114,6 @@ class DrugTreeApp {
 
     this.hoveredRegion = null;
     this.removePreview(".body-preview");
-    this.updateBodyMapState();
     this.updateBodyRegionLabel();
     this.updateActiveFiltersBar();
     this.applyFilters();
@@ -1188,63 +1343,11 @@ class DrugTreeApp {
   }
 
   async initBodyMap() {
-    const container = document.getElementById("body-map");
-    if (!container) {
-      return;
-    }
-
-    try {
-      if (EMBEDDED_BODY_SVG) {
-        container.innerHTML = EMBEDDED_BODY_SVG;
-      } else {
-        const response = await fetch("assets/human-body.svg");
-        if (!response.ok) {
-          throw new Error(`Unexpected SVG status: ${response.status}`);
-        }
-        container.innerHTML = await response.text();
-      }
-
-      const svg = container.querySelector("svg");
-      if (svg) {
-        svg.classList.add("atlas-body-svg");
-      }
-
-      this.regionElementsById.clear();
-      container.querySelectorAll("[data-region]").forEach((element) => {
-        const regionId = element.getAttribute("data-region");
-        if (!regionId) {
-          return;
-        }
-
-        const existing = this.regionElementsById.get(regionId) || [];
-        existing.push(element);
-        this.regionElementsById.set(regionId, existing);
-
-        element.addEventListener("click", () => this.handleBodyRegionClick(regionId));
-        element.addEventListener("mouseenter", () => this.handleBodyRegionHover(regionId));
-        element.addEventListener("mouseleave", () => this.handleBodyRegionLeave(regionId));
-      });
-
-      this.updateBodyMapState();
-      this.updateBodyRegionLabel();
-    } catch (error) {
-      console.error("Failed to load body atlas SVG:", error);
-      container.innerHTML = `<div class="empty-state"><p>Body atlas failed to load.</p></div>`;
-    }
+    return this.atlasController.initBodyMap();
   }
 
   updateAtlasSummary() {
-    const summary = document.getElementById("atlas-summary");
-    if (!summary) {
-      return;
-    }
-
-    const regions = this.bodyOntology?.visible_regions || [];
-    summary.innerHTML = `
-      <span class="summary-pill">${this.drugs.length.toLocaleString()} approved drugs</span>
-      <span class="summary-pill">${Object.keys(ATC_CATEGORIES).length} ATC groups</span>
-      <span class="summary-pill">${regions.length || 14} body regions</span>
-    `;
+    return this.atlasController.updateAtlasSummary();
   }
 
   setupEventListeners() {
@@ -1259,34 +1362,11 @@ class DrugTreeApp {
   }
 
   setupATCTags() {
-    document.querySelectorAll(".atc-tag").forEach((tag) => {
-      tag.addEventListener("click", (event) => {
-        const category = event.currentTarget.getAttribute("data-category");
-        this.filterByCategory(category);
-      });
-
-      tag.addEventListener("mouseenter", (event) => {
-        const category = event.currentTarget.getAttribute("data-category");
-        this.handleATCTagHover(category, event.currentTarget);
-      });
-
-      tag.addEventListener("mouseleave", (event) => {
-        this.handleATCTagLeave(event.currentTarget);
-      });
-    });
+    return this.filterController.setupATCTags();
   }
 
   setupSearch() {
-    const searchInput = document.getElementById("search-input");
-    if (!searchInput) {
-      return;
-    }
-
-    searchInput.addEventListener("input", (event) => {
-      this.searchQuery = event.target.value.toLowerCase();
-      this.updateActiveFiltersBar();
-      this.applyFilters();
-    });
+    return this.filterController.setupSearch();
   }
 
   setupModal() {
@@ -1310,20 +1390,6 @@ class DrugTreeApp {
       detailPage.dataset.bound = "true";
     }
 
-    const modalClose = document.querySelector(".modal-close");
-    if (modalClose) {
-      modalClose.addEventListener("click", () => this.closeDrugDetail());
-    }
-
-    const modalOverlay = document.getElementById("modal-overlay");
-    if (modalOverlay) {
-      modalOverlay.addEventListener("click", (event) => {
-        if (event.target === modalOverlay) {
-          this.closeDrugDetail();
-        }
-      });
-    }
-
     window.addEventListener("hashchange", () => this.handleHashChange());
 
     if (!this.boundDetailOverlayPositioner) {
@@ -1338,6 +1404,7 @@ class DrugTreeApp {
 
   setupModeSwitch() {
     document.querySelectorAll(".mode-btn").forEach((button) => {
+      button.setAttribute("aria-pressed", button.getAttribute("data-mode") === this.mode ? "true" : "false");
       button.addEventListener("click", (event) => {
         const mode = event.currentTarget.getAttribute("data-mode");
         this.switchMode(mode);
@@ -1347,6 +1414,11 @@ class DrugTreeApp {
 
   setupKeyboard() {
     document.addEventListener("keydown", (event) => {
+      if (event.key === "Tab") {
+        this.trapDrugDetailFocus(event);
+        return;
+      }
+
       if (event.key === "Escape") {
         this.closeDrugDetail();
         this.clearTransientPreviews();
@@ -1364,10 +1436,7 @@ class DrugTreeApp {
   }
 
   setupClearButton() {
-    const clearButton = document.getElementById("clear-filters");
-    if (clearButton) {
-      clearButton.addEventListener("click", () => this.clearFilters());
-    }
+    return this.filterController.setupClearButton();
   }
 
   setupWorkspaceScrollControls() {
@@ -1383,7 +1452,12 @@ class DrugTreeApp {
 
     const stepSize = () => Math.max(220, Math.round(scrollArea.clientHeight * 0.42));
 
-    scrollArea.addEventListener('scroll', () => this.syncWorkspaceScrollControls());
+    scrollArea.addEventListener('scroll', () => {
+      this.syncWorkspaceScrollControls();
+      if (this.parseDrugDetailHash()) {
+        this.positionDrugDetailOverlay();
+      }
+    });
     slider.addEventListener('input', () => {
       const maxScroll = Math.max(0, scrollArea.scrollHeight - scrollArea.clientHeight);
       const nextRatio = Number(slider.value) / 100;
@@ -1409,181 +1483,52 @@ class DrugTreeApp {
   }
 
   handleATCTagHover(category, element) {
-    element.classList.add("is-hovered");
-    this.hoverTimeout = setTimeout(() => {
-      this.showATCTagPreview(category, element);
-    }, this.hoverDelay);
+    return this.previewController.handleATCTagHover(category, element);
   }
 
   handleATCTagLeave(element) {
-    element.classList.remove("is-hovered");
-    this.clearHoverTimeout();
-    this.removePreview(".atc-preview");
+    return this.previewController.handleATCTagLeave(element);
   }
 
   showATCTagPreview(category, element) {
-    this.removePreview(".atc-preview");
-
-    const count = this.getVisibleDrugIdsForSelection({
-      activeCategory: category,
-      activeBodyRegion: this.activeBodyRegion,
-      activeDiseaseId: null,
-      activeDisease: null,
-      searchQuery: this.searchQuery,
-    }).length;
-
-    const categoryInfo = ATC_CATEGORIES[category] || { name: "Unknown", color: "#999" };
-    const preview = document.createElement("div");
-    preview.className = "atc-preview";
-    preview.innerHTML = `
-      <div class="atc-preview-title" style="color: ${categoryInfo.color}">${categoryInfo.name}</div>
-      <div class="atc-preview-count">${count} matching drugs</div>
-    `;
-
-    const rect = element.getBoundingClientRect();
-    preview.style.position = "fixed";
-    preview.style.left = `${rect.right + 10}px`;
-    preview.style.top = `${rect.top}px`;
-    preview.style.zIndex = "1000";
-
-    document.body.appendChild(preview);
-    requestAnimationFrame(() => preview.classList.add("visible"));
+    return this.previewController.showATCTagPreview(category, element);
   }
 
   handleBodyRegionClick(regionId) {
-    const nextRegionId = toggleBodyRegion(this.activeBodyRegion, regionId);
-
-    if (this.selectionStore) {
-      this.selectionStore.setSelectedRegion(nextRegionId, nextRegionId ? this.getRegionMeta(nextRegionId) : null);
-      return;
-    }
-
-    if (this.activeDisease && this.diseasePanel) {
-      this.activeDisease = null;
-      this.diseasePanel.activeDisease = null;
-      this.diseasePanel.render();
-    }
-    this.activeBodyRegion = nextRegionId;
-    this.hoveredRegion = null;
-    this.removePreview(".body-preview");
-    this.updateActiveFiltersBar();
-    this.applyFilters();
-    this.updateBodyRegionLabel();
+    return this.atlasController.handleBodyRegionClick(regionId);
   }
 
   handleBodyRegionHover(regionId) {
-    if (this.activeBodyRegion && this.activeBodyRegion !== regionId) {
-      return;
-    }
-
-    this.hoveredRegion = regionId;
-    this.updateBodyMapState();
-    this.updateBodyRegionLabel(regionId, false);
-
-    const elements = this.regionElementsById.get(regionId) || [];
-    const anchorElement = elements[0];
-    if (!anchorElement) {
-      return;
-    }
-
-    this.hoverTimeout = setTimeout(() => {
-      this.showBodyPreview(regionId, anchorElement);
-    }, this.hoverDelay);
+    return this.atlasController.handleBodyRegionHover(regionId);
   }
 
   handleBodyRegionLeave(regionId) {
-    this.clearHoverTimeout();
-    this.removePreview(".body-preview");
-
-    if (this.activeBodyRegion && this.activeBodyRegion !== regionId) {
-      return;
-    }
-
-    this.hoveredRegion = null;
-    this.updateBodyMapState();
-    this.updateBodyRegionLabel();
+    return this.atlasController.handleBodyRegionLeave(regionId);
   }
 
   showBodyPreview(regionId, element) {
-    this.removePreview(".body-preview");
-
-    const count = this.getVisibleDrugIdsForSelection({
-      activeCategory: this.activeCategory,
-      activeBodyRegion: regionId,
-      activeDiseaseId: null,
-      activeDisease: null,
-      searchQuery: this.searchQuery,
-    }).length;
-
-    const regionMeta = this.getRegionMeta(regionId);
-    const preview = document.createElement("div");
-    preview.className = "body-preview";
-    preview.innerHTML = `
-      <div class="body-preview-title">${regionMeta.display_name}</div>
-      <div class="body-preview-count">${count} matching drugs</div>
-    `;
-
-    const rect = element.getBoundingClientRect();
-    preview.style.left = `${rect.right + 12}px`;
-    preview.style.top = `${Math.max(12, rect.top - 8)}px`;
-
-    document.body.appendChild(preview);
-    requestAnimationFrame(() => preview.classList.add("visible"));
+    return this.previewController.showBodyPreview(regionId, element);
   }
 
   filterByCategory(category) {
-    this.activeCategory = toggleCategory(this.activeCategory, category);
-    this.updateATCTagsState();
-    this.updateActiveFiltersBar();
-    this.applyFilters();
+    return this.filterController.filterByCategory(category);
   }
 
   clearFilters() {
-    this.activeCategory = "all";
-    this.hoveredRegion = null;
-    this.searchQuery = "";
-
-    if (this.diseasePanel) {
-      this.diseasePanel.showOrphanOnly = false;
-    }
-
-    const searchInput = document.getElementById("search-input");
-    if (searchInput) {
-      searchInput.value = "";
-    }
-
-    if (this.selectionStore) {
-      this.selectionStore.clear();
-    } else {
-      this.activeBodyRegion = null;
-      this.activeDisease = null;
-      if (this.diseasePanel) {
-        this.diseasePanel.activeDisease = null;
-        this.diseasePanel.render();
-      }
-    }
-
-    if (this.diseasePanel) {
-      this.diseasePanel.render();
-    }
-
-    this.updateATCTagsState();
-    this.updateActiveFiltersBar();
-    this.applyFilters();
-    this.updateBodyRegionLabel();
-    this.updateWorkspaceContext();
+    return this.filterController.clearFilters();
   }
 
   switchMode(mode) {
     this.mode = mode;
     document.querySelectorAll(".mode-btn").forEach((button) => {
-      button.classList.toggle("active", button.getAttribute("data-mode") === mode);
+      const isActive = button.getAttribute("data-mode") === mode;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
 
     document.body.classList.remove("mode-public", "mode-scientist");
     document.body.classList.add(`mode-${mode}`);
 
-    this.renderDrugList();
     if (this.selectedDrug && this.parseDrugDetailHash()) {
       this.renderDrugDetail(this.selectedDrug);
     }
@@ -1591,272 +1536,43 @@ class DrugTreeApp {
   }
 
   updateATCTagsState() {
-    document.querySelectorAll(".atc-tag").forEach((tag) => {
-      const category = tag.getAttribute("data-category");
-      tag.classList.remove("is-active", "is-muted");
-
-      if (this.activeCategory === "all") {
-        return;
-      }
-
-      if (category === this.activeCategory) {
-        tag.classList.add("is-active");
-      } else {
-        tag.classList.add("is-muted");
-      }
-    });
+    return this.filterController.updateATCTagsState();
   }
 
   updateActiveFiltersBar() {
-    const container = document.getElementById("filter-chips");
-    const bar = document.getElementById("active-filters");
-    if (!container || !bar) {
-      return;
-    }
-
-    container.innerHTML = "";
-    const chips = [];
-
-    if (this.activeDisease) {
-      const diseaseName = this.activeDisease.canonical_name;
-      const orphanBadge = this.activeDisease.orphan_flag ? " [ORPHAN]" : "";
-      chips.push({
-        label: `Disease: ${diseaseName}${orphanBadge}`,
-        onRemove: () => {
-          if (this.selectionStore) {
-            this.selectionStore.setSelectedDisease(null, null);
-          } else {
-            this.activeDisease = null;
-            if (this.diseasePanel) {
-              this.diseasePanel.activeDisease = null;
-              this.diseasePanel.render();
-            }
-            this.clearBodyMapHighlight();
-            this.updateActiveFiltersBar();
-            this.applyFilters();
-          }
-        },
-      });
-    }
-
-    if (this.activeCategory !== "all") {
-      const category = ATC_CATEGORIES[this.activeCategory];
-      chips.push({
-        label: category ? category.name : this.activeCategory,
-        onRemove: () => {
-          this.activeCategory = "all";
-          this.updateATCTagsState();
-          this.updateActiveFiltersBar();
-          this.applyFilters();
-        },
-      });
-    }
-
-    if (this.searchQuery) {
-      chips.push({
-        label: `"${this.searchQuery}"`,
-        onRemove: () => {
-          this.searchQuery = "";
-          const searchInput = document.getElementById("search-input");
-          if (searchInput) {
-            searchInput.value = "";
-          }
-          this.updateActiveFiltersBar();
-          this.applyFilters();
-        },
-      });
-    }
-
-    if (this.isOrphanOnlyEnabled()) {
-      chips.push({
-        label: "Orphan Only",
-        onRemove: () => {
-          if (this.diseasePanel) {
-            this.diseasePanel.showOrphanOnly = false;
-            this.diseasePanel.render();
-          }
-          this.updateWorkspaceContext();
-          this.updateActiveFiltersBar();
-          this.applyFilters();
-        },
-      });
-    }
-
-    if (this.activeBodyRegion && !this.activeDisease) {
-      chips.push({
-        label: this.getRegionMeta(this.activeBodyRegion).display_name,
-        onRemove: () => {
-          if (this.selectionStore) {
-            this.selectionStore.setSelectedRegion(null, null);
-          } else {
-            this.activeBodyRegion = null;
-            this.updateActiveFiltersBar();
-            this.applyFilters();
-            this.updateBodyRegionLabel();
-          }
-        },
-      });
-    }
-
-    chips.forEach((chip) => {
-      const chipElement = document.createElement("div");
-      chipElement.className = "filter-chip";
-      chipElement.innerHTML = `
-        <span class="chip-label">${chip.label}</span>
-        <button class="chip-remove" title="Remove filter">&times;</button>
-      `;
-      chipElement.querySelector(".chip-remove").addEventListener("click", chip.onRemove);
-      container.appendChild(chipElement);
-    });
-
-    bar.classList.toggle("has-filters", chips.length > 0);
-    this.updateWorkspaceContext();
+    return this.filterController.updateActiveFiltersBar();
   }
 
   updateBodyMapState() {
-    this.regionElementsById.forEach((elements, regionId) => {
-      const regionDrugCount = this.getVisibleDrugIdsForSelection({
-        activeCategory: this.activeCategory,
-        activeBodyRegion: regionId,
-        activeDiseaseId: this.activeDisease?.id || null,
-        activeDisease: this.activeDisease,
-        searchQuery: this.searchQuery,
-      }).length;
-
-      elements.forEach((element) => {
-        element.classList.remove("is-active", "is-hovered", "is-muted", "highlighted");
-
-        if ((this.activeCategory !== "all" || this.isOrphanOnlyEnabled() || this.activeDisease) && regionDrugCount === 0) {
-          element.classList.add("is-muted");
-        }
-
-        if (this.activeBodyRegion === regionId) {
-          element.classList.add("is-active");
-        } else if (!this.activeBodyRegion && this.hoveredRegion === regionId) {
-          element.classList.add("is-hovered");
-        }
-      });
-    });
+    return this.atlasController.updateBodyMapState();
   }
 
   clearBodyMapHighlight() {
-    this.regionElementsById.forEach((elements) => {
-      elements.forEach((element) => {
-        element.classList.remove("is-active", "is-hovered", "highlighted");
-      });
-    });
-
-    const label = document.getElementById("body-region-label");
-    if (label && !this.activeBodyRegion) {
-      label.textContent = "Hover a region to preview its drug space";
-      label.classList.remove("active");
-    }
+    return this.atlasController.clearBodyMapHighlight();
   }
 
   updateBodyRegionLabel(overrideRegionId = null, isLocked = null) {
-    const label = document.getElementById("body-region-label");
-    if (!label) {
-      return;
-    }
-
-    const regionId = overrideRegionId || this.activeBodyRegion;
-    if (!regionId) {
-      label.textContent = "Hover a region to preview its drug space";
-      label.classList.remove("active");
-      return;
-    }
-
-    const regionMeta = this.getRegionMeta(regionId);
-    const count = this.getVisibleDrugIdsForSelection({
-      activeCategory: this.activeCategory,
-      activeBodyRegion: regionId,
-      activeDiseaseId: this.activeDisease?.id || null,
-      activeDisease: this.activeDisease,
-      searchQuery: this.searchQuery,
-    }).length;
-
-    const locked = isLocked !== null ? isLocked : regionId === this.activeBodyRegion;
-    label.textContent = locked
-      ? `Locked: ${regionMeta.display_name} · ${count} matching drugs`
-      : `${regionMeta.display_name} · ${count} matching drugs`;
-    label.classList.add("active");
+    return this.atlasController.updateBodyRegionLabel(overrideRegionId, isLocked);
   }
 
   getRegionMeta(regionId) {
-    return (
-      this.regionMetaById[regionId] || {
-        id: regionId,
-        display_name: humanizeRegionId(regionId),
-        description: "",
-      }
-    );
+    return this.atlasController.getRegionMeta(regionId);
   }
 
   getDrugBodyRegions(drug) {
     return resolveDrugBodyRegions(drug);
   }
 
-  applyFilters() {
-    const filteredDrugIds = this.getVisibleDrugIdsForSelection();
-
-    this.syncFilteredDrugsFromIds(filteredDrugIds);
-
-    this.updateBodyMapState();
-    this.renderDrugList();
-    this.renderActiveDiseaseView();
-    this.updateWorkspaceContext();
+  applyFilters({ updateBodyMap = true, deferListRender = false } = {}) {
+    return this.filterController.applyFilters({ updateBodyMap, deferListRender });
   }
 
   getRenderableDrugs() {
-    const hasFilters =
-      this.activeCategory !== "all" || this.activeBodyRegion || this.activeDisease || this.searchQuery;
-    const limit = hasFilters ? DEFAULT_RESULT_LIMIT : STARTER_SET_LIMIT;
-    return this.filteredDrugs.slice(0, limit);
+    return this.filterController.getRenderableDrugs();
   }
 
-  renderDrugList() {
-    const container = document.getElementById("drug-grid");
-    const countElement = document.getElementById("drug-count");
-    const noteElement = document.getElementById("results-note");
-    if (!container) {
-      return;
-    }
-
-    const visibleDrugs = this.getRenderableDrugs();
-    const hasFilters =
-      this.activeCategory !== "all" || this.activeBodyRegion || this.activeDisease || this.searchQuery;
-
-    if (countElement) {
-      countElement.textContent = hasFilters
-        ? `${this.filteredDrugs.length} matching drugs`
-        : `${this.drugs.length} drugs available`;
-    }
-
-    if (noteElement) {
-      if (this.filteredDrugs.length > visibleDrugs.length) {
-        noteElement.textContent = `Showing first ${visibleDrugs.length} results to keep the atlas responsive`;
-      } else if (!hasFilters) {
-        noteElement.textContent = "Starter set shown. Use ATC, body region, or search to refine.";
-      } else if (this.isOrphanOnlyEnabled()) {
-        noteElement.textContent = "Orphan-linked drug branches are being highlighted in the current workspace.";
-      } else {
-        noteElement.textContent = "";
-      }
-    }
-
-    container.innerHTML = "";
-
-    if (this.filteredDrugs.length === 0) {
-      container.innerHTML = this.buildEmptyState();
-      window.requestAnimationFrame(() => this.syncWorkspaceScrollControls());
-      return;
-    }
-
-    visibleDrugs.forEach((drug) => {
-      container.appendChild(this.createDrugCard(drug));
-    });
-
-    window.requestAnimationFrame(() => this.syncWorkspaceScrollControls());
+  renderDrugList({ deferCards = false } = {}) {
+    this.drugGridRenderer.render({ deferCards });
   }
 
   buildEmptyState() {
@@ -1924,6 +1640,9 @@ class DrugTreeApp {
     card.className = "drug-card";
     card.dataset.drugId = drug.id;
     card.dataset.category = category;
+    card.tabIndex = 0;
+    card.setAttribute("role", "listitem");
+    card.setAttribute("aria-label", `Open detail for ${drug.name || drug.id}`);
 
     if (this.selectedDrug && this.selectedDrug.id === drug.id) {
       card.classList.add("selected");
@@ -1936,13 +1655,14 @@ class DrugTreeApp {
     const atcBadge = drug.atc_code
       ? `<span class="atc-badge ${category}" title="${ATC_CATEGORIES[category]?.name || "Unknown"}">${drug.atc_code}</span>`
       : "";
-
-    const expertMeta = modePresentation.showExpertCardMeta
-      ? `
-        ${drug.class ? `<div class="drug-class">${drug.class}</div>` : ""}
-        ${targets ? `<div class="drug-targets">${targets}</div>` : ""}
-      `
+    const approvalBadge = window.approvalChips?.renderToString
+      ? window.approvalChips.renderToString(drug)
       : "";
+
+    const expertMeta = `
+      ${drug.class ? `<div class="drug-class scientist-only">${drug.class}</div>` : ""}
+      ${targets ? `<div class="drug-targets scientist-only">${targets}</div>` : ""}
+    `;
 
     const finalMeta = [
       `<span>${bodyRegionLabel}</span>`,
@@ -1958,7 +1678,8 @@ class DrugTreeApp {
     card.innerHTML = `
       ${generationBadge}
       ${atcBadge}
-      <div class="drug-structure" data-smiles="${drug.smiles}">
+      ${approvalBadge}
+      <div class="drug-structure">
         <div class="placeholder">Loading...</div>
       </div>
       <div class="drug-info">
@@ -1971,6 +1692,13 @@ class DrugTreeApp {
     `;
 
     card.addEventListener("click", () => this.requestDrugSelection(drug, card));
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      this.requestDrugSelection(drug, card);
+    });
 
     const structureContainer = card.querySelector(".drug-structure");
     if (this.structureViewer) {
@@ -1989,417 +1717,75 @@ class DrugTreeApp {
   }
 
   formatDetailValue(value, { pendingHydration = false, fallback = "N/A" } = {}) {
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value.join(", ") : (pendingHydration ? DETAIL_PENDING_TEXT : fallback);
-    }
-
-    if (value === null || value === undefined || value === "") {
-      return pendingHydration ? DETAIL_PENDING_TEXT : fallback;
-    }
-
-    return String(value);
+    return this.detailController.formatDetailValue(value, { pendingHydration, fallback });
   }
 
   updateDetailModePresentation(detailPage) {
-    const modePresentation = getModePresentation(this.mode);
-    detailPage.querySelectorAll(".scientist-only").forEach((element) => {
-      if (element.classList.contains("info-item")) {
-        element.style.display = modePresentation.showTechnicalChemistry ? "flex" : "none";
-      } else {
-        element.style.display = modePresentation.showTechnicalChemistry ? "block" : "none";
-      }
-    });
-
-    return modePresentation;
+    return this.detailController.updateDetailModePresentation(detailPage);
   }
 
   populateDrugDetailFields(drug, { pendingHydration = false } = {}) {
-    if (!drug) {
-      return;
-    }
-
-    const category = drug.atc_category || "V";
-    document.getElementById("modal-title").textContent = drug.name;
-    document.getElementById("modal-summary").textContent = buildPublicSummary(drug, this.regionMetaById);
-    document.getElementById("modal-region").textContent = buildBodyRegionLabel(drug, this.regionMetaById);
-
-    const atcCodeElement = document.getElementById("modal-atc-code");
-    if (atcCodeElement) {
-      atcCodeElement.textContent = drug.atc_code || "N/A";
-      atcCodeElement.onclick = () => {
-        this.filterByCategory(category);
-        this.closeDrugDetail();
-      };
-    }
-
-    document.getElementById("modal-class").textContent = this.formatDetailValue(drug.class, { pendingHydration });
-    document.getElementById("modal-mw").textContent = drug.molecular_weight
-      ? `${drug.molecular_weight.toFixed(2)} Da`
-      : this.formatDetailValue(null, { pendingHydration });
-    document.getElementById("modal-phase").textContent = drug.phase
-      ? `Phase ${drug.phase}`
-      : this.formatDetailValue(null, { pendingHydration });
-    document.getElementById("modal-year").textContent = this.formatDetailValue(
-      drug.year_approved || "Unknown",
-      { pendingHydration: false, fallback: "Unknown" },
-    );
-    document.getElementById("modal-company").textContent = this.formatDetailValue(drug.company, { pendingHydration });
-    document.getElementById("modal-indication").textContent = this.formatDetailValue(drug.indication, { pendingHydration });
-    document.getElementById("modal-targets").textContent = this.formatDetailValue(drug.targets, { pendingHydration });
-    document.getElementById("modal-synonyms").textContent = this.formatDetailValue(drug.synonyms, { pendingHydration });
-    document.getElementById("modal-inchikey").textContent = this.formatDetailValue(drug.inchikey, { pendingHydration });
-    document.getElementById("modal-smiles").textContent = this.formatDetailValue(drug.smiles, { pendingHydration });
+    return this.detailController.populateDrugDetailFields(drug, { pendingHydration });
   }
 
   setGenealogyPlaceholder(message) {
-    const parentsElement = document.getElementById("modal-parents");
-    const successorsElement = document.getElementById("modal-successors");
-    const container = document.getElementById("genealogy-tree-container");
-
-    if (parentsElement) {
-      parentsElement.textContent = message;
-    }
-    if (successorsElement) {
-      successorsElement.textContent = message;
-    }
-    if (container) {
-      container.innerHTML = `<div class="genealogy-tree-empty">${message}</div>`;
-    }
+    return this.detailController.setGenealogyPlaceholder(message);
   }
 
   renderDrugDetail(drug) {
-    const detailPage = document.getElementById("drug-detail-page");
-    const workspacePanel = document.getElementById("workspace-panel");
-
-    if (!detailPage || !workspacePanel || !drug) {
-      return;
-    }
-
-    const shellDrug = this.findShellDrugById(drug.id) || drug;
-    const hydratedDrug = this.fullDrugRecordsById.get(drug.id);
-    const detailDrug = hydratedDrug || mergeDrugRecords(shellDrug, drug);
-    const modePresentation = this.updateDetailModePresentation(detailPage);
-
-    this.selectedDrug = detailDrug;
-    this.populateDrugDetailFields(detailDrug, { pendingHydration: !hydratedDrug });
-
-    const structureContainer = document.getElementById("modal-structure");
-    if (structureContainer) {
-      structureContainer.innerHTML = '<div class="placeholder">Loading structure…</div>';
-    }
-
-    const generationElement = document.getElementById("modal-generation");
-    if (generationElement) {
-      generationElement.textContent = `Generation ${detailDrug.generation || 1}`;
-    }
-
-    if (modePresentation.showGenealogy) {
-      this.setGenealogyPlaceholder(DETAIL_PENDING_TEXT);
-    } else {
-      this.setGenealogyPlaceholder("Genealogy available in scientist mode");
-    }
-
-    detailPage.hidden = false;
-    workspacePanel.classList.add("detail-active");
-    document.body.style.overflow = "";
-    this.positionDrugDetailOverlay(detailDrug.id);
-
-    this.scheduleDeferredDetailRender(detailDrug, { renderGenealogy: modePresentation.showGenealogy });
+    return this.detailController.renderDrugDetail(drug);
   }
 
   showDrugModal(drug) {
-    this.renderDrugDetail(drug);
+    return this.detailController.showDrugModal(drug);
   }
 
   scheduleDeferredDetailRender(drug, { renderGenealogy = false } = {}) {
-    const renderToken = ++this.detailRenderToken;
-
-    void waitForNextPaint().then(async () => {
-      if (!drug?.id || this.parseDrugDetailHash() !== drug.id || renderToken !== this.detailRenderToken) {
-        return;
-      }
-
-      const structureContainer = document.getElementById("modal-structure");
-      if (structureContainer && this.structureViewer) {
-        void this.structureViewer.renderModalStructure(drug.smiles, structureContainer, 700, 350, {
-          drugId: drug.id,
-          cacheKey: `detail:${drug.id}`,
-        });
-      }
-
-      const hydratedDrug = await this.hydrateDrugRecord(drug.id);
-      if (!hydratedDrug || this.parseDrugDetailHash() !== drug.id || renderToken !== this.detailRenderToken) {
-        return;
-      }
-
-      this.selectedDrug = hydratedDrug;
-      this.populateDrugDetailFields(hydratedDrug, { pendingHydration: false });
-
-      if (structureContainer && this.structureViewer && hydratedDrug.smiles && hydratedDrug.smiles !== drug.smiles) {
-        void this.structureViewer.renderModalStructure(hydratedDrug.smiles, structureContainer, 700, 350, {
-          drugId: hydratedDrug.id,
-          cacheKey: `detail:${hydratedDrug.id}`,
-        });
-      }
-
-      if (!renderGenealogy) {
-        return;
-      }
-
-      const lineageData = await this.hydrateLineageData(drug.id);
-      if (this.parseDrugDetailHash() !== drug.id || renderToken !== this.detailRenderToken) {
-        return;
-      }
-
-      this.updateGenealogy(hydratedDrug, lineageData);
-      this.renderGenealogyTree(hydratedDrug, lineageData);
-    });
+    return this.detailController.scheduleDeferredDetailRender(drug, { renderGenealogy });
   }
 
   resolveLineageNodeName(drugId, lineageData) {
-    const lineageNode = (lineageData?.tree?.nodes || []).find((candidate) => candidate?.id === drugId);
-    return lineageNode?.name || this.findDrugById(drugId)?.name || drugId;
+    return this.detailController.resolveLineageNodeName(drugId, lineageData);
   }
 
   resolveGenealogyLinks(drugId, lineageData) {
-    const links = lineageData?.tree?.links || [];
-    return {
-      parentIds: links.filter((link) => link?.target === drugId).map((link) => link.source),
-      successorIds: links.filter((link) => link?.source === drugId).map((link) => link.target),
-    };
+    return this.detailController.resolveGenealogyLinks(drugId, lineageData);
   }
 
   getGenealogySourceDrugs() {
-    return this.fullDrugRecordsById.size > 0
-      ? Array.from(this.fullDrugRecordsById.values())
-      : this.drugs;
+    return this.detailController.getGenealogySourceDrugs();
   }
 
   updateGenealogy(drug, lineageData = null) {
-    const parentsElement = document.getElementById("modal-parents");
-    const successorsElement = document.getElementById("modal-successors");
-    const generationElement = document.getElementById("modal-generation");
-    const sourceDrugs = this.getGenealogySourceDrugs();
-    const lineageLinks = this.resolveGenealogyLinks(drug.id, lineageData);
-
-    if (generationElement) {
-      generationElement.textContent = `Generation ${drug.generation || 1}`;
-    }
-
-    if (parentsElement) {
-      const parentIds = drug.parent_drugs?.length ? [...drug.parent_drugs] : lineageLinks.parentIds;
-
-      if (parentIds.length > 0) {
-        parentsElement.innerHTML = parentIds
-          .map((parentId) => {
-            const parentDrug = sourceDrugs.find((candidate) => candidate.id === parentId || candidate.name === parentId);
-            const resolvedId = parentDrug?.id || parentId;
-            const resolvedName = parentDrug?.name || this.resolveLineageNodeName(parentId, lineageData);
-            return `<span class="genealogy-drug-link" data-drug-id="${resolvedId}">${resolvedName}</span>`;
-          })
-          .join(", ");
-
-        parentsElement.querySelectorAll(".genealogy-drug-link").forEach((link) => {
-          link.addEventListener("click", () => {
-            const drugId = link.getAttribute("data-drug-id");
-            const parentDrug = this.findDrugById(drugId);
-            if (parentDrug) {
-              this.requestDrugSelection(parentDrug);
-            }
-          });
-        });
-      } else {
-        parentsElement.textContent = "First in class";
-      }
-    }
-
-    if (successorsElement) {
-      const successorIds = lineageLinks.successorIds.length > 0
-        ? lineageLinks.successorIds
-        : sourceDrugs
-          .filter(
-            (candidate) =>
-              candidate.parent_drugs &&
-              (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name)),
-          )
-          .map((candidate) => candidate.id);
-
-      const successors = successorIds
-        .map((successorId) => sourceDrugs.find((candidate) => candidate.id === successorId) || {
-          id: successorId,
-          name: this.resolveLineageNodeName(successorId, lineageData),
-        })
-        .filter(Boolean);
-
-      if (successors.length > 0) {
-        successorsElement.innerHTML = successors
-          .map(
-            (successor) =>
-              `<span class="genealogy-drug-link" data-drug-id="${successor.id}">${successor.name}</span>`,
-          )
-          .join(", ");
-
-        successorsElement.querySelectorAll(".genealogy-drug-link").forEach((link) => {
-          link.addEventListener("click", () => {
-            const drugId = link.getAttribute("data-drug-id");
-            const successorDrug = this.findDrugById(drugId);
-            if (successorDrug) {
-              this.requestDrugSelection(successorDrug);
-            }
-          });
-        });
-      } else {
-        successorsElement.textContent = "Latest generation";
-      }
-    }
+    return this.detailController.updateGenealogy(drug, lineageData);
   }
 
   renderGenealogyTree(drug, lineageData = null) {
-    const container = document.getElementById('genealogy-tree-container');
-    if (!container) {
-      return;
-    }
-    
-    container.innerHTML = '';
-    
-    const isScientistMode = this.mode === 'scientist';
-    
-    if (window.GenealogyView) {
-      if (!this.genealogyView) {
-        this.genealogyView = new window.GenealogyView({ app: this });
-      }
-      
-      const treeData = lineageData || this._buildGenealogyTreeData(drug);
-      if (treeData) {
-        this.genealogyView.render(container, treeData, isScientistMode);
-      } else {
-        container.innerHTML = '<div class="genealogy-tree-empty">No lineage data available</div>';
-      }
-    } else {
-      container.innerHTML = '<div class="genealogy-tree-empty">GenealogyView not loaded</div>';
-    }
+    return this.detailController.renderGenealogyTree(drug, lineageData);
   }
   
   _buildGenealogyTreeData(drug) {
-    if (!drug) {
-      return null;
-    }
-
-    const sourceDrugs = this.getGenealogySourceDrugs();
-    
-    const nodes = [];
-    const links = [];
-    const crossLinks = [];
-    
-    const root = {
-      id: drug.id,
-      name: drug.name,
-      depth: drug.generation || 1,
-      children: []
-    };
-    nodes.push({ id: drug.id, name: drug.name, depth: drug.generation || 1 });
-    
-    const parentDrugs = (drug.parent_drugs || []).map(parentId => {
-      const parentDrug = sourceDrugs.find(d => d.id === parentId || d.name === parentId);
-      return parentDrug ? { id: parentDrug.id, name: parentDrug.name, depth: (parentDrug.generation || 1) } : null;
-    }).filter(Boolean);
-    
-    const successorDrugs = sourceDrugs.filter(candidate => 
-      candidate.parent_drugs && 
-      (candidate.parent_drugs.includes(drug.id) || candidate.parent_drugs.includes(drug.name))
-    );
-    
-    if (successorDrugs.length > 0) {
-      root.children = successorDrugs.map(s => ({
-        id: s.id,
-        name: s.name,
-        depth: s.generation || (drug.generation || 1) + 1,
-        children: []
-      }));
-      
-      successorDrugs.forEach(s => {
-        nodes.push({ id: s.id, name: s.name, depth: s.generation || (drug.generation || 1) + 1 });
-        links.push({
-          source: drug.id,
-          target: s.id,
-          edge_type: 'generation_successor',
-          confidence: 0.8
-        });
-      });
-    }
-    
-    const fullRoot = {
-      id: drug.id,
-      name: drug.name,
-      depth: drug.generation || 1,
-      children: root.children
-    };
-    
-    if (parentDrugs.length > 0) {
-      fullRoot.children = fullRoot.children || [];
-    }
-    
-    return {
-      drug_id: drug.id,
-      drug_name: drug.name,
-      tree: {
-        root: fullRoot,
-        nodes: nodes,
-        links: links,
-        cross_links: crossLinks
-      },
-      statistics: {
-        total_nodes: nodes.length,
-        max_depth: drug.generation || 1,
-        cross_links: 0
-      }
-    };
+    return this.detailController._buildGenealogyTreeData(drug);
   }
 
   closeModal() {
-    this.closeDrugDetail();
+    return this.detailController.closeModal();
   }
 
   async copySmiles() {
-    const smiles = document.getElementById("modal-smiles").textContent;
-    if (!smiles || !navigator.clipboard) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(smiles);
-      const button = document.getElementById("copy-smiles");
-      if (!button) {
-        return;
-      }
-      const originalLabel = button.textContent;
-      button.textContent = "✓ Copied!";
-      setTimeout(() => {
-        button.textContent = originalLabel;
-      }, 1500);
-    } catch (error) {
-      console.error("Failed to copy SMILES:", error);
-    }
+    return this.detailController.copySmiles();
   }
 
   clearHoverTimeout() {
-    if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout);
-      this.hoverTimeout = null;
-    }
+    return this.previewController.clearHoverTimeout();
   }
 
   clearTransientPreviews() {
-    this.clearHoverTimeout();
-    this.removePreview(".body-preview");
-    this.removePreview(".atc-preview");
+    return this.previewController.clearTransientPreviews();
   }
 
   removePreview(selector) {
-    const element = document.querySelector(selector);
-    if (element) {
-      element.remove();
-    }
+    return this.previewController.removePreview(selector);
   }
 
   showError(message) {

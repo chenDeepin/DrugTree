@@ -9,6 +9,7 @@ Reference: .sisyphus/plans/drugtree-graph-evolution.md (Task 17)
 
 import json
 from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -25,6 +26,14 @@ class DrugNode:
         self.families: List[str] = []
         self.outgoing_edges: List[str] = []  # Edge IDs where this drug is the source
         self.incoming_edges: List[str] = []  # Edge IDs where this drug is the target
+
+
+@dataclass(frozen=True)
+class GraphSourceStat:
+    """Lightweight source fingerprint used to detect ETL graph refreshes."""
+
+    mtime_ns: int
+    size: int
 
 
 class GraphIndex:
@@ -90,18 +99,76 @@ class GraphIndex:
 
         # Loaded flag
         self._loaded = False
+        self._source_signature: Optional[Dict[str, Optional[GraphSourceStat]]] = None
+
+    def _graph_artifact_paths(self) -> Dict[str, Path]:
+        return {
+            "graph_meta": self.graph_meta_path,
+            "graph_drugs": self.graph_dir / "nodes" / "drugs.json",
+            "graph_clusters": self.graph_dir / "nodes" / "clusters.json",
+            "graph_lineage": self.graph_dir / "edges" / "lineage.json",
+        }
+
+    def _fallback_source_paths(self) -> Dict[str, Path]:
+        return {
+            "families": self.families_path,
+            "edges": self.edges_path,
+            "drugs": self.drugs_path,
+        }
+
+    def _active_source_paths(self) -> Dict[str, Path]:
+        graph_paths = self._graph_artifact_paths()
+        if self.use_graph_artifacts and all(path.exists() for path in graph_paths.values()):
+            return graph_paths
+        return self._fallback_source_paths()
+
+    def _collect_source_signature(self) -> Dict[str, Optional[GraphSourceStat]]:
+        signature: Dict[str, Optional[GraphSourceStat]] = {}
+        for name, path in self._active_source_paths().items():
+            if not path.exists():
+                signature[name] = None
+                continue
+            stat = path.stat()
+            signature[name] = GraphSourceStat(
+                mtime_ns=stat.st_mtime_ns,
+                size=stat.st_size,
+            )
+        return signature
+
+    def _source_changed(self) -> bool:
+        if self._source_signature is None:
+            return True
+        return self._collect_source_signature() != self._source_signature
+
+    def _ensure_loaded(self) -> None:
+        if not self._loaded:
+            self.load()
+            return
+        if self._source_changed():
+            self.refresh()
+
+    def source_version(self) -> str:
+        """Return a deterministic version string for the graph source files."""
+        self._ensure_loaded()
+        signature = self._source_signature or {}
+        return "|".join(
+            f"{name}:{stat.mtime_ns}:{stat.size}" if stat else f"{name}:missing"
+            for name, stat in sorted(signature.items())
+        )
 
     def load(self) -> None:
         """Load all data from JSON files into memory."""
         if self.use_graph_artifacts and self.graph_meta_path.exists():
             self._load_graph_artifacts()
             self._loaded = True
+            self._source_signature = self._collect_source_signature()
             return
 
         self._load_families()
         self._load_edges()
         self._load_drug_names()
         self._loaded = True
+        self._source_signature = self._collect_source_signature()
 
     def _load_graph_artifacts(self) -> None:
         drugs_path = self.graph_dir / "nodes" / "drugs.json"
@@ -267,16 +334,15 @@ class GraphIndex:
         self._edges_by_drug.clear()
         self._adjacency.clear()
         self._loaded = False
+        self._source_signature = None
         self.load()
 
     def get_neighbors(self, drug_id: str) -> List[str]:
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
         return sorted(self._adjacency.get(drug_id, set()))
 
     def get_neighborhood(self, drug_id: str, max_hops: int = 1) -> Dict[str, List[str]]:
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
 
         if max_hops < 1 or drug_id not in self._nodes:
             return {}
@@ -299,8 +365,7 @@ class GraphIndex:
         }
 
     def get_edge_evidence(self, edge_id: str) -> List[Dict[str, Any]]:
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
 
         edge = self._edges.get(edge_id)
         if edge is None:
@@ -319,8 +384,7 @@ class GraphIndex:
         ]
 
     def get_subgraph(self, node_ids: List[str]) -> Dict[str, List[str]]:
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
 
         node_set = {node_id for node_id in node_ids if node_id in self._nodes}
         return {
@@ -342,8 +406,7 @@ class GraphIndex:
         Returns:
             DrugNode if found, None otherwise
         """
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
         return self._nodes.get(node_id)
 
     def get_edges(self, drug_id: str) -> List[LineageEdge]:
@@ -356,8 +419,7 @@ class GraphIndex:
         Returns:
             List of LineageEdge objects (both incoming and outgoing)
         """
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
 
         edge_ids = self._edges_by_drug.get(drug_id, [])
         return [self._edges[eid] for eid in edge_ids if eid in self._edges]
@@ -372,8 +434,7 @@ class GraphIndex:
         Returns:
             List of LineageEdge where drug_id is the predecessor
         """
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
 
         node = self._nodes.get(drug_id)
         if not node:
@@ -391,8 +452,7 @@ class GraphIndex:
         Returns:
             List of LineageEdge where drug_id is the successor
         """
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
 
         node = self._nodes.get(drug_id)
         if not node:
@@ -410,8 +470,7 @@ class GraphIndex:
         Returns:
             DrugFamily if found, None otherwise
         """
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
         return self._families.get(family_id)
 
     def get_families_for_drug(self, drug_id: str) -> List[DrugFamily]:
@@ -424,8 +483,7 @@ class GraphIndex:
         Returns:
             List of DrugFamily objects
         """
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
 
         node = self._nodes.get(drug_id)
         if not node:
@@ -435,27 +493,23 @@ class GraphIndex:
 
     def get_all_drugs(self) -> List[str]:
         """Get all drug IDs in the index."""
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
         return list(self._nodes.keys())
 
     def get_all_families(self) -> List[str]:
         """Get all family IDs in the index."""
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
         return list(self._families.keys())
 
     def get_all_edges(self) -> List[LineageEdge]:
         """Get all lineage edges."""
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
         return list(self._edges.values())
 
     @property
     def stats(self) -> Dict[str, int]:
         """Get index statistics."""
-        if not self._loaded:
-            self.load()
+        self._ensure_loaded()
         return {
             "total_nodes": len(self._nodes),
             "total_edges": len(self._edges),

@@ -2,10 +2,9 @@
 """Fetch ATC codes from ChEMBL API with checkpointing support."""
 
 import json
-import time
-import requests
+import asyncio
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import httpx
 from tqdm import tqdm
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
@@ -33,7 +32,7 @@ def save_checkpoint(checkpoint_data):
         json.dump(checkpoint_data, f, indent=2)
 
 
-def fetch_chembl_atc(drug_name: str, drug_id: str) -> dict:
+async def fetch_chembl_atc_async(client: httpx.AsyncClient, drug_name: str, drug_id: str) -> dict:
     """Fetch ATC code from ChEMBL by drug name search."""
     result = {
         "drug_id": drug_id,
@@ -48,9 +47,7 @@ def fetch_chembl_atc(drug_name: str, drug_id: str) -> dict:
         clean_name = "".join(c for c in clean_name if c.isalnum() or c in " -_")
 
         params = {"q": clean_name}
-        resp = requests.get(
-            CHEMBL_SEARCH_URL, params=params, headers=HEADERS, timeout=20
-        )
+        resp = await client.get(CHEMBL_SEARCH_URL, params=params)
 
         if resp.status_code != 200:
             return result
@@ -72,12 +69,21 @@ def fetch_chembl_atc(drug_name: str, drug_id: str) -> dict:
 
         return result
 
-    except Exception as e:
+    except (httpx.HTTPError, ValueError) as e:
         print(f"  Error fetching {drug_name}: {e}")
         return result
 
 
-def main():
+def fetch_chembl_atc(drug_name: str, drug_id: str) -> dict:
+    """Compatibility wrapper for legacy synchronous callers."""
+    async def _run() -> dict:
+        async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+            return await fetch_chembl_atc_async(client, drug_name, drug_id)
+
+    return asyncio.run(_run())
+
+
+async def async_main():
     print("=" * 60)
     print("ChEMBL ATC Code Fetcher (with checkpointing)")
     print("=" * 60)
@@ -111,35 +117,36 @@ def main():
         success_count = 0
         fail_count = 0
 
-        with tqdm(total=len(drugs_to_process), desc="Fetching ATC codes") as pbar:
-            for drug in drugs_to_process:
-                drug_id = drug.get("id")
-                drug_name = drug.get("name", "")
+        async with httpx.AsyncClient(headers=HEADERS, timeout=20) as client:
+            with tqdm(total=len(drugs_to_process), desc="Fetching ATC codes") as pbar:
+                for drug in drugs_to_process:
+                    drug_id = drug.get("id")
+                    drug_name = drug.get("name", "")
 
-                # Fetch ATC
-                result = fetch_chembl_atc(drug_name, drug_id)
+                    # Fetch ATC
+                    result = await fetch_chembl_atc_async(client, drug_name, drug_id)
 
-                # Store result
-                atc_results[drug_id] = result
-                processed_ids.add(drug_id)
+                    # Store result
+                    atc_results[drug_id] = result
+                    processed_ids.add(drug_id)
 
-                if result["atc_code"]:
-                    success_count += 1
-                else:
-                    fail_count += 1
+                    if result["atc_code"]:
+                        success_count += 1
+                    else:
+                        fail_count += 1
 
-                # Update progress
-                pbar.update(1)
-                pbar.set_postfix({"found": success_count, "missing": fail_count})
+                    # Update progress
+                    pbar.update(1)
+                    pbar.set_postfix({"found": success_count, "missing": fail_count})
 
-                # Checkpoint every CHECKPOINT_INTERVAL drugs
-                if len(processed_ids) % CHECKPOINT_INTERVAL == 0:
-                    save_checkpoint(
-                        {"processed_ids": list(processed_ids), "results": atc_results}
-                    )
+                    # Checkpoint every CHECKPOINT_INTERVAL drugs
+                    if len(processed_ids) % CHECKPOINT_INTERVAL == 0:
+                        save_checkpoint(
+                            {"processed_ids": list(processed_ids), "results": atc_results}
+                        )
 
-                # Rate limiting
-                time.sleep(REQUEST_DELAY)
+                    # Rate limiting
+                    await asyncio.sleep(REQUEST_DELAY)
 
         # Final checkpoint
         save_checkpoint({"processed_ids": list(processed_ids), "results": atc_results})
@@ -188,6 +195,10 @@ def main():
         CHECKPOINT_FILE.unlink()
 
     print("\n✓ Done!")
+
+
+def main():
+    return asyncio.run(async_main())
 
 
 if __name__ == "__main__":

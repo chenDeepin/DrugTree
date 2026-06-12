@@ -4,7 +4,13 @@
 from __future__ import annotations
 
 import json
+import gzip
 from pathlib import Path
+
+try:
+    import brotli
+except ImportError:  # pragma: no cover - optional local optimization dependency
+    brotli = None
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -135,6 +141,24 @@ def write_json(output_path: Path, payload) -> None:
     )
 
 
+def write_compressed_asset(source_path: Path) -> None:
+    raw = source_path.read_bytes()
+    source_path.with_suffix(source_path.suffix + ".gz").write_bytes(
+        gzip.compress(raw, compresslevel=9)
+    )
+
+    if brotli is not None:
+        source_path.with_suffix(source_path.suffix + ".br").write_bytes(
+            brotli.compress(raw, quality=11)
+        )
+
+
+def write_compressed_assets(paths) -> None:
+    for path in paths:
+        if path.exists():
+            write_compressed_asset(path)
+
+
 def load_graph_payload(path: Path, key: str):
     if not path.exists():
         return {key: []}
@@ -262,44 +286,45 @@ def main() -> None:
         else None
     )
 
-    write_json(FRONTEND_DATA_DIR / "drugs.json", drugs)
-    write_json(FRONTEND_DATA_DIR / "drugs-shell.json", drug_shells)
-    write_json(FRONTEND_DATA_DIR / "diseases.json", diseases)
-    write_json(FRONTEND_DATA_DIR / "disease-drug-edges.json", disease_drug_edges)
-    write_json(FRONTEND_DATA_DIR / "body-ontology.json", body_ontology)
-    write_json(FRONTEND_DATA_DIR / "graph-nodes.json", graph_nodes)
-    write_json(FRONTEND_DATA_DIR / "graph-edges.json", graph_edges)
-    write_json(FRONTEND_DATA_DIR / "graph-meta.json", graph_meta)
-
-    write_global(FRONTEND_DATA_DIR / "drugs.js", "DRUGTREE_DRUGS_DATA", drugs)
-    write_global(
+    generated_paths = [
+        FRONTEND_DATA_DIR / "drugs.json",
+        FRONTEND_DATA_DIR / "drugs-shell.json",
+        FRONTEND_DATA_DIR / "diseases.json",
+        FRONTEND_DATA_DIR / "disease-drug-edges.json",
+        FRONTEND_DATA_DIR / "body-ontology.json",
+        FRONTEND_DATA_DIR / "graph-nodes.json",
+        FRONTEND_DATA_DIR / "graph-edges.json",
+        FRONTEND_DATA_DIR / "graph-meta.json",
+        FRONTEND_DATA_DIR / "drugs.js",
         FRONTEND_DATA_DIR / "drugs-shell.js",
-        "DRUGTREE_DRUGS_SHELL_DATA",
-        drug_shells,
-    )
-    write_global(FRONTEND_DATA_DIR / "diseases.js", "DRUGTREE_DISEASES_DATA", diseases)
-    write_global(
+        FRONTEND_DATA_DIR / "diseases.js",
         FRONTEND_DATA_DIR / "disease-drug-edges.js",
-        "DRUGTREE_DISEASE_DRUG_EDGES",
-        disease_drug_edges,
-    )
-    write_global(
         FRONTEND_DATA_DIR / "body-ontology.js",
-        "DRUGTREE_BODY_ONTOLOGY",
-        body_ontology,
-    )
-    write_global(
-        FRONTEND_DATA_DIR / "graph-nodes.js", "DRUGTREE_GRAPH_NODES", graph_nodes
-    )
-    write_global(
-        FRONTEND_DATA_DIR / "graph-edges.js", "DRUGTREE_GRAPH_EDGES", graph_edges
-    )
-    write_global(FRONTEND_DATA_DIR / "graph-meta.js", "DRUGTREE_GRAPH_META", graph_meta)
-    write_global(
+        FRONTEND_DATA_DIR / "graph-nodes.js",
+        FRONTEND_DATA_DIR / "graph-edges.js",
+        FRONTEND_DATA_DIR / "graph-meta.js",
         FRONTEND_ROOT / "assets" / "human-body-svg.js",
-        "DRUGTREE_HUMAN_BODY_SVG",
-        human_body_svg,
-    )
+    ]
+
+    write_json(generated_paths[0], drugs)
+    write_json(generated_paths[1], drug_shells)
+    write_json(generated_paths[2], diseases)
+    write_json(generated_paths[3], disease_drug_edges)
+    write_json(generated_paths[4], body_ontology)
+    write_json(generated_paths[5], graph_nodes)
+    write_json(generated_paths[6], graph_edges)
+    write_json(generated_paths[7], graph_meta)
+
+    write_global(generated_paths[8], "DRUGTREE_DRUGS_DATA", drugs)
+    write_global(generated_paths[9], "DRUGTREE_DRUGS_SHELL_DATA", drug_shells)
+    write_global(generated_paths[10], "DRUGTREE_DISEASES_DATA", diseases)
+    write_global(generated_paths[11], "DRUGTREE_DISEASE_DRUG_EDGES", disease_drug_edges)
+    write_global(generated_paths[12], "DRUGTREE_BODY_ONTOLOGY", body_ontology)
+    write_global(generated_paths[13], "DRUGTREE_GRAPH_NODES", graph_nodes)
+    write_global(generated_paths[14], "DRUGTREE_GRAPH_EDGES", graph_edges)
+    write_global(generated_paths[15], "DRUGTREE_GRAPH_META", graph_meta)
+    write_global(generated_paths[16], "DRUGTREE_HUMAN_BODY_SVG", human_body_svg)
+    write_compressed_assets(generated_paths)
 
 
 if __name__ == "__main__":
