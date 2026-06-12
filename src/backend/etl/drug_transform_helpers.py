@@ -15,9 +15,19 @@ DEFAULT_DRUG_NAME_LOOKUP = CLINICALMOL_PROCESSED_DIR / "kegg_drug_inchikeys.tsv"
 DEFAULT_COMPOUND_NAME_LOOKUP = CLINICALMOL_PROCESSED_DIR / "kegg_compound_inchikeys.tsv"
 
 try:
-    from .drug_metadata import ATC_CATEGORIES, BODY_REGION_RULES, dedupe_preserve_order
+    from .drug_metadata import (
+        ATC_CATEGORIES,
+        ATC_TO_BODY_REGIONS,
+        BODY_REGION_RULES,
+        dedupe_preserve_order,
+    )
 except ImportError:  # pragma: no cover - direct script fallback
-    from src.backend.etl.drug_metadata import ATC_CATEGORIES, BODY_REGION_RULES, dedupe_preserve_order
+    from src.backend.etl.drug_metadata import (
+        ATC_CATEGORIES,
+        ATC_TO_BODY_REGIONS,
+        BODY_REGION_RULES,
+        dedupe_preserve_order,
+    )
 
 def split_trialbench_names(names_str: str) -> List[str]:
     parts: List[str] = []

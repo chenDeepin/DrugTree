@@ -172,3 +172,15 @@ def test_workflow_docs_name_run_etl_as_canonical_execution_path() -> None:
         "python -m src.backend.services.update_scheduler --trigger" not in workflow_doc
     )
     assert "get_job_status" not in workflow_doc
+
+
+def test_run_etl_wraps_required_and_optional_steps_with_timeouts() -> None:
+    script_text = RUN_ETL_PATH.read_text()
+
+    assert "ETL_CORE_TIMEOUT_SECONDS" in script_text
+    assert "ETL_STEP_TIMEOUT_SECONDS" in script_text
+    assert "run_required_step \"drug ETL\"" in script_text
+    assert "run_required_step \"disease graph artifacts\"" in script_text
+    assert "run_optional_step \"$script\"" in script_text
+    assert "timeout \"${ETL_CORE_TIMEOUT_SECONDS}s\"" in script_text
+    assert "timeout \"${ETL_STEP_TIMEOUT_SECONDS}s\"" in script_text

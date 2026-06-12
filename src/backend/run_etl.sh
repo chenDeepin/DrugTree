@@ -11,6 +11,8 @@ DEFAULT_COMPOUND_MASTER_TABLE="${PROJECT_ROOT}/data/processed/compound_master_ta
 COMPOUND_MASTER_TABLE="${COMPOUND_MASTER_TABLE:-$DEFAULT_COMPOUND_MASTER_TABLE}"
 OUTPUT_JSON="${PROJECT_ROOT}/data/drugs.json"
 CACHE_FILE="${SCRIPT_DIR}/kegg_cache.json"
+ETL_CORE_TIMEOUT_SECONDS="${ETL_CORE_TIMEOUT_SECONDS:-1800}"
+ETL_STEP_TIMEOUT_SECONDS="${ETL_STEP_TIMEOUT_SECONDS:-300}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -30,17 +32,38 @@ fi
 
 echo -e "${YELLOW}Input:  $COMPOUND_MASTER_TABLE${NC}"
 echo -e "${YELLOW}Output: $OUTPUT_JSON${NC}"
+echo -e "${YELLOW}Core step timeout: ${ETL_CORE_TIMEOUT_SECONDS}s${NC}"
+echo -e "${YELLOW}Optional step timeout: ${ETL_STEP_TIMEOUT_SECONDS}s${NC}"
 echo ""
 
+run_required_step() {
+    local label="$1"
+    shift
+
+    if ! timeout "${ETL_CORE_TIMEOUT_SECONDS}s" "$@"; then
+        echo -e "${RED}ERROR: ${label} failed or timed out after ${ETL_CORE_TIMEOUT_SECONDS}s${NC}"
+        exit 1
+    fi
+}
+
+run_optional_step() {
+    local label="$1"
+    shift
+
+    if ! timeout "${ETL_STEP_TIMEOUT_SECONDS}s" "$@"; then
+        echo -e "${RED}WARNING: ${label} failed or timed out after ${ETL_STEP_TIMEOUT_SECONDS}s${NC}"
+    fi
+}
+
 echo -e "${GREEN}Running drug ETL...${NC}"
-python3 "${SCRIPT_DIR}/etl/drug_etl.py" \
+run_required_step "drug ETL" python3 "${SCRIPT_DIR}/etl/drug_etl.py" \
     --input "$COMPOUND_MASTER_TABLE" \
     --output "$OUTPUT_JSON" \
     --cache "$CACHE_FILE" \
     "$@"
 
 echo -e "${GREEN}Rebuilding disease graph artifacts...${NC}"
-python3 "${SCRIPT_DIR}/etl/disease_etl.py"
+run_required_step "disease graph artifacts" python3 "${SCRIPT_DIR}/etl/disease_etl.py"
 
 echo ""
 
@@ -63,7 +86,7 @@ for script in "${EXTRACT_SCRIPTS[@]}"; do
     script_path="${SCRIPT_DIR}/etl/${script}"
     if [ -f "$script_path" ]; then
         echo -e "${YELLOW}Extracting: ${script}...${NC}"
-        python3 "$script_path" || echo -e "${RED}WARNING: ${script} failed (non-fatal)${NC}"
+        run_optional_step "$script" python3 "$script_path"
     else
         echo -e "${YELLOW}Skipping ${script} (not yet implemented)${NC}"
     fi
@@ -74,19 +97,19 @@ echo -e "${GREEN}=== Phase 3: Normalization & Edge Generation ===${NC}"
 echo ""
 
 echo -e "${YELLOW}Normalizing drugs...${NC}"
-python3 "${SCRIPT_DIR}/etl/normalize_drugs.py" || echo -e "${RED}WARNING: normalize_drugs failed${NC}"
+run_optional_step "normalize_drugs" python3 "${SCRIPT_DIR}/etl/normalize_drugs.py"
 
 echo -e "${YELLOW}Normalizing targets...${NC}"
-python3 "${SCRIPT_DIR}/etl/normalize_targets.py" || echo -e "${RED}WARNING: normalize_targets failed${NC}"
+run_optional_step "normalize_targets" python3 "${SCRIPT_DIR}/etl/normalize_targets.py"
 
 echo -e "${YELLOW}Normalizing diseases...${NC}"
-python3 "${SCRIPT_DIR}/etl/normalize_diseases.py" || echo -e "${RED}WARNING: normalize_diseases failed${NC}"
+run_optional_step "normalize_diseases" python3 "${SCRIPT_DIR}/etl/normalize_diseases.py"
 
 echo -e "${YELLOW}Generating cross-references...${NC}"
-python3 "${SCRIPT_DIR}/etl/generate_xrefs.py" || echo -e "${RED}WARNING: generate_xrefs failed${NC}"
+run_optional_step "generate_xrefs" python3 "${SCRIPT_DIR}/etl/generate_xrefs.py"
 
 echo -e "${YELLOW}Generating canonical edge files...${NC}"
-python3 "${SCRIPT_DIR}/etl/generate_edges.py" || echo -e "${RED}WARNING: generate_edges failed${NC}"
+run_optional_step "generate_edges" python3 "${SCRIPT_DIR}/etl/generate_edges.py"
 
 echo ""
 echo -e "${GREEN}=== Phase 4: Build Artifacts ===${NC}"
@@ -94,12 +117,12 @@ echo ""
 
 if [ -f "${PROJECT_ROOT}/scripts/build_graph_artifacts.py" ]; then
     echo -e "${GREEN}Building graph-native artifacts...${NC}"
-    python3 "${PROJECT_ROOT}/scripts/build_graph_artifacts.py" || echo -e "${RED}WARNING: graph artifacts failed${NC}"
+    run_optional_step "graph artifacts" python3 "${PROJECT_ROOT}/scripts/build_graph_artifacts.py"
 fi
 
 if [ -f "${PROJECT_ROOT}/scripts/build_frontend_embeds.py" ]; then
     echo -e "${GREEN}Refreshing frontend embeds...${NC}"
-    python3 "${PROJECT_ROOT}/scripts/build_frontend_embeds.py" || echo -e "${RED}WARNING: frontend embeds failed${NC}"
+    run_optional_step "frontend embeds" python3 "${PROJECT_ROOT}/scripts/build_frontend_embeds.py"
 fi
 
 echo ""
@@ -109,7 +132,7 @@ echo ""
 
 if [ -f "${SCRIPT_DIR}/etl/load_graph_edges.py" ]; then
     echo -e "${YELLOW}Loading graph edges into SQLite...${NC}"
-    python3 -m src.backend.etl.load_graph_edges --db-path "${PROJECT_ROOT}/drugtree.db" || echo -e "${RED}WARNING: SQLite loading failed${NC}"
+    run_optional_step "SQLite loading" python3 -m src.backend.etl.load_graph_edges --db-path "${PROJECT_ROOT}/drugtree.db"
 else
     echo -e "${YELLOW}Skipping SQLite loading (script not found)${NC}"
 fi

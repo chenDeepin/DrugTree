@@ -76,6 +76,43 @@ def test_transform_drug_adds_ontology_body_regions_from_tissues(tmp_path):
     assert "kidney_urinary" in drug["secondary_body_regions"]
 
 
+def test_transform_drug_uses_atc_body_region_fallback_when_text_has_no_region(tmp_path):
+    drug_lookup = tmp_path / "kegg_drug_inchikeys.tsv"
+    compound_lookup = tmp_path / "kegg_compound_inchikeys.tsv"
+
+    drug_lookup.write_text(
+        "inchikey\tcanonical_smiles\tsource\tkegg_id\tname\tmolecular_weight\toriginal_smiles\n"
+        "DDDD\tCCO\tkegg_drug\tD11111\tFallbackol\t46.0\tCCO\n",
+        encoding="utf-8",
+    )
+    compound_lookup.write_text(
+        "inchikey\tcanonical_smiles\tsource\tkegg_id\tname\tmolecular_weight\toriginal_smiles\n",
+        encoding="utf-8",
+    )
+
+    lookups = load_local_name_lookups(drug_lookup, compound_lookup)
+    row = pd.Series(
+        {
+            "trialbench_drug_names": "",
+            "kegg_drug_id": "D11111",
+            "kegg_compound_id": "",
+            "canonical_smiles": "CCO",
+            "inchikey": "DDDD",
+            "molecular_weight": 46.0,
+            "trialbench_phases": "Phase III",
+            "trialbench_outcomes": "cholesterol control",
+            "tissues_union": "",
+        }
+    )
+
+    drug = transform_drug(row, kegg_client=None, local_name_lookups=lookups)
+
+    assert drug is not None
+    assert drug["atc_category"] == "C"
+    assert drug["body_region"] == "heart_vascular"
+    assert "blood_immune" in drug["secondary_body_regions"]
+
+
 def test_extract_drug_names_prefers_local_kegg_name_when_trial_name_is_comparator(tmp_path):
     drug_lookup = tmp_path / "kegg_drug_inchikeys.tsv"
     compound_lookup = tmp_path / "kegg_compound_inchikeys.tsv"
