@@ -34,7 +34,7 @@ Plan for expanding DrugTree's molecular target layer (EGFR, HMG-CoA reductase, e
   - no target lazy-load or strict target gate yet
 
 ### Graph contract alignment
-- `docs/architecture/graph-data-contract.md` planned artifacts:
+- `docs/modules/graph-data-contract.md` planned artifacts:
   - `data/graph/nodes/targets.json`
   - `data/graph/edges/drug_target.json`
 

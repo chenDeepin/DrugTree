@@ -260,9 +260,9 @@ All endpoints are prefixed with `/api/v1`.
 
 ## Documentation
 
-- [Project Plan](docs/PROJECT_PLAN.md) — Full architecture and roadmap
-- [Central Body Atlas Implementation](docs/CENTRAL_BODY_ATLAS_IMPLEMENTATION.md) — Atlas design
-- [Data Update Workflow](docs/DATA_UPDATE_WORKFLOW.md) — ETL pipeline documentation
+- [Project Plan](docs/product/project-plan.md) — Full architecture and roadmap
+- [Central Body Atlas Implementation](docs/ui/central-body-atlas-implementation.md) — Atlas design
+- [Data Update Workflow](docs/operations/data-update-workflow.md) — ETL pipeline documentation
 
 
 ## License

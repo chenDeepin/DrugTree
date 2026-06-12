@@ -6,7 +6,7 @@ This contract defines the local benchmark mode for the DrugTree performance prog
 It is the Task 1 source of truth for baseline capture, evidence format, freshness rules,
 and the Task 12 escalation gate.
 
-The contract follows the release-gate principle in `docs/architecture/release-gates.md`:
+The contract follows the release-gate principle in `docs/operations/release-gates.md`:
 stability before expansion, benchmark evidence before optimization claims, and no CI-only
 timing claims.
 

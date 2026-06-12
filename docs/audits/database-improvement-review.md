@@ -136,7 +136,7 @@
 ### 1. Documentation
 
 **Required:**
-- `docs/DATA_UPDATE_WORKFLOW.md` - Document automated update process
+- `docs/operations/data-update-workflow.md` - Document automated update process
 
 **Status:** Not created yet (mentioned in Task 19)
 
@@ -195,7 +195,7 @@
 ### Priority 2: Documentation
 ```bash
 # Create update workflow documentation
-touch docs/DATA_UPDATE_WORKFLOW.md
+touch docs/operations/data-update-workflow.md
 # Document:
 - ATC coverage limitations (experimental vs approved drugs)
 - Automated update schedule (for approved drugs only)

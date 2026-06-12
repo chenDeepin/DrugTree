@@ -10,7 +10,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUN_ETL_PATH = REPO_ROOT / "src/backend/run_etl.sh"
 SOURCE_REGISTRY_PATH = REPO_ROOT / "data/source_registry.yaml"
-WORKFLOW_DOC_PATH = REPO_ROOT / "docs/DATA_UPDATE_WORKFLOW.md"
+WORKFLOW_DOC_PATH = REPO_ROOT / "docs/operations/data-update-workflow.md"
 
 
 def parse_phase2_extract_scripts(script_text: str) -> list[str]:

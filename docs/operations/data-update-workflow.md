@@ -474,7 +474,8 @@ curl http://localhost:8000/api/v1/admin/health/data-quality
 
 ## References
 
-- [PROJECT_PLAN.md](../.sisyphus/plans/drugtree-database-improvement.md) - Full improvement plan
-- [AGENTS.md](../AGENTS.md) - Project knowledge base
-- [src/backend/models/change.py](../src/backend/models/change.py) - Change models
-- [src/backend/models/audit.py](../src/backend/models/audit.py) - Audit models
+- [Project plan](../product/project-plan.md) - Product and architecture roadmap
+- [Database improvement review](../audits/database-improvement-review.md) - ATC enrichment and data-quality review
+- [AGENTS.md](../../AGENTS.md) - Project knowledge base
+- [src/backend/models/change.py](../../src/backend/models/change.py) - Change models
+- [src/backend/models/audit.py](../../src/backend/models/audit.py) - Audit models

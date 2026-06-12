@@ -4,8 +4,8 @@ _Date: 2026-03-13_
 
 ## Scope
 This audit compares the current implementation against the markdown files in `docs/`:
-- `docs/CENTRAL_BODY_ATLAS_IMPLEMENTATION.md`
-- `docs/PROJECT_PLAN.md`
+- `docs/ui/central-body-atlas-implementation.md`
+- `docs/product/project-plan.md`
 - `docs/PROGRESS_SUMMARY.md`
 
 ## Status Legend
@@ -15,7 +15,7 @@ This audit compares the current implementation against the markdown files in `do
 - ℹ️ Note / doc drift
 
 ## Executive Summary
-The **Central Body Atlas shell is implemented**: top bar, centered atlas stage, floating ATC tags, active filters bar, results grid, and modal all exist in the frontend. However, the implementation is still **partial** relative to the more detailed requirements in `PROJECT_PLAN.md`, especially for **dual-filter behavior (ATC + body together)**, **Public vs Scientist detail tiers**, **body ontology integration**, and **schema depth**.
+The **Central Body Atlas shell is implemented**: top bar, centered atlas stage, floating ATC tags, active filters bar, results grid, and modal all exist in the frontend. However, the implementation is still **partial** relative to the more detailed requirements in `docs/product/project-plan.md`, especially for **dual-filter behavior (ATC + body together)**, **Public vs Scientist detail tiers**, **body ontology integration**, and **schema depth**.
 
 The biggest visual issue is the body itself: the current visible body is **not driven by `src/frontend/assets/human-body.svg`**. Instead, `src/frontend/js/app.js` programmatically draws a simplified inline SVG body map. So the current `human-body.svg` is both **low quality** and **not actually wired into the rendered atlas**.
 
@@ -109,13 +109,13 @@ The biggest visual issue is the body itself: the current visible body is **not d
 
 ### P3 — documentation and scope cleanup
 11. Update `docs/PROGRESS_SUMMARY.md` to match actual API paths and current implementation gaps.
-12. Decide whether the project will migrate to the richer nested schema in `PROJECT_PLAN.md`, or whether the docs should be narrowed to the currently implemented flat schema.
+12. Decide whether the project will migrate to the richer nested schema in `docs/product/project-plan.md`, or whether the docs should be narrowed to the currently implemented flat schema.
 
 ---
 
 ## Notes
-- The current implementation reflects the **layout direction** in `CENTRAL_BODY_ATLAS_IMPLEMENTATION.md`, but not yet the full **interaction/system design** from the later modules in `PROJECT_PLAN.md`.
-- There is **doc drift** inside `PROJECT_PLAN.md` itself: older sections describe an 8-category simplified body map, while later modules define the richer 14-category atlas and ontology. The later modules appear to be the better target for current work.
+- The current implementation reflects the **layout direction** in `docs/ui/central-body-atlas-implementation.md`, but not yet the full **interaction/system design** from the later modules in `docs/product/project-plan.md`.
+- There is **doc drift** inside `docs/product/project-plan.md` itself: older sections describe an 8-category simplified body map, while later modules define the richer 14-category atlas and ontology. The later modules appear to be the better target for current work.
 - The current visible body is generated in `src/frontend/js/app.js`; this is why the body looks abstract even though `src/frontend/assets/human-body.svg` exists.
 - For the SVG redesign specifically, the new asset should probably target:
   - a clean front-facing human silhouette,

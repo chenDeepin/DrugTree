@@ -6,15 +6,15 @@ This document is the release-gated roadmap for the frontend stabilization progra
 
 - Master sequencing authority: `.sisyphus/plans/current-stage-next-stage-plan.md`
 - Consolidated architecture sources:
-  - `docs/frontend-state-model.md`
-  - `docs/architecture/graph-schema.md`
-  - `docs/architecture/lineage-model.md`
-  - `docs/architecture/disease-model.md`
-  - `docs/architecture/graph-data-contract.md`
-  - `docs/architecture/graph-transition-plan.md`
-  - `docs/architecture/lineage-packs.md`
-  - `docs/architecture/disease-reasoning.md`
-  - `docs/architecture/target-layer-readiness.md`
+  - `docs/ui/frontend-state-model.md`
+  - `docs/modules/graph-schema.md`
+  - `docs/modules/lineage-model.md`
+  - `docs/modules/disease-model.md`
+  - `docs/modules/graph-data-contract.md`
+  - `docs/modules/graph-transition-plan.md`
+  - `docs/modules/lineage-packs.md`
+  - `docs/modules/disease-reasoning.md`
+  - `docs/modules/target-layer-readiness.md`
 
 ---
 
@@ -27,7 +27,7 @@ This document is the release-gated roadmap for the frontend stabilization progra
 | Check ID | Requirement | Pass condition |
 |---|---|---|
 | RP1-A | P0 interaction defects closed | Wave 1 exit gate signed with evidence from T1-T6 code paths |
-| RP1-B | State/render boundaries documented and tested | Wave 2 exit gate signed with `docs/frontend-state-model.md` + `tests/frontend/e2e/p0-regression.spec.ts` |
+| RP1-B | State/render boundaries documented and tested | Wave 2 exit gate signed with `docs/ui/frontend-state-model.md` + `tests/frontend/e2e/p0-regression.spec.ts` |
 | RP1-C | Graph contracts defined before graph-native changes | Wave 3 exit gate signed with T12-T14 docs |
 | RP1-D | Expansion plans reference stable contracts only | Wave 4 docs explicitly anchor to T12-T14 contracts and do not bypass prior gates |
 
@@ -55,7 +55,7 @@ This document is the release-gated roadmap for the frontend stabilization progra
 |---|---|
 | Tasks completed | T7 Frontend state model doc; T8 Module extraction seams; T9 Render boundary map; T10 Event-driven rendering alignment; T11 P0 regression suite expansion |
 | Exit gate | State ownership, event flow, and render boundaries are documented, and P0 regressions are encoded as executable tests |
-| Evidence artifacts created | `docs/frontend-state-model.md` (state inventory, ownership, event flows, boundary rules); `tests/frontend/e2e/p0-regression.spec.ts` (regression gate suite) |
+| Evidence artifacts created | `docs/ui/frontend-state-model.md` (state inventory, ownership, event flows, boundary rules); `tests/frontend/e2e/p0-regression.spec.ts` (regression gate suite) |
 
 ## Wave 3 — P2/P4 Foundation (T12-T16)
 
@@ -65,7 +65,7 @@ This document is the release-gated roadmap for the frontend stabilization progra
 |---|---|
 | Tasks completed | T12 public model docs (`graph-schema.md`, `lineage-model.md`, `disease-model.md`); T13 graph data contract; T14 phased graph transition plan; T15 contributor/docs templates; T16 README/public polish |
 | Exit gate | Graph node/edge semantics, data layout contract, and migration phases are explicit, versioned, and rollback-aware |
-| Evidence artifacts created | `docs/architecture/graph-schema.md`; `docs/architecture/lineage-model.md`; `docs/architecture/disease-model.md`; `docs/architecture/graph-data-contract.md`; `docs/architecture/graph-transition-plan.md`; contributor/public docs from T15-T16 |
+| Evidence artifacts created | `docs/modules/graph-schema.md`; `docs/modules/lineage-model.md`; `docs/modules/disease-model.md`; `docs/modules/graph-data-contract.md`; `docs/modules/graph-transition-plan.md`; contributor/public docs from T15-T16 |
 
 ## Wave 4 — P3 Scientific Expansion (T17-T20)
 
@@ -75,7 +75,7 @@ This document is the release-gated roadmap for the frontend stabilization progra
 |---|---|
 | Tasks completed | T17 flagship lineage pack plan; T18 disease reasoning cleanup plan; T19 target-layer readiness plan; T20 release-gate consolidation |
 | Exit gate | Expansion plans remain design-stage only, reference Wave 3 contracts, and include explicit no-go conditions to prevent unsafe activation |
-| Evidence artifacts created | `docs/architecture/lineage-packs.md`; `docs/architecture/disease-reasoning.md`; `docs/architecture/target-layer-readiness.md`; `docs/architecture/release-gates.md` |
+| Evidence artifacts created | `docs/modules/lineage-packs.md`; `docs/modules/disease-reasoning.md`; `docs/modules/target-layer-readiness.md`; `docs/operations/release-gates.md` |
 
 ---
 
@@ -110,7 +110,7 @@ No backward bypass allowed:
 
 | Gate | Required evidence | Blockers if unmet |
 |---|---|---|
-| S2-G1 | `docs/frontend-state-model.md` published and aligned to current behavior | State ownership ambiguity across app/store/components |
+| S2-G1 | `docs/ui/frontend-state-model.md` published and aligned to current behavior | State ownership ambiguity across app/store/components |
 | S2-G2 | Render/event boundary definitions (T8-T10 outputs) complete | Rendering side effects crossing undocumented boundaries |
 | S2-G3 | `tests/frontend/e2e/p0-regression.spec.ts` active as regression gate | P0 regressions not encoded as executable guardrails |
 

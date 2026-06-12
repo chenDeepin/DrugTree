@@ -910,7 +910,7 @@ This should define:
 
 ## 🧩 Consolidated Design Modules (kept inside this plan file)
 
-Instead of creating separate design docs, DrugTree will keep four short implementation-guiding modules directly inside `PROJECT_PLAN.md`:
+Instead of creating separate design docs, DrugTree will keep four short implementation-guiding modules directly inside `docs/product/project-plan.md`:
 
 1. **Schema v1**
 2. **Body Ontology v1**
@@ -2266,7 +2266,7 @@ Show:
 ---
 
 ## 16. Planning Status
-With Module 4 complete, the core design set inside `PROJECT_PLAN.md` now includes:
+With Module 4 complete, the core design set inside `docs/product/project-plan.md` now includes:
 1. Schema v1
 2. Body Ontology v1
 3. Curation Rules v1

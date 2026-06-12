@@ -463,6 +463,47 @@ test.describe('P0 Regression: Drug detail route state (T3/T4)', () => {
     await expect(page.locator('#modal-title')).toContainText((drugName || '').trim());
   });
 
+  test('legacy modal overlay should not remain in the detail-page DOM path', async ({ page }) => {
+    await expect(page.locator('#drug-detail-page')).toHaveCount(1);
+    await expect(page.locator('#modal-overlay')).toHaveCount(0);
+  });
+
+  test('anchored detail page should reposition when the workspace scroll area scrolls', async ({ page }) => {
+    const firstDrugCard = page.locator('.drug-card').first();
+    await firstDrugCard.click();
+    await page.waitForSelector('#drug-detail-page', { state: 'visible', timeout: 5000 });
+
+    const callsAfterScroll = await page.evaluate(async () => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          positionDrugDetailOverlay: (...args: unknown[]) => void;
+        };
+      };
+      const app = pageWindow.app;
+      const scrollArea = document.querySelector('#workspace-scroll-area') as HTMLElement | null;
+
+      if (!app || !scrollArea) {
+        throw new Error('App or workspace scroll area unavailable');
+      }
+
+      let callCount = 0;
+      const originalPositioner = app.positionDrugDetailOverlay.bind(app);
+      app.positionDrugDetailOverlay = (...args: unknown[]) => {
+        callCount += 1;
+        originalPositioner(...args);
+      };
+
+      scrollArea.scrollTop = Math.min(320, Math.max(1, scrollArea.scrollHeight - scrollArea.clientHeight));
+      scrollArea.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      app.positionDrugDetailOverlay = originalPositioner;
+      return callCount;
+    });
+
+    expect(callsAfterScroll).toBeGreaterThan(0);
+  });
+
   test('browser back should restore the prior non-detail state without a full reload', async ({ page }) => {
     const firstDrugCard = page.locator('.drug-card').first();
     const drugId = await firstDrugCard.getAttribute('data-drug-id');
@@ -550,6 +591,153 @@ test.describe('P0 Regression: Drug detail route state (T3/T4)', () => {
     expect(restoredState.activeDiseaseId).toBe(target.diseaseId);
     expect(restoredState.activeCategory).toBe(target.category);
     await expect(page.locator('.node-drug').first()).toBeVisible();
+  });
+});
+
+test.describe('Next-round rendering seams (Phase 0 / Track A)', () => {
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('.app-shell', { timeout: 10000 });
+    await page.waitForSelector('.drug-card', { timeout: 30000 });
+  });
+
+  test('search input should not recompute body-map region counts', async ({ page }) => {
+    const bodyMapUpdates = await page.evaluate(async () => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          updateBodyMapState: (...args: unknown[]) => void;
+        };
+      };
+      const app = pageWindow.app;
+      const searchInput = document.querySelector('#search-input') as HTMLInputElement | null;
+
+      if (!app || !searchInput) {
+        throw new Error('App or search input unavailable');
+      }
+
+      let updateCount = 0;
+      const originalUpdate = app.updateBodyMapState.bind(app);
+      app.updateBodyMapState = (...args: unknown[]) => {
+        updateCount += 1;
+        originalUpdate(...args);
+      };
+
+      searchInput.value = 'statin';
+      searchInput.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'statin' }));
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      app.updateBodyMapState = originalUpdate;
+      return updateCount;
+    });
+
+    expect(bodyMapUpdates).toBe(0);
+  });
+
+  test('mode switch should preserve existing card DOM nodes', async ({ page }) => {
+    const preserved = await page.evaluate(async () => {
+      const firstCard = document.querySelector('.drug-card');
+      const scientistButton = document.querySelector('.mode-btn[data-mode="scientist"]') as HTMLButtonElement | null;
+
+      if (!firstCard || !scientistButton) {
+        throw new Error('Card or scientist mode button unavailable');
+      }
+
+      scientistButton.click();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      return document.querySelector('.drug-card') === firstCard;
+    });
+
+    expect(preserved).toBe(true);
+  });
+
+  test('region selection should update body-map state once per boundary', async ({ page }) => {
+    const updateCount = await page.evaluate(async () => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          graphStore?: { getBodyRegion?: (regionId: string) => object | null };
+          handleRegionSelected: (detail: object) => void;
+          regionElementsById?: Map<string, unknown[]>;
+          updateBodyMapState: (...args: unknown[]) => void;
+        };
+      };
+      const app = pageWindow.app;
+      const regionId = Array.from(app?.regionElementsById?.keys?.() || [])[0];
+
+      if (!app || !regionId) {
+        throw new Error('App or body region unavailable');
+      }
+
+      let count = 0;
+      const originalUpdate = app.updateBodyMapState.bind(app);
+      app.updateBodyMapState = (...args: unknown[]) => {
+        count += 1;
+        originalUpdate(...args);
+      };
+
+      app.handleRegionSelected({
+        regionId,
+        previousRegionId: null,
+        regionData: app.graphStore?.getBodyRegion?.(regionId) || null,
+      });
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      app.updateBodyMapState = originalUpdate;
+      return count;
+    });
+
+    expect(updateCount).toBe(1);
+  });
+
+  test('disease view should skip full root rebuild when render inputs are unchanged', async ({ page }) => {
+    await openDiseaseView(page);
+
+    await page.evaluate(() => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          graphStore?: {
+            bodyRegions?: Map<string, { id: string }>;
+            getBodyRegion?: (regionId: string) => object | null;
+            getDiseasesForRegion?: (regionId: string) => Array<object>;
+          };
+          selectionStore?: { setSelectedRegion: (id: string, region: object | null) => void };
+        };
+      };
+
+      const app = pageWindow.app;
+      const region = Array.from(app?.graphStore?.bodyRegions?.values?.() || []).find((candidate) => {
+        return (app?.graphStore?.getDiseasesForRegion?.(candidate.id) || []).length > 0;
+      });
+
+      if (!app?.selectionStore || !region) {
+        throw new Error('Unable to select a disease-view region');
+      }
+
+      app.selectionStore.setSelectedRegion(region.id, app.graphStore?.getBodyRegion?.(region.id) || null);
+    });
+
+    await page.waitForSelector('.node-disease', { timeout: 10000 });
+
+    const rootStable = await page.evaluate(() => {
+      const pageWindow = window as typeof window & {
+        app?: {
+          diseaseView?: { root?: object | null };
+          renderActiveDiseaseView: () => void;
+        };
+      };
+      const app = pageWindow.app;
+      const rootBefore = app?.diseaseView?.root || null;
+
+      if (!app || !rootBefore) {
+        throw new Error('Disease view root unavailable');
+      }
+
+      app.renderActiveDiseaseView();
+      return app.diseaseView?.root === rootBefore;
+    });
+
+    expect(rootStable).toBe(true);
   });
 });
 

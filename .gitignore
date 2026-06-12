@@ -55,6 +55,8 @@ known_hosts
 .opencode/
 .sisyphus/
 .config/
+.omo/
+.codex
 
 # ===== Logs & runtime =====
 logs/
@@ -95,7 +97,6 @@ TODO.md
 UPDATES.md
 docs/*_global_plan.md
 docs/working_context.md
-docs/plans/
 docs/PROGRESS_SUMMARY.md
 docs/disease-universe_raw.md
 
