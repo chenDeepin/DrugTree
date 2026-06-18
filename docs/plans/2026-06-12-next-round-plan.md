@@ -184,6 +184,46 @@ The two-pane workspace + anchored detail page began as the unstable surface for 
 
 ---
 
+## Phase 4 — Implementation status (2026-06-18)
+
+All four Phase 4 tracks were implemented this round and verified with visual snapshots + the full automated suite. Method: implement → capture Playwright visual snapshots → inspect the PNGs (not just green assertions) → fix what the images/tests revealed → re-verify.
+
+### Track E — Responsive / auto-fit layout — **Done**
+- **E1** fluid shell grid `minmax(0, 0.94fr) minmax(0, 1.06fr)` (no 620/720 floor); no horizontal overflow at 1440/1200/1000/800/390 (asserted).
+- **E2** D3 disease/genealogy margins + depth spacing now scale with container width; disease-tree height is content-driven (removed the `Math.max(measuredHeight, …)` force and the CSS `min-height: 640/760px` floors) so sparse regions render compactly instead of as a near-empty box.
+- **E3** compact, collapsible atlas hero (`#atlas-collapse-toggle`), auto-collapsed ≤860px; body-first mobile layout (body within first screen, asserted `bodyVisibleTop < viewport`).
+- **E4** mobile `#workspace-panel` bounded height → virtualized grid scrolls internally; page height dropped from ~27,000px to `< 6000px` (asserted).
+- **E5** topbar fits without wrapping past two rows at 800px (incl. the new theme toggle).
+
+### Track G — Visual redesign / body atlas — **Done**
+- **G1** body-dominant atlas: compact hero, body SVG fills the core (`flex: 1`, height-driven), ATC as a wrapping `.atc-strip`.
+- **G2** ATC legibility: chips show full names with a colored code badge + high-contrast name; no more truncated side-rail labels.
+- **G3** information hierarchy: removed the duplicate static "Matching Drugs" `<h2>` (the dynamic `#workspace-title` is the single section heading); trimmed verbose subtitles.
+- **G4** disease empty-state placeholder (icon + message + onboarding hint) instead of bare text.
+- **G5** design pass: softened glow/drop-shadows, tightened display type sizes, lighter chrome.
+- Note: disease-graph *richness* (density of nodes) is still gated on **H3** data (edge coverage), not layout — the layout bug is fixed.
+
+### Track F — Light theme — **Done**
+- **F1** `:root` dark token set + `[data-theme="light"]` overrides (tokens + bespoke gradient surfaces: atlas stage, workspace panel + chrome, chips, body-SVG fills, detail surface, scrim).
+- **F2** `#theme-toggle` flips + persists `localStorage['drugtree-theme']`; inline `<head>` script applies theme before first paint with priority saved → `prefers-color-scheme` → dark. Playwright pins `colorScheme: 'dark'` so dark stays the canonical default under test.
+- **F3** light contrast for text, body SVG, D3 node labels, and the detail surface (previously a hardcoded dark gradient).
+- **F4** light-theme snapshots captured (`light-home/search/disease/detail`) alongside the dark canonical set.
+
+### Track H — Backend data agent supervision — **Pipeline done; full coverage is a follow-up**
+- **H6** `src/backend/etl/agent_data_supervisor.py`: audit loop with pluggable `FieldAdapter`s, per-adapter timeout + capped retries + graceful degradation, provenance tags, **no silent overwrite**, confidence gating, human-review queue (`data/reports/`), change records (`data/changes/`), resumable checkpoints (`data/checkpoints/`). Opt-in `run_etl.sh` step (`AGENT_SUPERVISOR=1`, timeout-wrapped); does not regenerate embeds.
+- **H1/H4** openFDA approval-year + company adapters; **H2** ChEMBL ATC-placeholder resolution; **H5** ChEMBL mechanism targets/class; **H3** ChEMBL-indication disease–drug edge builder (demo: 64 → 98 edges, all 50 diseases covered).
+- 22 new backend tests (mocked network) cover no-overwrite, provenance, confidence gating, resume, and degradation.
+- **Honest coverage:** the bounded demo run resolved only a small fraction of a random sample; the H1/H2/H3 coverage *targets* (≥70% year, <10% placeholder, ≥5× edges) need a full network-bound `--apply` run with InChIKey crosswalk + more sources. Canonical `data/*.json` left untouched this round.
+
+### Verification evidence (2026-06-18)
+- `npx playwright test --config tests/frontend/playwright.config.ts` — **81 passed** (incl. canonical `visual-snapshots.spec.ts`, `p0-regression`, `genealogy`, `disease`, perf baselines, and the new `atlas-responsive.spec.ts`).
+- Three real regressions from the layout changes were found via the suite and fixed: (1) disease label truncation (drug-label budget widened by the new margins → tightened); (2) region-root click eaten by a child node's left-extended hit area at tight depth spacing → hit-area left offset now clears the parent column; (3) genealogy detail-tree root clipped off a cramped (~197px) column → genealogy margins now scale with container width.
+- `node` frontend tests — `test_file_safe_bootstrap.mjs` 5, `test_disease_interactions.mjs` 9, `test_disease_wiring.mjs` 8, `test_app_state.mjs` 5, `disease-universe.mjs` 19, all passing. `test_disease_interactions.mjs` was updated (per "trust the snapshot, not the stale assertion") to expect content-driven disease-view height instead of the removed fixed 640/760px floors.
+- `pytest tests/backend/` — **349 passed** (327 prior + 22 new agent-supervisor tests).
+- Visual snapshots regenerated under `.sisyphus/evidence/visual-snapshots/` and inspected: `desktop-home`, `desktop-scientist-detail` (lineage provenance intact), `desktop-disease-view`, `mobile-home`, `resp-{1440,1200,1000,800}`, `resp-390`, `resp-disease-1200(-full)`, `light-{home,search,disease,detail}`.
+
+---
+
 ## Open questions for the maintainer
 1. **Hosting target for compression (C1):** local/test static hosting now serves sidecars. For GitHub Pages/CDN, confirm whether precompressed `.br`/`.gz` sidecars are honored or need deployment config.
 2. **Backend in production:** is the FastAPI service actually deployed, or is the app effectively embed-only today? This re-ranks Track B vs. Track A.

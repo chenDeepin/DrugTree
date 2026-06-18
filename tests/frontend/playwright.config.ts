@@ -28,6 +28,9 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: benchmarkMode ? 'retain-on-failure' : 'off',
+    // Pin the emulated OS preference to dark so the app's signature dark theme
+    // is the default under test; light theme is exercised via the toggle.
+    colorScheme: 'dark',
   },
 
   projects: [

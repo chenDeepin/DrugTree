@@ -19,18 +19,18 @@ This document is the frontend map: the shell, the module graph, the state model,
 
 ## 2. Shell & Layout
 
-The current layout (post-refactor) is a **two-pane workspace**: a sticky atlas on the left, a scrollable results/detail panel on the right.
+The current layout is a **two-pane workspace**: a sticky, **body-first** atlas on the left, a scrollable results/detail panel on the right. The shell grid is fluid — `grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr)` — so neither pane forces horizontal overflow (the old `minmax(620px,…) minmax(720px,…)` floors overflowed between ~1000–1340px). Below 1000px the shell stacks to a single column, and the right `#workspace-panel` keeps a bounded height so the virtualized grid scrolls internally (mobile page height stays proportional to visible cards, not the full-dataset spacer).
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│ .topbar  [DrugTree] [Search…] [Clear] [Public|Scientist] [view]│
+│ .topbar [DrugTree][Search…][Clear][🌙][view][Public|Scientist]│
 ├────────────────────────────┬──────────────────────────────────┤
 │ .workspace-pane-left       │ .workspace-pane-right             │
 │  (sticky)                  │   #workspace-panel                │
-│  .atlas-hero               │   ├ header: eyebrow/title/subtitle│
-│   ├ ATC rail (14 buttons)  │   │   + scroll tools (↑ slider ↓) │
-│   ├ .atlas-body-wrap (SVG) │   ├ #workspace-scroll-area        │
-│   └ region label/preview   │   │   ├ #disease-view-section(D3) │
+│  .atlas-hero/.atlas-stage  │   ├ header: eyebrow/title/subtitle│
+│   ├ .atlas-copy (collapse) │   │   + scroll tools (↑ slider ↓) │
+│   ├ .atlas-core (body SVG) │   ├ #workspace-scroll-area        │
+│   └ .atc-strip (14 chips)  │   │   ├ #disease-view-section(D3) │
 │                            │   │   └ #drug-grid (cards)        │
 │                            │   ├ .workspace-panel-footer       │
 │                            │   │   └ .disease-panel            │
@@ -38,13 +38,17 @@ The current layout (post-refactor) is a **two-pane workspace**: a sticky atlas o
 └────────────────────────────┴──────────────────────────────────┘
 ```
 
+The atlas is **body-dominant**: a compact, collapsible hero (`.atlas-copy` / `#atlas-collapse-toggle`) sits above a body SVG that fills the vertical space (`.atlas-core` is `flex: 1`, the SVG is height-driven), with all 14 ATC categories in a wrapping chip strip (`.atc-strip`) below it. The old left/right `.atc-rail` side rails (which truncated labels at moderate widths) are gone; chips keep their `.atc-tag[data-category]` / `.atc-code` / `.atc-name` contract and a high-contrast full name.
+
 Key DOM landmarks (in `index.html`):
 - `#workspace-panel` — the right pane container; the detail page is positioned relative to it.
-- `#workspace-scroll-area` — the scroll container the side wheel/slider drives.
-- `#workspace-eyebrow / #workspace-title / #workspace-subtitle` — context header updated by `updateWorkspaceContext()`.
+- `#workspace-scroll-area` — the scroll container the side wheel/slider drives; the grid virtualizer anchors on its `clientHeight`/`scrollTop`.
+- `#workspace-eyebrow / #workspace-title / #workspace-subtitle` — the single context header updated by `updateWorkspaceContext()` (the duplicate static results `<h2>` was removed to cut chrome).
 - `#workspace-scroll-up / -slider / -down` — custom scroll controls synced by `syncWorkspaceScrollControls()`.
+- `#atlas-collapse-toggle` — collapses the hero copy (`#atlas-copy-detail`); auto-collapsed at ≤860px so the body leads on narrow screens.
+- `#theme-toggle` — light/dark toggle (see §11); `#atlas-summary`, `#body-map`, `#body-region-label` retain their prior contracts.
 - `#drug-grid` — the card grid.
-- `#disease-view-section` — D3 disease tree (shown in disease view mode).
+- `#disease-view-section` — D3 disease tree (shown in disease view mode); height is content-driven (no fixed 640/760px floor) so sparse regions render compactly instead of as a near-empty box.
 - `#drug-detail-page` — the **anchored detail surface**. It is labelled as a dialog, traps focus while open, and restores focus to the opener when closed.
 
 **Script load order** (from `index.html`): `style.css` → D3 (CDN) → `structure.js` → `stores/graphStore.js` → `stores/selectionStore.js` → `views/genealogyView.js` → `views/diseaseView.js` → shell/data embeds (not `drugs.js`, not graph bundles) → `assets/human-body-svg.js` → `app-state.js` → `js/data-loader.js` → `components/approval-chips.js` → `components/mechanism-card.js` → `components/orphan-badge.js` → `components/disease-panel.js` → `components/drug-grid-renderer.js` → `controllers/preview-controller.js` → `controllers/filter-controller.js` → `controllers/atlas-controller.js` → `controllers/detail-controller.js` → `app.js`.
@@ -155,6 +159,9 @@ Ranked by leverage. Entry points for the "optimize the UI" track.
 | U8 | **Touch/mobile pass improved** | atlas previews, detail page, topbar | Touch dwell opens previews; mobile detail is fixed within viewport; topbar no longer causes horizontal overflow | Continue full phone-flow UX polish |
 | U9 | **`app.js` orchestration shell still large (1,822 ln)** | `js/app.js` + `js/controllers/*` | Preview, filter, atlas, detail, and grid responsibilities are extracted; wrappers remain for compatibility | Next step is narrowing controller interfaces away from full `app` references |
 | U10 | **Legacy modal DOM removed** | `#drug-detail-page` | `#modal-overlay` no longer exists | Keep code/docs on the anchored detail-page contract |
+| E1–E5 | **Responsive / auto-fit done** | shell grid, D3 views, mobile panel | Fluid columns (no overflow 1000–1340px), container-aware D3 sizing, collapsible body-first hero, bounded mobile scroll, topbar density | Verified by visual snapshots at 1440/1200/1000/800/390 |
+| F1–F4 | **Light theme done** | `[data-theme]` tokens + toggle | Dark/light token sets, persisted toggle, OS-default, light SVG/detail contrast, snapshots for both themes | Future: broad WCAG/axe audit of light mode |
+| G1–G5 | **Body-first redesign done** | atlas, workspace headings, empty state | Body-dominant atlas, ATC chip strip (full names), de-duplicated headings, disease empty-state placeholder, softer glow/tighter type | Disease graph richness still gated on H3 data (edge coverage) |
 
 ---
 
@@ -163,17 +170,19 @@ Ranked by leverage. Entry points for the "optimize the UI" track.
 - **Add a card field:** ensure it's in the shell embed (or hydrate from full record), render it in `createDrugCard()`, gate with `.scientist-only` if expert-only.
 - **Add a filter dimension:** extend `buildDrugIndexes()` + `selectDrugIds()` in `app-state.js`, thread through `getVisibleDrugIdsForSelection()`, add the UI control + a filter chip.
 - **Add a selection-driven view:** subscribe in `initStores()` to the relevant `SelectionStore` event; keep the store as the source of truth for the ID.
-- **Touch styling:** use the CSS variables in `style.css` (`--bg-*`, `--text-*`, `--accent-*`, `--atc-*`, spacing/radius scales). Don't hardcode new ATC colors — extend the palette variables.
+- **Touch styling:** use the CSS variables in `style.css` (`--bg-*`, `--text-*`, `--accent-*`, `--atc-*`, `--topbar-bg`, spacing/radius scales). Don't hardcode new ATC colors — extend the palette variables.
+- **Theme-safe styling:** prefer the semantic tokens so both themes work automatically. If a surface needs a bespoke gradient, add the dark value on the base selector and a matching `[data-theme="light"] <selector>` override (see §11). New colored chrome should not hardcode dark `rgba(...)` outside a `[data-theme]` override.
 - **Never** hand-edit `src/frontend/data/*.js` — regenerate from `data/` via `scripts/build_frontend_embeds.py`.
 
 ---
 
 ## 11. Styling System
 
-`css/style.css` (~2,635 ln, +550 in refactor) is a dark "atlas" theme with glassmorphism, organized by CSS custom properties:
-- Palette: `--bg-base/surface/card/elevated`, `--text-primary/secondary/muted`, `--accent-primary/secondary/glow`, 14 `--atc-*` hues.
+`css/style.css` is an "atlas" theme with glassmorphism, organized by CSS custom properties, and now ships **both dark and light themes**:
+- Palette: `--bg-base/surface/card/elevated`, `--text-primary/secondary/muted`, `--accent-primary/secondary/glow`, 14 `--atc-*` hues, plus `--topbar-bg`.
+- **Theming (F1/F2):** `:root` holds the dark token set; `[data-theme="light"]` overrides the tokens (and a handful of bespoke gradient surfaces — `.atlas-stage`, `.workspace-panel`, panel chrome, `.atc-tag`, body-SVG fills, the detail surface — that can't be expressed purely through tokens). `<html data-theme>` is set **before first paint** by a tiny inline `<head>` script: saved `localStorage['drugtree-theme']` → OS `prefers-color-scheme` → dark. `#theme-toggle` flips and persists it. Under Playwright the config pins `colorScheme: 'dark'` so the signature dark theme is the default under test; the light theme is exercised via the toggle.
 - Scales: spacing (xs→2xl), radius (sm→full). Fonts: Fraunces (display), IBM Plex Sans (body), JetBrains Mono (code).
-- Responsive breakpoints at 1000px / 800px / 600px; mobile is functional but not yet first-class (see U8).
+- **Responsive (E):** fluid shell grid (`minmax(0,…)`) with no fixed column floors; breakpoints at 1000px / 800px / 600px. The atlas is body-first and collapses its hero on narrow screens; the right panel keeps a bounded height on mobile so the virtualized grid scrolls internally. D3 disease/genealogy margins scale with their container width.
 - Glass surfaces: `.topbar`, `.atc-tag`, cards use `backdrop-filter` + translucent backgrounds.
 
 ---

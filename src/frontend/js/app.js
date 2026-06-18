@@ -467,7 +467,7 @@ class DrugTreeApp {
       title.textContent = this.activeDisease
         ? this.activeDisease.canonical_name
         : (this.activeBodyRegion ? `${this.getRegionMeta(this.activeBodyRegion).display_name} Disease Hierarchy` : 'Disease Hierarchy');
-      subtitle.textContent = 'The right panel shows body-region disease branches and their linked drugs. Scroll here to navigate without moving the atlas.';
+      subtitle.textContent = 'Body-region disease branches and their linked drugs. Click a disease to grow its drug branches.';
       return;
     }
 
@@ -475,7 +475,7 @@ class DrugTreeApp {
     title.textContent = this.activeDisease
       ? `${this.activeDisease.canonical_name} Drugs`
       : (this.activeBodyRegion ? `${this.getRegionMeta(this.activeBodyRegion).display_name} Drugs` : 'Matching Drugs');
-    subtitle.textContent = 'The right panel is the browsing surface for drug cards and detail overlays. Use the side wheel to move through long result sets.';
+    subtitle.textContent = 'Browse matching drug cards; open any card for full detail.';
   }
   
   setupViewToggle() {
@@ -1364,7 +1364,63 @@ class DrugTreeApp {
     this.setupCopySmiles();
     this.setupClearButton();
     this.setupWorkspaceScrollControls();
+    this.setupAtlasCollapse();
+    this.setupThemeToggle();
     this.updateWorkspaceContext();
+  }
+
+  setupThemeToggle() {
+    const toggle = document.getElementById("theme-toggle");
+    if (!toggle) {
+      return;
+    }
+
+    const icon = toggle.querySelector(".theme-toggle-icon");
+    const apply = (theme) => {
+      document.documentElement.setAttribute("data-theme", theme);
+      if (icon) {
+        icon.textContent = theme === "light" ? "☀️" : "🌙";
+      }
+      toggle.setAttribute("aria-label", theme === "light" ? "Switch to dark theme" : "Switch to light theme");
+      toggle.setAttribute("aria-pressed", theme === "light" ? "true" : "false");
+    };
+
+    // Sync the button with whatever the inline head script already applied (F2).
+    apply(document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark");
+
+    toggle.addEventListener("click", () => {
+      const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+      try {
+        localStorage.setItem("drugtree-theme", next);
+      } catch (e) {
+        /* storage may be unavailable (private mode, file://) */
+      }
+      apply(next);
+    });
+  }
+
+  setupAtlasCollapse() {
+    const toggle = document.getElementById("atlas-collapse-toggle");
+    const detail = document.getElementById("atlas-copy-detail");
+    if (!toggle || !detail) {
+      return;
+    }
+
+    const setCollapsed = (collapsed) => {
+      toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      detail.hidden = collapsed;
+      toggle.title = collapsed ? "Expand intro" : "Collapse intro";
+    };
+
+    // Start compact on narrow viewports so the body atlas leads the screen (E3/G1).
+    const prefersCompact = typeof window.matchMedia === "function"
+      && window.matchMedia("(max-width: 860px)").matches;
+    setCollapsed(prefersCompact);
+
+    toggle.addEventListener("click", () => {
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      setCollapsed(expanded);
+    });
   }
 
   setupATCTags() {

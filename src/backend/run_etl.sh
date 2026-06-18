@@ -13,6 +13,12 @@ OUTPUT_JSON="${PROJECT_ROOT}/data/drugs.json"
 CACHE_FILE="${SCRIPT_DIR}/kegg_cache.json"
 ETL_CORE_TIMEOUT_SECONDS="${ETL_CORE_TIMEOUT_SECONDS:-1800}"
 ETL_STEP_TIMEOUT_SECONDS="${ETL_STEP_TIMEOUT_SECONDS:-300}"
+# Opt-in agent data supervision (Track H). Off by default so it never blocks the
+# core ETL. Enable with AGENT_SUPERVISOR=1; tune the bounded run via
+# AGENT_SUPERVISOR_MAX_RECORDS / AGENT_SUPERVISOR_TIMEOUT_SECONDS.
+AGENT_SUPERVISOR="${AGENT_SUPERVISOR:-0}"
+AGENT_SUPERVISOR_MAX_RECORDS="${AGENT_SUPERVISOR_MAX_RECORDS:-200}"
+AGENT_SUPERVISOR_TIMEOUT_SECONDS="${AGENT_SUPERVISOR_TIMEOUT_SECONDS:-30}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -112,6 +118,19 @@ echo -e "${YELLOW}Generating canonical edge files...${NC}"
 run_optional_step "generate_edges" python3 "${SCRIPT_DIR}/etl/generate_edges.py"
 
 echo ""
+
+if [ "$AGENT_SUPERVISOR" = "1" ]; then
+    echo -e "${GREEN}=== Phase 3b: Agent Data Supervision (opt-in, Track H) ===${NC}"
+    echo -e "${YELLOW}Auditing canonical fields (bounded to ${AGENT_SUPERVISOR_MAX_RECORDS} records)...${NC}"
+    # Writes a per-run report + human-review queue to data/reports/ and accepted
+    # change records to data/changes/. Does NOT overwrite canonical data unless
+    # --apply is added explicitly. Timeout-wrapped so it never blocks the build.
+    run_optional_step "agent data supervisor" python3 -m src.backend.etl.agent_data_supervisor \
+        --max-records "$AGENT_SUPERVISOR_MAX_RECORDS" \
+        --timeout "$AGENT_SUPERVISOR_TIMEOUT_SECONDS"
+    echo ""
+fi
+
 echo -e "${GREEN}=== Phase 4: Build Artifacts ===${NC}"
 echo ""
 

@@ -4,6 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DrugTree - Visual Drug Universe with ATC Classification</title>
+  <script>
+    // Apply theme before first paint to avoid a flash (F2).
+    // Priority: saved choice -> OS prefers-color-scheme -> dark.
+    (function () {
+      try {
+        var saved = localStorage.getItem('drugtree-theme');
+        var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        document.documentElement.setAttribute('data-theme', saved || (prefersLight ? 'light' : 'dark'));
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💊</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,7 +44,11 @@
       
        <div class="topbar-actions">
          <button class="clear-btn" id="clear-filters">Clear</button>
-         
+
+         <button class="theme-toggle" id="theme-toggle" type="button" title="Toggle light/dark theme" aria-label="Toggle color theme">
+           <span class="theme-toggle-icon" aria-hidden="true">🌙</span>
+         </button>
+
          <div class="view-switch">
            <button class="view-btn active" data-view="genealogy" title="View drug lineage and genealogy">
              🌳 Genealogy
@@ -60,90 +77,94 @@
             <section class="atlas-hero">
               <div class="atlas-stage">
                 <div class="atlas-copy">
-                  <p class="atlas-kicker">Central Body Atlas</p>
-                  <h1>Explore approved drugs<br>by class and body context.</h1>
-                  <p class="atlas-subtitle">
-                    Choose an ATC family, refine by body region, then inspect matching molecules on the right.
-                  </p>
+                  <div class="atlas-copy-head">
+                    <p class="atlas-kicker">Central Body Atlas</p>
+                    <button type="button" class="atlas-collapse-toggle" id="atlas-collapse-toggle" aria-expanded="true" aria-controls="atlas-copy-detail" title="Collapse intro">
+                      <span class="atlas-collapse-icon" aria-hidden="true">▾</span>
+                      <span class="visually-hidden">Toggle atlas intro</span>
+                    </button>
+                  </div>
+                  <div class="atlas-copy-detail" id="atlas-copy-detail">
+                    <h1>Explore approved drugs by class &amp; body context.</h1>
+                    <p class="atlas-subtitle">
+                      Choose an ATC family, refine by body region, then inspect matching molecules on the right.
+                    </p>
+                  </div>
                   <div class="atlas-summary" id="atlas-summary">
                     <span class="summary-pill">Loading atlas dataset...</span>
                   </div>
                 </div>
 
-                <div class="atlas-constellation">
-                  <div class="atc-rail atc-rail-left" aria-label="ATC categories left rail">
-                    <button class="atc-tag" data-category="N">
-                      <span class="atc-code">N</span>
-                      <span class="atc-name">Nervous</span>
-                    </button>
-                    <button class="atc-tag" data-category="C">
-                      <span class="atc-code">C</span>
-                      <span class="atc-name">Cardio</span>
-                    </button>
-                    <button class="atc-tag" data-category="L">
-                      <span class="atc-code">L</span>
-                      <span class="atc-name">Oncology</span>
-                    </button>
-                    <button class="atc-tag" data-category="B">
-                      <span class="atc-code">B</span>
-                      <span class="atc-name">Blood</span>
-                    </button>
-                    <button class="atc-tag" data-category="A">
-                      <span class="atc-code">A</span>
-                      <span class="atc-name">Alimentary</span>
-                    </button>
-                    <button class="atc-tag" data-category="M">
-                      <span class="atc-code">M</span>
-                      <span class="atc-name">Musculoskeletal</span>
-                    </button>
-                    <button class="atc-tag" data-category="P">
-                      <span class="atc-code">P</span>
-                      <span class="atc-name">Parasites</span>
-                    </button>
-                  </div>
-
-                  <div class="atlas-core">
-                    <div class="atlas-body-wrap">
-                      <div class="atlas-glow"></div>
-                      <div class="human-body-map" id="body-map"></div>
-                      <div class="body-region-label" id="body-region-label">Hover a region to preview its drug space</div>
-                    </div>
-                    <div class="atlas-hint">
-                      Hover tag or region to preview. Click once to lock the atlas intersection.
-                    </div>
-                  </div>
-
-                  <div class="atc-rail atc-rail-right" aria-label="ATC categories right rail">
-                    <button class="atc-tag" data-category="S">
-                      <span class="atc-code">S</span>
-                      <span class="atc-name">Sensory</span>
-                    </button>
-                    <button class="atc-tag" data-category="R">
-                      <span class="atc-code">R</span>
-                      <span class="atc-name">Respiratory</span>
-                    </button>
-                    <button class="atc-tag" data-category="J">
-                      <span class="atc-code">J</span>
-                      <span class="atc-name">Anti-infectives</span>
-                    </button>
-                    <button class="atc-tag" data-category="D">
-                      <span class="atc-code">D</span>
-                      <span class="atc-name">Skin</span>
-                    </button>
-                    <button class="atc-tag" data-category="G">
-                      <span class="atc-code">G</span>
-                      <span class="atc-name">GU/Breast</span>
-                    </button>
-                    <button class="atc-tag" data-category="H">
-                      <span class="atc-code">H</span>
-                      <span class="atc-name">Hormones</span>
-                    </button>
-                    <button class="atc-tag" data-category="V">
-                      <span class="atc-code">V</span>
-                      <span class="atc-name">Various</span>
-                    </button>
+                <div class="atlas-core">
+                  <div class="atlas-body-wrap">
+                    <div class="atlas-glow"></div>
+                    <div class="human-body-map" id="body-map"></div>
+                    <div class="body-region-label" id="body-region-label">Hover a region to preview its drug space</div>
                   </div>
                 </div>
+
+                <div class="atc-strip" aria-label="ATC categories">
+                  <button class="atc-tag" data-category="A">
+                    <span class="atc-code">A</span>
+                    <span class="atc-name">Alimentary</span>
+                  </button>
+                  <button class="atc-tag" data-category="B">
+                    <span class="atc-code">B</span>
+                    <span class="atc-name">Blood</span>
+                  </button>
+                  <button class="atc-tag" data-category="C">
+                    <span class="atc-code">C</span>
+                    <span class="atc-name">Cardio</span>
+                  </button>
+                  <button class="atc-tag" data-category="D">
+                    <span class="atc-code">D</span>
+                    <span class="atc-name">Skin</span>
+                  </button>
+                  <button class="atc-tag" data-category="G">
+                    <span class="atc-code">G</span>
+                    <span class="atc-name">GU / Breast</span>
+                  </button>
+                  <button class="atc-tag" data-category="H">
+                    <span class="atc-code">H</span>
+                    <span class="atc-name">Hormones</span>
+                  </button>
+                  <button class="atc-tag" data-category="J">
+                    <span class="atc-code">J</span>
+                    <span class="atc-name">Anti-infectives</span>
+                  </button>
+                  <button class="atc-tag" data-category="L">
+                    <span class="atc-code">L</span>
+                    <span class="atc-name">Oncology</span>
+                  </button>
+                  <button class="atc-tag" data-category="M">
+                    <span class="atc-code">M</span>
+                    <span class="atc-name">Musculoskeletal</span>
+                  </button>
+                  <button class="atc-tag" data-category="N">
+                    <span class="atc-code">N</span>
+                    <span class="atc-name">Nervous</span>
+                  </button>
+                  <button class="atc-tag" data-category="P">
+                    <span class="atc-code">P</span>
+                    <span class="atc-name">Parasites</span>
+                  </button>
+                  <button class="atc-tag" data-category="R">
+                    <span class="atc-code">R</span>
+                    <span class="atc-name">Respiratory</span>
+                  </button>
+                  <button class="atc-tag" data-category="S">
+                    <span class="atc-code">S</span>
+                    <span class="atc-name">Sensory</span>
+                  </button>
+                  <button class="atc-tag" data-category="V">
+                    <span class="atc-code">V</span>
+                    <span class="atc-name">Various</span>
+                  </button>
+                </div>
+
+                <p class="atlas-hint">
+                  Hover a tag or region to preview. Click once to lock the atlas intersection.
+                </p>
               </div>
             </section>
           </div>
@@ -214,7 +235,6 @@
 
               <section class="results-section">
                 <div class="results-header">
-                  <h2>Matching Drugs</h2>
                   <div class="results-meta">
                     <span class="result-count" id="drug-count" aria-live="polite" aria-atomic="true">Loading...</span>
                     <span class="result-note" id="results-note"></span>

@@ -62,8 +62,20 @@ class GenealogyView {
     this._nodePositions.clear();
 
     const containerRect = container.getBoundingClientRect();
-    this.width = Math.max(240, Math.round(containerRect.width || this.width));
+    this.width = Math.max(200, Math.round(containerRect.width || this.width));
     this.height = Math.max(260, Math.round(containerRect.height || this.height));
+
+    // Scale horizontal margins to the container so a narrow detail pane keeps a
+    // positive tree width. Fixed 100/120 margins exceeded the svg width in a
+    // cramped (~197px) genealogy column, collapsing the layout and clipping the
+    // root node off the right edge (overflow:hidden) so its clicks were eaten.
+    const horizontalMargin = Math.max(24, Math.min(96, Math.round(this.width * 0.12)));
+    this.margin = {
+      top: 20,
+      bottom: 20,
+      left: horizontalMargin,
+      right: horizontalMargin + 24,
+    };
 
     // Clear existing content
     container.innerHTML = '';

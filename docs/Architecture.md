@@ -130,12 +130,14 @@ ETL lives in `src/backend/etl/` (~37 files) and is launched via `run_etl.sh`. Gr
 | Disease ETL | `data/diseases.json` | `disease_etl.py`, `disease_etl_helpers.py`, `disease_source_loaders.py`, `normalize_diseases.py` |
 | Target enrichment | targets tables / edges | `normalize_targets.py`, `fetch_opentargets.py`, `fetch_drugcentral.py` |
 | Edge generation | graph + disease-drug edges | `generate_edges.py`, `load_graph_edges.py` |
+| Agent data supervision (opt-in) | provenance-tagged field enrichment + review queue (`data/reports/`, `data/changes/`) | `agent_data_supervisor.py` |
 | Validation | gate reports | `validation_pipeline.py`, `validation_pipeline_core.py`, `validation_models.py`, `dag_validator.py` |
 
 **Conventions & gaps:**
 - External calls should use `httpx` with try/except + graceful degradation. The five formerly sync-`requests` ATC/KEGG files were migrated to `httpx` on 2026-06-12.
 - `run_etl.sh` expects `data/processed/compound_master_table.tsv` by default, or `COMPOUND_MASTER_TABLE=/path/to/table.tsv`. Required ETL steps use `ETL_CORE_TIMEOUT_SECONDS` and fail closed on errors/timeouts; optional source/artifact/load steps use `ETL_STEP_TIMEOUT_SECONDS` and degrade with warnings.
 - The named B7 split targets are now under the ~600-line review threshold: `atc_orchestrator.py` is the thin public wrapper/CLI, ATC lookup and enrichment stages live in focused modules, drug and disease ETL helpers are separated from orchestration, and validation models/core are split from the service entrypoint.
+- **Agent data supervision (Track H):** `agent_data_supervisor.py` is an opt-in audit-loop stage. It batches canonical records, runs pluggable `FieldAdapter`s (openFDA approval-year/company, ChEMBL ATC-placeholder resolution, ChEMBL mechanism targets/class, ChEMBL-indication disease–drug edges) behind per-adapter timeouts + capped retries + graceful degradation, attaches a provenance tag `{source, url, fetched_at, confidence}` to every proposed value, **never silently overwrites** existing high-confidence values (disagreements go to a human-review queue in `data/reports/`), gates fills by a confidence threshold, and is **resumable** via `data/checkpoints/`. It is wired into `run_etl.sh` as an opt-in step (`AGENT_SUPERVISOR=1`, `timeout`-wrapped) that is off by default, and it does **not** regenerate frontend embeds. Coverage of the plan's H1–H5 targets (≥70% approval year, <10% ATC placeholder, ≥5× edges) requires a full, network-bound `--apply` run with InChIKey-based crosswalk and additional sources; the bounded demo run resolved only a small fraction of a random sample (honest baseline), so those coverage targets remain a follow-up.
 - After any data change, regenerate embeds: `python3 scripts/build_frontend_embeds.py`.
 
 ---

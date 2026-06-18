@@ -172,14 +172,18 @@ test("DiseaseView defaults reserve a larger readable hierarchy canvas", () => {
   assert.equal(view.layoutMetrics.depthSpacing >= 300, true);
 });
 
-test("Disease hierarchy styles keep a larger readable graph area", () => {
+test("Disease hierarchy styles keep a readable, content-driven graph area", () => {
   const css = readFrontendFile("css/style.css");
 
+  // The container keeps a sensible minimum clickable area, but the svg height is
+  // now content-driven (E2/G4): the previous fixed 640px/760px floors forced a
+  // tall, mostly-empty SVG when a region had only a few diseases. We assert a
+  // modest container floor and that the svg no longer hard-codes a 760px floor.
   assert.match(
     css,
-    /\.disease-view-container\s*\{[\s\S]*min-height:\s*640px;/
+    /\.disease-view-container\s*\{[\s\S]*min-height:\s*360px;/
   );
-  assert.match(
+  assert.doesNotMatch(
     css,
     /\.disease-view-svg\s*\{[\s\S]*min-height:\s*760px;/
   );

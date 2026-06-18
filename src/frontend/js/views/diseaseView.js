@@ -221,7 +221,18 @@ class DiseaseView extends EventTarget {
 
     if (this.stateLayer) {
       this.stateLayer.hidden = false;
-      this.stateLayer.textContent = message;
+      // Richer onboarding placeholder instead of bare text so the empty disease
+      // graph reads as "pick something" rather than "broken" (G4).
+      this.stateLayer.innerHTML = `
+        <div class="disease-view-placeholder">
+          <div class="disease-view-placeholder-icon" aria-hidden="true">🫀</div>
+          <p class="disease-view-placeholder-msg"></p>
+          <p class="disease-view-placeholder-hint">Pick a body region on the atlas, or search a disease, to grow its drug branches.</p>
+        </div>`;
+      const messageEl = this.stateLayer.querySelector('.disease-view-placeholder-msg');
+      if (messageEl) {
+        messageEl.textContent = message;
+      }
     }
 
     this.updateResetButton();
@@ -463,8 +474,11 @@ class DiseaseView extends EventTarget {
     const containerWidth = Math.round(
       this.graphLayer?.clientWidth || this.container?.clientWidth || this.lastMeasuredWidth || this.width || 800,
     );
-    const sideMargin = this.clamp(Math.round(containerWidth * 0.16), 156, 224);
-    this.margin = { top: 64, right: sideMargin, bottom: 64, left: sideMargin };
+    // Margins scale with the actual container so the tree fills narrow right
+    // panes instead of clustering into a single dot (E2). The 156px floor used
+    // to consume ~312px of a ~580px pane, leaving almost no room for the tree.
+    const sideMargin = this.clamp(Math.round(containerWidth * 0.11), 40, 150);
+    this.margin = { top: 56, right: sideMargin, bottom: 56, left: sideMargin };
 
     this.updateDimensions(containerWidth);
 
@@ -476,32 +490,33 @@ class DiseaseView extends EventTarget {
     const visibleNodeCount = Math.max(1, allNodes.length);
 
     const measuredWidth = this.lastMeasuredWidth || this.width;
-    const measuredHeight = this.lastMeasuredHeight || this.height;
-    const desiredHeight = Math.max(
-      measuredHeight,
-      this.margin.top + this.margin.bottom + 300 + (diseaseCount * 90) + (drugCount * 48),
-    );
-    const innerHeight = Math.max(480, desiredHeight - this.margin.top - this.margin.bottom);
+    // Height tracks node content so sparse regions render compactly instead of
+    // spreading a handful of nodes across the full container height — the main
+    // cause of the "disease graph looks empty" effect (E2/G4).
+    const contentHeight = this.margin.top + this.margin.bottom + 140
+      + (diseaseCount * 66) + (drugCount * 44);
+    const desiredHeight = Math.max(440, contentHeight);
+    const innerHeight = Math.max(260, desiredHeight - this.margin.top - this.margin.bottom);
     const innerWidth = Math.max(320, measuredWidth - this.margin.left - this.margin.right);
     const densityPenalty = Math.min(84, Math.max(0, visibleNodeCount - 5) * 6);
     const labelReserve = Math.min(
-      Math.round(innerWidth * 0.38),
-      Math.max(188, longestLabelLength * 7.1),
+      Math.round(innerWidth * 0.34),
+      Math.max(140, longestLabelLength * 6.4),
     );
-    const minDepthSpacing = window.innerWidth < 900 ? 128 : 160;
+    const minDepthSpacing = containerWidth < 760 ? 104 : 150;
     const depthSpacing = this.clamp(
       Math.round((innerWidth - densityPenalty - labelReserve) / Math.max(maxDepth, 1)),
       minDepthSpacing,
-      400,
+      360,
     );
     const layoutWidth = Math.max(1, depthSpacing * maxDepth);
 
     const regionBudget = this.clamp(Math.floor((this.margin.left - 44) / 6.0), 28, 42);
     const diseaseBudget = this.clamp(Math.floor(Math.max(164, depthSpacing - 10) / 6.0), 24, 40);
     const drugBudget = this.clamp(
-      Math.floor(Math.max(188, innerWidth - layoutWidth + 72) / 6.0),
-      24,
-      42,
+      Math.floor(Math.max(150, innerWidth - layoutWidth + 24) / 6.0),
+      22,
+      30,
     );
 
     this.height = desiredHeight;
@@ -559,7 +574,10 @@ class DiseaseView extends EventTarget {
     };
     const { width, height } = dimensionsByType[type] || dimensionsByType.drug;
     const depthSpacing = this.layoutMetrics?.depthSpacing || 220;
-    const leftOffset = Math.min(width - this.nodeRadius - 10, Math.max(120, depthSpacing - 42));
+    // Keep the left-extended hit area clear of the parent column so a compact
+    // tree can't let a child's hit area swallow clicks on its parent's label
+    // (the parent node sits ~depthSpacing to the left). Leaves ~84px gap.
+    const leftOffset = this.clamp(depthSpacing - 84, 40, width - this.nodeRadius - 10);
 
     return {
       x: leftAnchored ? -leftOffset : -(this.nodeRadius + 14),
