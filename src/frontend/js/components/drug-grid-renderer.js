@@ -107,6 +107,10 @@ class DrugGridRenderer {
   getGridMetrics(container) {
     const styles = window.getComputedStyle(container);
     const gap = Number.parseFloat(styles.rowGap || styles.gap || "16") || 16;
+    // Respect user-set column count from the column picker.
+    if (this.app.gridColumns && this.app.gridColumns >= 2) {
+      return { columns: this.app.gridColumns, gap };
+    }
     const minCardWidth = 260;
     const width = Math.max(1, container.clientWidth);
     const columns = Math.max(1, Math.floor((width + gap) / (minCardWidth + gap)));

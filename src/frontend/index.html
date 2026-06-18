@@ -187,19 +187,16 @@
                     🔬 Orphan Only
                   </button>
 
-                  <div class="workspace-scroll-tools" aria-label="Right panel scroll controls">
-                    <button type="button" class="workspace-scroll-btn" id="workspace-scroll-up" aria-label="Scroll up">↑</button>
-                    <input
-                      type="range"
-                      class="workspace-scroll-slider"
-                      id="workspace-scroll-slider"
-                      min="0"
-                      max="100"
-                      value="0"
-                      step="1"
-                      aria-label="Scroll right workspace"
-                    />
-                    <button type="button" class="workspace-scroll-btn" id="workspace-scroll-down" aria-label="Scroll down">↓</button>
+                  <div class="grid-cols-picker" id="grid-cols-picker" aria-label="Grid columns per row">
+                    <span class="grid-cols-label">Cols</span>
+                    <button class="grid-cols-btn" data-cols="2" aria-pressed="false" aria-label="2 columns">2</button>
+                    <button class="grid-cols-btn" data-cols="3" aria-pressed="false" aria-label="3 columns">3</button>
+                    <button class="grid-cols-btn" data-cols="4" aria-pressed="false" aria-label="4 columns">4</button>
+                    <button class="grid-cols-btn" data-cols="5" aria-pressed="false" aria-label="5 columns">5</button>
+                    <button class="grid-cols-btn" data-cols="6" aria-pressed="false" aria-label="6 columns">6</button>
+                    <button class="grid-cols-btn" data-cols="7" aria-pressed="false" aria-label="7 columns">7</button>
+                    <button class="grid-cols-btn" data-cols="8" aria-pressed="false" aria-label="8 columns">8</button>
+                    <button class="grid-cols-btn" data-cols="9" aria-pressed="false" aria-label="9 columns">9</button>
                   </div>
                 </div>
               </div>
@@ -247,29 +244,6 @@
               </section>
             </div>
 
-            <div class="workspace-panel-footer">
-              <section class="disease-panel" id="disease-panel">
-                <div class="disease-panel-header">
-                  <div class="disease-panel-copy">
-                    <h3 class="disease-panel-title">Disease Focus</h3>
-                    <p class="disease-search-status" id="disease-search-status" aria-live="polite" aria-atomic="true">
-                      Select a disease from the disease graph, or choose a body region on the atlas to scope the workspace.
-                    </p>
-                    <input
-                      type="search"
-                      id="disease-search-input"
-                      class="disease-search-input"
-                      placeholder="Search diseases"
-                      aria-label="Search diseases"
-                      autocomplete="off"
-                    />
-                  </div>
-                  <div id="disease-stats" class="disease-stats"></div>
-                </div>
-
-                <div id="selected-disease"></div>
-              </section>
-            </div>
 
             <section
               class="drug-detail-page"

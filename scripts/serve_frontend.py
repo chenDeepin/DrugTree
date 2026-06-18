@@ -15,6 +15,18 @@ FRONTEND_ROOT = REPO_ROOT / "src" / "frontend"
 
 
 class CompressedStaticHandler(SimpleHTTPRequestHandler):
+    # Local dev: avoid stale HTML/CSS/JS after UI refactors (Phase 4+).
+    DEV_NO_CACHE_SUFFIXES = {".html", ".css", ".js", ".json"}
+
+    def end_headers(self) -> None:
+        if self._should_disable_cache():
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
+        super().end_headers()
+
+    def _should_disable_cache(self) -> bool:
+        path = self.path.split("?", 1)[0]
+        return any(path.endswith(suffix) for suffix in self.DEV_NO_CACHE_SUFFIXES)
+
     def send_head(self):
         raw_path = self.translate_path(self.path)
         if os.path.isfile(raw_path):

@@ -122,6 +122,7 @@ class DrugTreeApp {
     this.searchDebounceTimer = null;
     this.visibleDrugCountCache = new Map();
     this.preDetailFocusElement = null;
+    this.gridColumns = null;
     this.previewController = new PreviewControllerComponent(this);
     this.filterController = new FilterControllerComponent(this);
     this.atlasController = new AtlasControllerComponent(this, { embeddedBodySvg: EMBEDDED_BODY_SVG });
@@ -434,23 +435,7 @@ class DrugTreeApp {
   }
 
   syncWorkspaceScrollControls() {
-    const scrollArea = document.getElementById('workspace-scroll-area');
-    const slider = document.getElementById('workspace-scroll-slider');
-    const upButton = document.getElementById('workspace-scroll-up');
-    const downButton = document.getElementById('workspace-scroll-down');
-
-    if (!scrollArea || !slider || !upButton || !downButton) {
-      return;
-    }
-
-    const maxScroll = Math.max(0, scrollArea.scrollHeight - scrollArea.clientHeight);
-    const ratio = maxScroll === 0 ? 0 : scrollArea.scrollTop / maxScroll;
-    slider.value = String(Math.round(ratio * 100));
-
-    const disabled = maxScroll === 0;
-    slider.disabled = disabled;
-    upButton.disabled = disabled;
-    downButton.disabled = disabled;
+    // Scroll tools widget removed; native browser scrollbar handles scroll position.
   }
 
   updateWorkspaceContext() {
@@ -1364,6 +1349,7 @@ class DrugTreeApp {
     this.setupCopySmiles();
     this.setupClearButton();
     this.setupWorkspaceScrollControls();
+    this.setupColumnPicker();
     this.setupAtlasCollapse();
     this.setupThemeToggle();
     this.updateWorkspaceContext();
@@ -1503,45 +1489,56 @@ class DrugTreeApp {
 
   setupWorkspaceScrollControls() {
     const scrollArea = document.getElementById('workspace-scroll-area');
-    const slider = document.getElementById('workspace-scroll-slider');
-    const upButton = document.getElementById('workspace-scroll-up');
-    const downButton = document.getElementById('workspace-scroll-down');
-
-    if (!scrollArea || !slider || !upButton || !downButton || slider.dataset.bound === 'true') {
-      this.syncWorkspaceScrollControls();
+    if (!scrollArea) {
       return;
     }
-
-    const stepSize = () => Math.max(220, Math.round(scrollArea.clientHeight * 0.42));
-
+    // Reposition the drug-detail overlay on scroll so it stays anchored (unchanged behavior).
     scrollArea.addEventListener('scroll', () => {
-      this.syncWorkspaceScrollControls();
       if (this.parseDrugDetailHash()) {
         this.positionDrugDetailOverlay();
       }
     });
-    slider.addEventListener('input', () => {
-      const maxScroll = Math.max(0, scrollArea.scrollHeight - scrollArea.clientHeight);
-      const nextRatio = Number(slider.value) / 100;
-      scrollArea.scrollTop = nextRatio * maxScroll;
-    });
-    upButton.addEventListener('click', () => {
-      scrollArea.scrollBy({ top: -stepSize(), behavior: 'smooth' });
-    });
-    downButton.addEventListener('click', () => {
-      scrollArea.scrollBy({ top: stepSize(), behavior: 'smooth' });
-    });
+  }
 
-    if (typeof ResizeObserver === 'function') {
-      const observer = new ResizeObserver(() => this.syncWorkspaceScrollControls());
-      observer.observe(scrollArea);
-      observer.observe(document.getElementById('workspace-panel'));
-    } else {
-      window.addEventListener('resize', () => this.syncWorkspaceScrollControls());
+  setupColumnPicker() {
+    const picker = document.getElementById('grid-cols-picker');
+    if (!picker) {
+      return;
     }
 
-    slider.dataset.bound = 'true';
-    this.syncWorkspaceScrollControls();
+    const STORAGE_KEY = 'drugtree-grid-cols';
+    const saved = parseInt(localStorage.getItem(STORAGE_KEY) || '', 10);
+    const initial = (saved >= 2 && saved <= 9) ? saved : 3;
+
+    const applyColumns = (n) => {
+      this.gridColumns = n;
+      const grid = document.getElementById('drug-grid');
+      if (grid) {
+        grid.dataset.cols = String(n);
+        grid.style.setProperty('--grid-cols-template', `repeat(${n}, 1fr)`);
+      }
+      picker.querySelectorAll('.grid-cols-btn').forEach((btn) => {
+        const active = Number(btn.dataset.cols) === n;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY, String(n));
+      } catch (e) { /* private mode / storage unavailable */ }
+      // Re-render virtual window with new column count.
+      if (this.drugGridRenderer) {
+        this.drugGridRenderer.renderedSignature = '';
+        this.drugGridRenderer.scheduleVirtualWindowRender
+          ? this.drugGridRenderer.scheduleVirtualWindowRender()
+          : this.drugGridRenderer.render();
+      }
+    };
+
+    picker.querySelectorAll('.grid-cols-btn').forEach((btn) => {
+      btn.addEventListener('click', () => applyColumns(Number(btn.dataset.cols)));
+    });
+
+    applyColumns(initial);
   }
 
   handleATCTagHover(category, element) {

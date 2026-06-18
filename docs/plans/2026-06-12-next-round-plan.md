@@ -224,6 +224,28 @@ All four Phase 4 tracks were implemented this round and verified with visual sna
 
 ---
 
+---
+
+## Phase 5 — UI polish follow-ups (2026-06-18)
+
+### Changes implemented
+
+| Item | Change | Files |
+|------|--------|-------|
+| Scroll drift fix | Removed the custom vertical slider/scroll-tools widget (`workspace-scroll-tools`). The native browser scrollbar now owns all scroll position tracking; removed the re-entrant `syncWorkspaceScrollControls` calls that caused the slider to keep moving after a mouse-wheel stop. | `index.html`, `app.js`, `style.css` |
+| Remove Disease Focus footer | Removed `#disease-panel` (`workspace-panel-footer`) from the workspace panel. The disease selection state still works via the D3 disease-graph view (Disease mode) and the Active Filters chip. Orphan toggle stays in the header controls. | `index.html`, `app.js`, `style.css` |
+| Column picker | Added a `Cols: 2 3 4 5 6 7 8 9` button group (`#grid-cols-picker`) next to Orphan Only. Selection persists via `localStorage`. The chosen count is applied as a CSS custom property (`--grid-cols-template`) on `#drug-grid`, which both the normal and virtualized (`drug-grid-window`) grids inherit. At 5+ cols, card structure preview height shrinks (110 → 80px) and card padding compresses. The virtual renderer's `getGridMetrics` respects `app.gridColumns`. | `index.html`, `app.js`, `drug-grid-renderer.js`, `style.css` |
+| Disease hierarchy breathing room | Node vertical spacing increased (disease ×80, drug ×54 px per node, up from 66/44). Node label font adjusted to 14px (was 16px inconsistently applied) and text elements to 13px with `letter-spacing`. | `diseaseView.js`, `style.css` |
+| Dev cache-bust | `serve_frontend.py` now sends `Cache-Control: no-cache` for `.html/.css/.js/.json` to prevent stale-asset issues after frontend updates. | `scripts/serve_frontend.py` |
+
+### Verification
+- Page loads; scroll tools widget absent; disease focus footer absent.
+- Column picker shows 2–9 buttons; "3" active by default; selecting another value rerenders cards with the correct column count and compact card sizing.
+- Disease hierarchy nodes are more spread out and legible.
+- No JS console errors observed.
+
+---
+
 ## Open questions for the maintainer
 1. **Hosting target for compression (C1):** local/test static hosting now serves sidecars. For GitHub Pages/CDN, confirm whether precompressed `.br`/`.gz` sidecars are honored or need deployment config.
 2. **Backend in production:** is the FastAPI service actually deployed, or is the app effectively embed-only today? This re-ranks Track B vs. Track A.

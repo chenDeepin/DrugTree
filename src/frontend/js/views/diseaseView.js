@@ -15,7 +15,7 @@ class DiseaseView extends EventTarget {
 
     this.width = 1120;
     this.height = 760;
-    this.margin = { top: 64, right: 220, bottom: 64, left: 220 };
+    this.margin = { top: 48, right: 24, bottom: 72, left: 24 };
     this.nodeRadius = 20;
     this.duration = 400;
 
@@ -87,8 +87,8 @@ class DiseaseView extends EventTarget {
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
 
     this.tree = d3Api.tree().size([
-      this.height - this.margin.top - this.margin.bottom,
       this.width - this.margin.left - this.margin.right,
+      this.height - this.margin.top - this.margin.bottom,
     ]);
 
     this.setupResizeHandling();
@@ -396,7 +396,7 @@ class DiseaseView extends EventTarget {
 
     this.root = d3.hierarchy(hierarchyData);
     this.lastRenderSignature = renderSignature;
-    this.root.x0 = (this.lastMeasuredHeight || this.height) / 2;
+    this.root.x0 = (this.lastMeasuredWidth || this.width) / 2;
     this.root.y0 = 0;
 
     this.root.children?.forEach((node) => {
@@ -474,54 +474,33 @@ class DiseaseView extends EventTarget {
     const containerWidth = Math.round(
       this.graphLayer?.clientWidth || this.container?.clientWidth || this.lastMeasuredWidth || this.width || 800,
     );
-    // Margins scale with the actual container so the tree fills narrow right
-    // panes instead of clustering into a single dot (E2). The 156px floor used
-    // to consume ~312px of a ~580px pane, leaving almost no room for the tree.
-    const sideMargin = this.clamp(Math.round(containerWidth * 0.11), 40, 150);
-    this.margin = { top: 56, right: sideMargin, bottom: 56, left: sideMargin };
+    // Small side margins for top-down layout — nodes spread horizontally.
+    this.margin = { top: 48, right: 24, bottom: 72, left: 24 };
 
     this.updateDimensions(containerWidth);
 
     const allNodes = this.root.descendants();
     const maxDepth = d3.max(allNodes, (node) => node.depth) || 1;
-    const diseaseCount = allNodes.filter((node) => node.data.type === 'disease').length;
     const drugCount = allNodes.filter((node) => node.data.type === 'drug').length;
-    const longestLabelLength = d3.max(allNodes, (node) => (node.data.name || '').length) || 0;
-    const visibleNodeCount = Math.max(1, allNodes.length);
-
     const measuredWidth = this.lastMeasuredWidth || this.width;
-    // Height tracks node content so sparse regions render compactly instead of
-    // spreading a handful of nodes across the full container height — the main
-    // cause of the "disease graph looks empty" effect (E2/G4).
-    const contentHeight = this.margin.top + this.margin.bottom + 140
-      + (diseaseCount * 66) + (drugCount * 44);
-    const desiredHeight = Math.max(440, contentHeight);
-    const innerHeight = Math.max(260, desiredHeight - this.margin.top - this.margin.bottom);
     const innerWidth = Math.max(320, measuredWidth - this.margin.left - this.margin.right);
-    const densityPenalty = Math.min(84, Math.max(0, visibleNodeCount - 5) * 6);
-    const labelReserve = Math.min(
-      Math.round(innerWidth * 0.34),
-      Math.max(140, longestLabelLength * 6.4),
-    );
-    const minDepthSpacing = containerWidth < 760 ? 104 : 150;
-    const depthSpacing = this.clamp(
-      Math.round((innerWidth - densityPenalty - labelReserve) / Math.max(maxDepth, 1)),
-      minDepthSpacing,
-      360,
-    );
-    const layoutWidth = Math.max(1, depthSpacing * maxDepth);
 
-    const regionBudget = this.clamp(Math.floor((this.margin.left - 44) / 6.0), 28, 42);
-    const diseaseBudget = this.clamp(Math.floor(Math.max(164, depthSpacing - 10) / 6.0), 24, 40);
-    const drugBudget = this.clamp(
-      Math.floor(Math.max(150, innerWidth - layoutWidth + 24) / 6.0),
-      22,
-      30,
-    );
+    // Vertical spacing between depth levels in top-down layout.
+    const minDepthSpacing = containerWidth < 600 ? 100 : 130;
+    const depthSpacing = this.clamp(Math.round(containerWidth * 0.14), minDepthSpacing, 200);
+    const layoutHeight = Math.max(1, depthSpacing * maxDepth);
+    const finalHeight = Math.max(400, this.margin.top + this.margin.bottom + layoutHeight);
+    const innerHeight = Math.max(200, finalHeight - this.margin.top - this.margin.bottom);
 
-    this.height = desiredHeight;
-    this.svg.attr('width', measuredWidth).attr('height', desiredHeight);
-    this.tree.size([innerHeight, layoutWidth]);
+    // Label budgets based on horizontal space shared across leaf nodes.
+    const horizontalPerDrug = Math.max(60, innerWidth / Math.max(drugCount, 1));
+    const regionBudget = this.clamp(Math.floor(innerWidth * 0.12 / 6.0), 14, 32);
+    const diseaseBudget = this.clamp(Math.floor(horizontalPerDrug * 1.4 / 6.0), 8, 22);
+    const drugBudget = this.clamp(Math.floor(horizontalPerDrug * 0.8 / 6.0), 5, 14);
+
+    this.height = finalHeight;
+    this.svg.attr('width', measuredWidth).attr('height', finalHeight);
+    this.tree.size([innerWidth, innerHeight]);
     this.layoutMetrics = {
       depthSpacing,
       labelBudgets: {
@@ -566,24 +545,19 @@ class DiseaseView extends EventTarget {
 
   getHitAreaFrame(node) {
     const type = node?.data?.type || 'drug';
-    const leftAnchored = this.isLeftAnchoredNode(node);
     const dimensionsByType = {
-      region: { width: node?.depth === 0 ? 420 : 360, height: node?.depth === 0 ? 80 : 68 },
-      disease: { width: 220, height: 56 },
-      drug: { width: 248, height: 50 },
+      region: { width: 160, height: 44 },
+      disease: { width: 130, height: 44 },
+      drug: { width: 100, height: 40 },
     };
     const { width, height } = dimensionsByType[type] || dimensionsByType.drug;
-    const depthSpacing = this.layoutMetrics?.depthSpacing || 220;
-    // Keep the left-extended hit area clear of the parent column so a compact
-    // tree can't let a child's hit area swallow clicks on its parent's label
-    // (the parent node sits ~depthSpacing to the left). Leaves ~84px gap.
-    const leftOffset = this.clamp(depthSpacing - 84, 40, width - this.nodeRadius - 10);
+    const labelOffset = this.nodeRadius + 14;
 
     return {
-      x: leftAnchored ? -leftOffset : -(this.nodeRadius + 14),
-      y: -(height / 2),
+      x: -(width / 2),
+      y: -this.nodeRadius,
       width,
-      height,
+      height: this.nodeRadius * 2 + labelOffset + height,
     };
   }
 
@@ -633,7 +607,7 @@ class DiseaseView extends EventTarget {
       .attr('role', 'treeitem')
       .attr('tabindex', 0)
       .attr('focusable', 'true')
-      .attr('transform', () => `translate(${source.y0 || 0},${source.x0 || 0})`)
+      .attr('transform', () => `translate(${source.x0 || 0},${source.y0 || 0})`)
       .on('click', (event, d) => this.handleNodeClick(event, d))
       .on('keydown', (event, d) => this.handleNodeKeydown(event, d));
 
@@ -651,9 +625,10 @@ class DiseaseView extends EventTarget {
 
     nodeEnter.append('text')
       .attr('class', 'node-label')
-      .attr('dy', '.35em')
-      .attr('x', (d) => (this.isLeftAnchoredNode(d) ? -15 : 15))
-      .attr('text-anchor', (d) => (this.isLeftAnchoredNode(d) ? 'end' : 'start'))
+      .attr('x', 0)
+      .attr('y', this.nodeRadius + 14)
+      .attr('dy', '0.35em')
+      .attr('text-anchor', 'middle')
       .style('cursor', 'pointer')
       .on('click', (event, d) => this.handleNodeClick(event, d));
 
@@ -679,7 +654,7 @@ class DiseaseView extends EventTarget {
       ))
       .transition()
       .duration(transitionDuration)
-      .attr('transform', (d) => `translate(${d.y},${d.x})`);
+      .attr('transform', (d) => `translate(${d.x},${d.y})`);
 
     nodeUpdate.select('rect.node-hit-area')
       .each((d, index, nodeList) => {
@@ -697,8 +672,9 @@ class DiseaseView extends EventTarget {
       .style('stroke', (d) => this.getNodeStroke(d.data.type, d));
 
     nodeUpdate.select('text.node-label')
-      .attr('x', (d) => (this.isLeftAnchoredNode(d) ? -15 : 15))
-      .attr('text-anchor', (d) => (this.isLeftAnchoredNode(d) ? 'end' : 'start'))
+      .attr('x', 0)
+      .attr('y', this.nodeRadius + 14)
+      .attr('text-anchor', 'middle')
       .each((d, index, nodesList) => {
         const labelState = this.formatNodeLabel(d.data.name, d.data.type);
         const textSelection = d3.select(nodesList[index]);
@@ -715,7 +691,7 @@ class DiseaseView extends EventTarget {
 
     const nodeExit = node.exit().transition()
       .duration(transitionDuration)
-      .attr('transform', () => `translate(${source.y || 0},${source.x || 0})`)
+      .attr('transform', () => `translate(${source.x || 0},${source.y || 0})`)
       .remove();
 
     nodeExit.select('circle').attr('r', 0);
@@ -755,10 +731,11 @@ class DiseaseView extends EventTarget {
   }
 
   diagonal(source, target) {
-    return `M ${source.y} ${source.x}
-            C ${(source.y + target.y) / 2} ${source.x},
-              ${(source.y + target.y) / 2} ${target.x},
-              ${target.y} ${target.x}`;
+    const midY = (source.y + target.y) / 2;
+    return `M ${source.x} ${source.y}
+            C ${source.x} ${midY},
+              ${target.x} ${midY},
+              ${target.x} ${target.y}`;
   }
 
   getNodeColor(type) {
