@@ -1,6 +1,6 @@
 # DrugTree — Next Round Plan (UI + Backend Optimization)
 
-**Date:** 2026-06-12 · **Updated:** 2026-06-13 · **Branch:** `optimize-ui-backend-docs-20260613` · **Base commit:** `34933f0`
+**Date:** 2026-06-12 · **Updated:** 2026-06-18 · **Branch:** `optimize-ui-backend-docs-20260613` · **Base commit:** `34933f0`
 **Goal of this round:** Land the in-progress two-pane refactor cleanly, then take the highest-leverage UI and backend optimizations in parallel without breaking the JSON-first / embed-fallback / no-build-step invariants.
 **Inputs:** [2026-06-12-review-qa.md](./2026-06-12-review-qa.md) (findings), [../Architecture.md](../Architecture.md), [../UI-Architecture.md](../UI-Architecture.md).
 
@@ -119,8 +119,76 @@ The two-pane workspace + anchored detail page began as the unstable surface for 
 - `git check-ignore` returned no ignore match for `docs/Architecture.md`, `docs/UI-Architecture.md`, `docs/modules/README.md`, or the current plan/Q&A files.
 - Implementation commits before this documentation alignment include `11848fc refactor: optimize drugtree ui and backend modules`, `838bb76 docs: record optimization verification status`, `4764bc3 docs: clear stale plan wording`, and `ce1e1eb fix: drug ETL transform helpers and test contract updates` on `optimize-ui-backend-docs-20260613`.
 
+## Phase 4 — Browser review follow-ups (2026-06-18, docs only)
+
+**Review method:** Live browser pass on `http://127.0.0.1:8080` (embed-only, no backend). Viewports tested: 1440, 1200, 1000, 800, 390. No code changes in this pass — findings recorded for the next implementation round.
+
+### Track E — Responsive / auto-fit layout (user priority #1)
+
+| Task | Detail | Acceptance |
+|------|--------|-----------|
+| E1 Fluid workspace grid | Replace fixed `grid-template-columns: minmax(620px, 0.98fr) minmax(720px, 1.18fr)` with fluid `fr` columns and a single intermediate breakpoint band (≈1000–1340px currently overflows horizontally). | No horizontal scroll at 1200px; both panes visible without clipping |
+| E2 Container-driven D3 sizing | `DiseaseView` defaults to 1120px width with 220px left/right margins; in a ~580px right pane this leaves ~140px for tree content — graph looks empty. ResizeObserver exists but margins/spacing must scale with container width. | Disease tree readable at all desktop widths; nodes not clustered into a single dot |
+| E3 Collapse atlas hero on narrow viewports | Hero copy + summary pills consume ~250px vertical space before the body SVG; on mobile (390px) the body appears below ~980px scroll offset. Add compact/collapsible hero or body-first mobile layout. | Body atlas visible within first screen on phone |
+| E4 Vertical scroll budget | At 390px stacked layout, right workspace panel height exceeds 27,000px (virtualized grid + long drug list). Add sticky section tabs or collapse secondary panels (Disease Focus below grid) on mobile. | Mobile scroll height proportional to visible cards, not full dataset |
+| E5 Topbar density | Four toggle groups (Clear, Genealogy/Disease, Public/Scientist) wrap awkwardly between 600–1000px. Consider icon-only mode or overflow menu. | Topbar usable without wrapping past two rows at 800px |
+
+### Track F — Light theme (user priority #2)
+
+| Task | Detail | Acceptance |
+|------|--------|-----------|
+| F1 Theme token split | `style.css` is dark-only (`--bg-base: #0f172a`, etc.). Introduce `[data-theme="light"]` / `[data-theme="dark"]` token sets; no hardcoded colors outside tokens. | Both themes render all surfaces (atlas, cards, detail, D3) |
+| F2 Theme toggle + persistence | No theme toggle exists today. Add topbar control; persist choice in `localStorage`; optional `prefers-color-scheme` default on first visit. | Toggle works; survives reload; respects OS preference when unset |
+| F3 SVG / RDKit / D3 contrast | Body atlas glow, region fills, disease-tree nodes, and RDKit structure canvas need light-theme variants (drop-shadows, stroke contrast, white structure background already OK). | WCAG AA contrast on primary text and interactive regions in light mode |
+| F4 Visual snapshot update | Regenerate Playwright visual snapshots for both themes. | `visual-snapshots.spec.ts` green for dark + light |
+
+### Track G — Visual redesign / body atlas layout (user priority #3)
+
+| Task | Detail | Acceptance |
+|------|--------|-----------|
+| G1 Body-first atlas composition | Current layout: hero headline → summary pills → 3-column constellation (ATC rails + 344px body). Body feels small relative to marketing copy. Prototype: body-dominant center stage with ATC as orbit/chip ring or bottom strip; collapsible hero. | Body SVG is the visual anchor; ATC discoverable without side-rail truncation |
+| G2 ATC rail legibility | Right-rail labels truncate ("Respirat…", "Anti-infe…", "GU/E…") in the left pane at moderate widths. Widen rail budget, allow two-line labels, or move to wrapped chip grid (partially done at ≤1000px). | Full ATC names readable without hover |
+| G3 Information hierarchy in workspace | Right panel repeats "Matching Drugs" / "Disease Hierarchy" headings; Disease Focus competes with grid for space. Consider tabbed workspace (Drugs / Diseases / Detail) or split-pane with resizable divider. | Clear primary action per view mode; less duplicated chrome |
+| G4 Empty-state polish | Disease graph panel looks empty until region + disease selected; collapsed tree nodes are nearly invisible. Add skeleton/placeholder illustration and onboarding hint. | First-time user sees what to click within 3 seconds |
+| G5 Design system pass | Unify spacing scale, reduce nested gradient borders (`workspace-panel::before`, `atlas-stage::before`), tighten Fraunces display + IBM Plex pairing, soften neon glow for a cleaner clinical aesthetic. | Coherent visual language across atlas, cards, detail, graphs |
+
+### Track H — Backend data agent supervision (user request)
+
+| Task | Detail | Acceptance |
+|------|--------|-----------|
+| H1 Approval year enrichment | **100%** of drugs lack `year_approved` (UI shows "Unknown" everywhere, e.g. Lisinopril). Agent pipeline: FDA Orange Book / openFDA / EMA EPAR crosswalk by name/InChIKey. | ≥70% of Phase IV drugs have a sourced approval year with provenance tag |
+| H2 ATC placeholder resolution | **42.6%** (3,133/7,359) drugs carry placeholder `*99XX99` ATC codes. Extend existing ChEMBL/KEGG/PubChem ETL with agent-supervised disambiguation for remaining gaps. | Placeholder rate <10%; changes logged in `data/changes/` |
+| H3 Disease–drug edge expansion | Only **64 edges** linking **36 unique drugs** to 50 diseases (~1.3 edges/disease). Disease view is sparse beyond demo hypertension cluster. Agent: correlate DrugBank/CTD/DisGeNET/openFDA indications → `disease_drug_edges.json`. | ≥5× edge coverage; each disease has ≥1 sourced edge or explicit "no approved drug" flag |
+| H4 Company / sponsor validation | Only **12.8%** have `company` populated; Lisinopril shows "Azurity Pharmaceuticals" (likely incorrect for originator). Agent-verify sponsor vs. generic/API entry. | Company field has source URL; obvious mismatches flagged in audit report |
+| H5 Target / class completeness | **55.7%** have targets; drug class often null in Public cards. Correlate with ChEMBL mechanism of action, UniProt, Pharos. | Scientist cards show class + targets for ≥80% of small-molecule entries |
+| H6 Agent audit loop | New ETL stage: `agent_data_supervisor.py` — batch records, web evidence fetch (with try/except + rate limits), confidence score, human-review queue in `data/reports/`. | Report per run; no silent overwrite of high-confidence existing values |
+
+### Sequencing (Phase 4)
+
+1. **E1 + E2** — fix layout breakage and invisible disease graph (highest user-visible correctness).
+2. **G1 + G2** — body atlas redesign (explicit user ask).
+3. **F1 + F2** — light theme (moderate effort, high user ask).
+4. **H1 + H2 + H3** — data supervision (parallel backend track; unblocks richer UI).
+5. **G3–G5, E3–E5, F3–F4, H4–H6** — polish and breadth.
+
+### Browser verification evidence (2026-06-18)
+
+- App loads cleanly at 1440px; cold `DOMContentLoaded` ≈ 303 ms (embed-only).
+- **1200px:** two-pane grid overflows (`620px + 720px` > viewport); right pane clipped.
+- **1000px:** stacks to single column; ATC rails become wrapped chips (good); body SVG not visible without scroll.
+- **800px / 390px:** atlas hero + ATC grid dominate first screen; body appears far below fold; right workspace stacks underneath with extreme vertical scroll.
+- **Disease view:** selecting Heart/Vascular → Hypertension shows tree in a11y tree but graph is visually near-empty; SVG width 580px with 220px margins each side.
+- **Drug detail:** `#drug/lisinopril` renders structure + metadata; Scientist mode adds class/MW/InChIKey/SMILES; `year_approved` = Unknown.
+- **Theme:** dark only; `getComputedStyle(body).backgroundColor` = `rgb(15, 23, 42)`; no theme toggle in DOM.
+- **Console:** no JS errors observed during review.
+
+---
+
 ## Open questions for the maintainer
 1. **Hosting target for compression (C1):** local/test static hosting now serves sidecars. For GitHub Pages/CDN, confirm whether precompressed `.br`/`.gz` sidecars are honored or need deployment config.
 2. **Backend in production:** is the FastAPI service actually deployed, or is the app effectively embed-only today? This re-ranks Track B vs. Track A.
 3. **Detail-page vs modal:** answered for this implementation pass — the anchored in-panel page is treated as the current contract, and `#modal-overlay` was removed.
 4. **Schema migration:** stay on the current flat record shape, or move toward the nested `docs/product/project-plan.md` Schema v1? This gates C4's depth.
+5. **Light theme default (F2):** should first visit follow OS `prefers-color-scheme`, or default dark with manual opt-in?
+6. **Body atlas redesign direction (G1):** prefer keeping the constellation + side rails (scaled up), or a new body-dominant layout with ATC as a bottom chip bar / orbit ring?
+7. **Agent supervision scope (H):** which external sources are approved for automated writes (openFDA, ChEMBL, KEGG, DrugBank, LLM-assisted extraction)? Any licensing constraints?
