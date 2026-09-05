@@ -44,6 +44,57 @@ async function focusDiseaseRegion(page: Page) {
 test.describe('Atlas responsive matrix', () => {
   test.setTimeout(120000);
 
+  test('rendered anatomy keeps every labeled region clickable and keyboard accessible', async ({ page }) => {
+    await waitForAtlas(page);
+    const regions = page.locator('#body-map [data-region]');
+    const expectedIds = await page.evaluate(() => (window as any).app.bodyOntology.visible_regions.map((region: any) => region.id).sort());
+    expect(await regions.evaluateAll((elements) => elements.map((element) => element.getAttribute('data-region')).sort())).toEqual(expectedIds);
+
+    for (const id of expectedIds) {
+      const region = page.locator(`#body-map [data-region="${id}"]`);
+      await region.locator('.region-label-hit').click();
+      await expect(region).toHaveAttribute('aria-pressed', 'true');
+      expect(await page.evaluate(() => (window as any).app.activeBodyRegion)).toBe(id);
+      await region.focus();
+      await page.keyboard.press('Enter');
+      await expect(region).toHaveAttribute('aria-pressed', 'false');
+    }
+
+    // Hit the rendered heart itself, not just its easier-to-click label.
+    await page.locator('.atc-tag[data-category="C"]').click();
+    const heart = page.locator('#body-map [data-region="heart_vascular"]');
+    await heart.locator('.region-hit').click();
+    await expect(heart).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.atc-tag[data-category="C"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.drug-card').first()).toBeVisible();
+  });
+
+  test('anatomy render loads with transparency and falls back when unavailable', async ({ page }) => {
+    const response = await page.request.get('/assets/human-body.webp');
+    expect(response.ok()).toBe(true);
+    expect((await response.body()).byteLength).toBeLessThan(180000);
+    await waitForAtlas(page);
+    const imageData = await page.evaluate(async () => {
+      const image = new Image();
+      image.src = document.querySelector('.body-render')!.getAttribute('href')!;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d')!;
+      context.drawImage(image, 0, 0);
+      return { width: image.naturalWidth, height: image.naturalHeight, cornerAlpha: context.getImageData(0, 0, 1, 1).data[3] };
+    });
+    expect(imageData).toEqual({ width: 840, height: 1520, cornerAlpha: 0 });
+
+    await page.route('**/assets/human-body.webp', (route) => route.abort());
+    await page.reload();
+    await expect(page.locator('.atlas-body-svg')).toHaveClass(/is-render-unavailable/);
+    await expect(page.locator('.body-shell')).toHaveCSS('opacity', '1');
+    await page.locator('[data-region="brain_cns"] .region-label-hit').click();
+    await expect(page.locator('[data-region="brain_cns"]')).toHaveAttribute('aria-pressed', 'true');
+  });
+
   const widths = [1440, 1200, 1000, 800];
 
   for (const width of widths) {

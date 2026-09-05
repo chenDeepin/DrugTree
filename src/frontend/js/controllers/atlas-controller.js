@@ -29,6 +29,9 @@ class AtlasController {
       const svg = container.querySelector("svg");
       if (svg) {
         svg.classList.add("atlas-body-svg");
+        svg.querySelector(".body-render")?.addEventListener("error", () => {
+          svg.classList.add("is-render-unavailable");
+        }, { once: true });
       }
 
       this.app.regionElementsById.clear();
