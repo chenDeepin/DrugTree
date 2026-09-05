@@ -1,0 +1,7 @@
+Use case: scientific-educational
+Asset type: visual modeling reference for a Blender human anatomy atlas on a drug exploration website.
+Primary request: a realistic, proportionate adult human body, complete head to feet, straight-on orthographic anterior view, neutral anatomical pose with arms slightly separated from torso and fingers naturally extended. Educational medical mannequin, sex-neutral smooth pelvis without genital detail. Build believable shoulders, neck, ribcage, waist, hips, elbows, wrists, hands with five fingers, knees, calves, ankles and feet. Natural adult proportions around 7.5 heads tall.
+Style/medium: refined three-dimensional medical illustration, softly translucent cool blue-gray outer body with carefully modeled, gently colored internal brain, lungs, anatomical heart, liver, stomach, intestines and kidneys. Organs readable without excessive clutter. Anatomical anterior orientation: liver on viewer's left, stomach and heart apex on viewer's right. Fine realistic facial planes and soft muscle contours, no exaggerated musculature.
+Composition/framing: one centered full body, portrait canvas, full hands and feet within frame, arms about 15 degrees away from sides. No labels, no text, no inset panels, no environment. Genuinely transparent background.
+Lighting: soft studio illumination, subtle cool rim light suitable for a dark navy interface. Restrained organ colors, no neon, no gore, no cartoon shapes, no pedestal.
+Output intent: high quality reference image to guide Blender model geometry and material treatment.
