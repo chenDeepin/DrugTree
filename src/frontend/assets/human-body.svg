@@ -1,286 +1,95 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 420 760"
-  fill="none"
-  aria-labelledby="title desc"
-  role="img"
->
-  <title id="title">DrugTree central atlas body</title>
-  <desc id="desc">A semi-anatomical human body illustration with ontology-aligned interactive regions.</desc>
-
-  <defs>
-    <linearGradient id="bodyShellGradient" x1="210" y1="72" x2="210" y2="672" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2d4667"/>
-      <stop offset="44%" stop-color="#20344f"/>
-      <stop offset="100%" stop-color="#142235"/>
-    </linearGradient>
-    <radialGradient id="torsoBloom" cx="50%" cy="42%" r="62%">
-      <stop offset="0%" stop-color="rgba(128, 186, 255, 0.18)"/>
-      <stop offset="100%" stop-color="rgba(128, 186, 255, 0)"/>
-    </radialGradient>
-  </defs>
-
-  <ellipse class="body-shadow" cx="210" cy="710" rx="86" ry="20"/>
-
-  <path
-    class="body-shell"
-    d="M210 74
-      C247 74 272 102 272 142
-      C272 174 252 196 238 212
-      L252 242
-      C287 254 315 282 322 334
-      L330 430
-      C332 458 318 482 292 492
-      L279 674
-      C278 690 266 702 250 702
-      C235 702 223 690 221 674
-      L210 540
-      L199 674
-      C197 690 185 702 170 702
-      C154 702 142 690 141 674
-      L128 492
-      C102 482 88 458 90 430
-      L98 334
-      C105 282 133 254 168 242
-      L182 212
-      C168 196 148 174 148 142
-      C148 102 173 74 210 74 Z"
-  />
-
-  <path
-    class="body-meridian"
-    d="M210 132
-      C208 176 207 218 210 262
-      C213 318 214 372 210 430
-      C206 486 205 530 210 592"
-  />
-
-  <path
-    class="body-meridian"
-    d="M168 246 C150 276 141 316 141 364
-       M252 246 C270 276 279 316 279 364"
-  />
-
-  <path
-    class="body-region skin-region"
-    data-region="skin"
-    d="M210 92
-      C236 92 256 112 256 142
-      C256 168 239 184 228 196
-      L239 220
-      C268 230 291 257 297 304
-      L303 420
-      C304 440 294 455 275 464
-      L262 670
-      C261 680 255 687 246 687
-      C237 687 230 680 229 670
-      L217 528
-      C216 514 204 514 203 528
-      L191 670
-      C190 680 183 687 174 687
-      C165 687 159 680 158 670
-      L145 464
-      C126 455 116 440 117 420
-      L123 304
-      C129 257 152 230 181 220
-      L192 196
-      C181 184 164 168 164 142
-      C164 112 184 92 210 92 Z"
-  />
-
-  <path
-    class="body-region systemic-region"
-    data-region="systemic_multiorgan"
-    d="M130 206
-      C103 224 85 258 82 308
-      L77 432
-      C75 472 95 506 132 520
-      L136 555
-      C162 573 186 580 210 580
-      C234 580 258 573 284 555
-      L288 520
-      C325 506 345 472 343 432
-      L338 308
-      C335 258 317 224 290 206
-      C270 222 244 232 210 232
-      C176 232 150 222 130 206 Z"
-  />
-
-  <ellipse class="body-region" data-region="brain_cns" cx="210" cy="140" rx="38" ry="27"/>
-  <path class="body-region" data-region="brain_cns" d="M209 170 C205 198 205 214 210 236 C214 214 214 198 209 170 Z"/>
-
-  <ellipse class="body-region" data-region="eye_ear" cx="193" cy="140" rx="9" ry="6"/>
-  <ellipse class="body-region" data-region="eye_ear" cx="227" cy="140" rx="9" ry="6"/>
-  <path class="body-region" data-region="eye_ear" d="M167 146 C160 141 160 132 167 127 C172 131 172 142 167 146 Z"/>
-  <path class="body-region" data-region="eye_ear" d="M253 146 C260 141 260 132 253 127 C248 131 248 142 253 146 Z"/>
-
-  <path
-    class="body-region"
-    data-region="blood_immune"
-    d="M179 246
-      C168 248 160 258 160 272
-      C160 288 171 300 186 300
-      C199 300 209 290 210 276
-      C211 290 221 300 234 300
-      C249 300 260 288 260 272
-      C260 258 252 248 241 246
-      C239 230 228 220 210 220
-      C192 220 181 230 179 246 Z"
-  />
-  <circle class="body-region" data-region="blood_immune" cx="171" cy="322" r="10"/>
-  <circle class="body-region" data-region="blood_immune" cx="249" cy="322" r="10"/>
-  <circle class="body-region" data-region="blood_immune" cx="210" cy="334" r="12"/>
-
-  <path
-    class="body-region"
-    data-region="lung_respiratory"
-    d="M171 246
-      C150 256 142 284 146 334
-      C150 372 164 390 183 390
-      C197 390 204 378 203 358
-      L203 270
-      C203 252 188 241 171 246 Z"
-  />
-  <path
-    class="body-region"
-    data-region="lung_respiratory"
-    d="M249 246
-      C270 256 278 284 274 334
-      C270 372 256 390 237 390
-      C223 390 216 378 217 358
-      L217 270
-      C217 252 232 241 249 246 Z"
-  />
-  <path class="body-region" data-region="lung_respiratory" d="M205 238 C206 258 206 280 205 304 L215 304 C214 280 214 258 215 238 Z"/>
-
-  <path
-    class="body-region"
-    data-region="heart_vascular"
-    d="M210 286
-      C202 274 188 276 182 288
-      C176 300 181 316 194 327
-      L210 340
-      L226 327
-      C239 316 244 300 238 288
-      C232 276 218 274 210 286 Z"
-  />
-  <path
-    class="body-region"
-    data-region="heart_vascular"
-    d="M210 246
-      C205 262 204 276 205 292
-      M193 264 C186 273 181 284 179 297
-      M227 264 C234 273 239 284 241 297"
-  />
-
-  <path
-    class="body-region"
-    data-region="stomach_upper_gi"
-    d="M188 382
-      C174 386 168 399 170 417
-      C172 436 183 447 196 447
-      C205 447 213 439 214 426
-      C216 406 207 391 188 382 Z"
-  />
-
-  <path
-    class="body-region"
-    data-region="liver_biliary_pancreas"
-    d="M223 374
-      C250 370 272 380 278 399
-      C284 418 273 434 249 438
-      C228 441 214 434 211 420
-      C207 403 214 380 223 374 Z"
-  />
-  <ellipse class="body-region" data-region="liver_biliary_pancreas" cx="229" cy="431" rx="18" ry="7"/>
-
-  <path
-    class="body-region"
-    data-region="endocrine_metabolic"
-    d="M204 196
-      C198 199 194 204 194 210
-      C194 218 201 224 210 224
-      C219 224 226 218 226 210
-      C226 204 222 199 216 196 Z"
-  />
-  <path
-    class="body-region"
-    data-region="endocrine_metabolic"
-    d="M202 454
-      C190 458 182 468 182 481
-      C182 497 194 508 210 508
-      C226 508 238 497 238 481
-      C238 468 230 458 218 454
-      C216 465 214 475 210 487
-      C206 475 204 465 202 454 Z"
-  />
-
-  <path
-    class="body-region"
-    data-region="intestine_colorectal"
-    d="M180 444
-      C170 454 167 472 172 488
-      C176 503 188 512 203 512
-      L217 512
-      C232 512 244 503 248 488
-      C253 472 250 454 240 444
-      C230 448 223 454 220 462
-      C214 455 206 451 210 444
-      C206 451 198 455 192 462
-      C189 454 182 448 180 444 Z"
-  />
-
-  <path
-    class="body-region"
-    data-region="kidney_urinary"
-    d="M159 424
-      C147 430 143 446 146 462
-      C149 478 159 487 171 486
-      C181 485 188 476 188 462
-      C188 445 177 420 159 424 Z"
-  />
-  <path
-    class="body-region"
-    data-region="kidney_urinary"
-    d="M261 424
-      C273 430 277 446 274 462
-      C271 478 261 487 249 486
-      C239 485 232 476 232 462
-      C232 445 243 420 261 424 Z"
-  />
-  <path
-    class="body-region"
-    data-region="kidney_urinary"
-    d="M202 520
-      C196 526 194 534 196 542
-      C198 551 204 557 210 557
-      C216 557 222 551 224 542
-      C226 534 224 526 218 520 Z"
-  />
-
-  <circle class="body-region" data-region="reproductive_breast" cx="183" cy="286" r="12"/>
-  <circle class="body-region" data-region="reproductive_breast" cx="237" cy="286" r="12"/>
-  <path
-    class="body-region"
-    data-region="reproductive_breast"
-    d="M186 548
-      C186 566 197 579 210 579
-      C223 579 234 566 234 548
-      C226 540 219 536 210 536
-      C201 536 194 540 186 548 Z"
-  />
-
-  <path
-    class="body-region"
-    data-region="bone_joint_muscle"
-    d="M150 276 L139 430 L148 434 L163 280 Z
-       M270 276 L281 430 L272 434 L257 280 Z
-       M169 516 L164 660 L174 660 L179 520 Z
-       M251 516 L256 660 L246 660 L241 520 Z"
-  />
-  <circle class="body-region" data-region="bone_joint_muscle" cx="147" cy="448" r="14"/>
-  <circle class="body-region" data-region="bone_joint_muscle" cx="273" cy="448" r="14"/>
-  <circle class="body-region" data-region="bone_joint_muscle" cx="173" cy="676" r="13"/>
-  <circle class="body-region" data-region="bone_joint_muscle" cx="247" cy="676" r="13"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 760" fill="none" aria-labelledby="body-title body-desc" role="group">
+  <title id="body-title">Human body atlas</title>
+  <desc id="body-desc">Anterior human figure rendered in Blender. Select an organ or its label to explore drugs in one of fourteen body regions. Organ locations are illustrative.</desc>
+  <defs><linearGradient id="bodyShellGradient"><stop stop-color="#38546e"/><stop offset="0.5" stop-color="#91aec4"/><stop offset="1" stop-color="#38546e"/></linearGradient><path id="human-outline" d="M210 36 C183 36 177 57 179 85 L177 96 Q180 113 191 123 L190 139 Q174 152 145 151 Q122 150 114 174 L89 236 L67 302 Q58 319 61 335 L64 357 Q65 366 68 356 L67 330 L72 337 L75 355 Q79 360 79 352 L76 327 L81 323 L90 327 Q95 328 93 322 L81 312 L110 258 L130 213 Q134 236 145 268 L150 305 Q138 333 135 360 L134 406 L145 502 L139 545 L134 668 L132 695 L129 713 Q132 723 164 721 L169 714 L162 697 L161 675 L169 574 L175 548 L181 509 L190 431 Q192 410 210 409 Q228 410 230 431 L239 509 L245 548 L251 574 L259 675 L258 697 L251 714 Q254 725 288 721 L291 713 L288 695 L286 668 L281 545 L275 502 L286 406 L285 360 Q282 333 270 305 L275 268 Q286 236 290 213 L310 258 L339 312 L327 322 Q325 328 330 327 L339 323 L344 327 L341 352 Q341 360 345 355 L348 337 L353 330 L352 356 Q355 366 356 357 L359 335 Q362 319 353 302 L331 236 L306 174 Q298 150 275 151 Q246 152 230 139 L229 123 Q240 113 243 96 L241 85 C243 57 237 36 210 36 Z"/></defs>
+  <g transform="translate(90 0)">
+    <g class="body-art" aria-hidden="true" pointer-events="none">
+      <use href="#human-outline" class="body-shell"/>
+      <image class="body-render" href="assets/human-body.webp" x="0" y="0" width="420" height="760" preserveAspectRatio="xMidYMid meet"/>
+    </g>
+    <g class="body-region" data-region="skin">
+      <use href="#human-outline" class="region-hit"/>
+      <path class="region-leader" d="M271 465 L320 482 H338"/>
+      <rect class="region-label-hit" x="335" y="467" width="162" height="32" rx="8"/>
+      <text class="region-name" x="347" y="488">Skin</text>
+    </g>
+    <g class="body-region" data-region="bone_joint_muscle">
+      <path class="region-hit" d="M147 429 Q160 415 178 433 L172 522 Q162 542 146 527 Z M273 429 Q260 415 242 433 L248 522 Q258 542 274 527 Z"/>
+      <path class="region-leader" d="M160 516 L108 529 H53"/>
+      <rect class="region-label-hit" x="-78" y="514" width="140" height="32" rx="8"/>
+      <text class="region-name" x="-67" y="535">Muscle &amp; joint</text>
+    </g>
+    <g class="body-region" data-region="brain_cns">
+      <path class="region-hit" d="M184 58 Q188 39 209 40 Q232 39 237 60 L235 77 Q223 84 210 78 Q194 86 185 77 Z"/>
+      <path class="region-leader" d="M185 60 L140 53 H53"/>
+      <rect class="region-label-hit" x="-78" y="38" width="140" height="32" rx="8"/>
+      <text class="region-name" x="-67" y="59">Brain &amp; CNS</text>
+    </g>
+    <g class="body-region" data-region="eye_ear">
+      <ellipse class="region-hit" cx="210" cy="88" rx="28" ry="10"/><path class="region-hit" d="M174 84 Q182 82 183 99 L177 109 Q170 97 174 84 Z M246 84 Q238 82 237 99 L243 109 Q250 97 246 84 Z"/>
+      <path class="region-leader" d="M239 93 L288 98 H338"/>
+      <rect class="region-label-hit" x="335" y="83" width="162" height="32" rx="8"/>
+      <text class="region-name" x="347" y="104">Eyes &amp; ears</text>
+    </g>
+    <g class="body-region" data-region="endocrine_metabolic">
+      <ellipse class="region-hit" cx="210" cy="147" rx="12" ry="13"/>
+      <path class="region-leader" d="M222 147 H338"/>
+      <rect class="region-label-hit" x="335" y="132" width="162" height="32" rx="8"/>
+      <text class="region-name" x="347" y="153">Endocrine</text>
+    </g>
+    <g class="body-region" data-region="blood_immune">
+      <ellipse class="region-hit" cx="150" cy="211" rx="9" ry="21"/><ellipse class="region-hit" cx="270" cy="211" rx="9" ry="21"/>
+      <path class="region-leader" d="M149 217 L111 229 H53"/>
+      <rect class="region-label-hit" x="-78" y="214" width="152" height="32" rx="8"/>
+      <text class="region-name" x="-67" y="235">Blood &amp; immune</text>
+    </g>
+    <g class="body-region" data-region="lung_respiratory">
+      <path class="region-hit" d="M191 174 Q175 176 164 201 Q155 226 154 259 Q162 272 188 269 L203 259 L203 200 Q199 180 191 174 Z M229 174 Q245 176 256 201 Q265 226 266 259 Q258 272 232 269 L217 259 L217 200 Q221 180 229 174 Z"/>
+      <path class="region-leader" d="M171 193 L121 181 H53"/>
+      <rect class="region-label-hit" x="-78" y="166" width="140" height="32" rx="8"/>
+      <text class="region-name" x="-67" y="187">Lungs</text>
+    </g>
+    <g class="body-region" data-region="heart_vascular">
+      <path class="region-hit" d="M204 211 Q219 205 227 218 Q239 228 230 251 Q216 249 205 236 Q194 224 204 211 Z M201 213 Q193 193 207 188 Q222 185 223 207 L218 208 Q217 194 208 195 Q201 196 205 211 Z"/>
+      <path class="region-leader" d="M228 227 L289 224 H338"/>
+      <rect class="region-label-hit" x="335" y="209" width="162" height="32" rx="8"/>
+      <text class="region-name" x="347" y="230">Heart &amp; vessels</text>
+    </g>
+    <g class="body-region" data-region="liver_biliary_pancreas">
+      <path class="region-hit" d="M157 264 Q183 257 218 271 Q237 278 217 288 L175 307 Q156 307 157 264 Z"/>
+      <path class="region-leader" d="M166 280 L111 279 H53"/>
+      <rect class="region-label-hit" x="-78" y="264" width="140" height="32" rx="8"/>
+      <text class="region-name" x="-67" y="285">Liver &amp; biliary</text>
+    </g>
+    <g class="body-region" data-region="stomach_upper_gi">
+      <path class="region-hit" d="M229 274 Q245 270 250 288 Q257 311 238 321 Q218 329 206 311 L217 298 Q228 303 228 292 Z"/>
+      <path class="region-leader" d="M247 299 L294 281 H338"/>
+      <rect class="region-label-hit" x="335" y="266" width="162" height="32" rx="8"/>
+      <text class="region-name" x="347" y="287">Stomach</text>
+    </g>
+    <g class="body-region" data-region="kidney_urinary">
+      <ellipse class="region-hit" cx="166" cy="318" rx="10" ry="17"/><ellipse class="region-hit" cx="254" cy="309" rx="10" ry="17"/><ellipse class="region-hit" cx="210" cy="391" rx="12" ry="11"/>
+      <path class="region-leader" d="M260 315 L297 331 H338"/>
+      <rect class="region-label-hit" x="335" y="316" width="162" height="32" rx="8"/>
+      <text class="region-name" x="347" y="337">Kidneys &amp; urinary</text>
+    </g>
+    <g class="body-region" data-region="intestine_colorectal">
+      <path class="region-hit" d="M174 322 Q190 318 210 325 Q236 316 248 325 L247 357 Q241 377 222 378 L210 388 L202 378 Q169 378 171 349 Z"/>
+      <path class="region-leader" d="M177 350 L119 353 H53"/>
+      <rect class="region-label-hit" x="-78" y="338" width="140" height="32" rx="8"/>
+      <text class="region-name" x="-67" y="359">Intestines</text>
+    </g>
+    <g class="body-region" data-region="reproductive_breast">
+      <path class="region-hit" d="M183 398 Q209 408 237 398 L232 410 Q210 424 188 410 Z"/>
+      <path class="region-leader" d="M237 397 L298 382 H338"/>
+      <rect class="region-label-hit" x="335" y="367" width="162" height="32" rx="8"/>
+      <text class="region-name" x="347" y="388">Reproductive</text>
+    </g>
+    <g class="body-region" data-region="systemic_multiorgan">
+      <path class="region-leader" d="M53 431 H109 L145 404"/>
+      <rect class="region-label-hit" x="-78" y="416" width="140" height="32" rx="8"/>
+      <text class="region-name" x="-67" y="437">Systemic</text>
+    </g>
+  </g>
 </svg>
